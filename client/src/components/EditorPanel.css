@@ -1,0 +1,8 @@
+.editor-panel {
+  border-right: 1px solid var(--border-color);
+}
+
+.dirty-marker {
+  color: var(--warning-color);
+  font-weight: bold;
+}

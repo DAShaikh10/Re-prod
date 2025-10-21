@@ -1,0 +1,68 @@
+.menubar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 32px;
+  background-color: var(--bg-toolbar);
+  border-bottom: 1px solid var(--border-color);
+  padding: 0 12px;
+  flex-shrink: 0;
+}
+
+.menubar-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.menubar-brand {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent-blue);
+}
+
+.menubar-menu {
+  display: flex;
+  gap: 2px;
+}
+
+.menu-item {
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 3px;
+  color: var(--text-primary);
+  transition: background-color 0.15s;
+}
+
+.menu-item:hover {
+  background-color: var(--bg-secondary);
+}
+
+.menubar-right {
+  display: flex;
+  align-items: center;
+}
+
+.connection-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.connection-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--error-color);
+}
+
+.connection-indicator.connected .connection-dot {
+  background-color: var(--success-color);
+}
+
+.connection-text {
+  font-size: 11px;
+}

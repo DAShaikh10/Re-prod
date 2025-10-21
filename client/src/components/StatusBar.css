@@ -1,0 +1,35 @@
+.statusbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 22px;
+  background-color: var(--bg-toolbar);
+  border-top: 1px solid var(--border-color);
+  padding: 0 12px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.statusbar-left,
+.statusbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.statusbar-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.statusbar-modified {
+  color: var(--warning-color);
+  font-weight: 500;
+}
+
+.statusbar-running {
+  color: var(--accent-blue);
+  font-weight: 500;
+}
