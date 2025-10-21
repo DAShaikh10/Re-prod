@@ -25,6 +25,17 @@ export function AIPanel(): JSX.Element {
     addAIMessage(userMessage);
     setAILoading(true);
 
+    // Safety timeout - clear loading state if no response in 30 seconds
+    const timeoutId = setTimeout(() => {
+      setAILoading(false);
+      addAIMessage({
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: '⏱️ Request timeout. The AI service took too long to respond. Please try again.',
+        timestamp: Date.now()
+      });
+    }, 30000);
+
     const socket = socketService.getSocket();
     socket.emit('ai-request', {
       code: editor.content,
@@ -33,7 +44,18 @@ export function AIPanel(): JSX.Element {
         cursorPosition: editor.cursorPosition
       }
     }, (response) => {
-      // Response handled by socket listener in App.tsx
+      // Clear timeout
+      clearTimeout(timeoutId);
+
+      // Add AI response (including errors)
+      addAIMessage({
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: response.message,
+        code: response.suggestedCode,
+        timestamp: response.timestamp
+      });
+      setAILoading(false);
     });
 
     setInput('');

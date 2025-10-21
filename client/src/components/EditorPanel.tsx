@@ -1,10 +1,79 @@
-import Editor from '@monaco-editor/react';
+import { useEffect, useState, useRef } from 'react';
+import Editor, { Monaco } from '@monaco-editor/react';
+import type { editor as MonacoEditor } from 'monaco-editor';
 import { useStore } from '../store/useStore';
 import { socketService } from '../services/socket';
+import { parseCells, getCurrentCell, getCellCode, type Cell } from '../utils/cellParser';
 import './EditorPanel.css';
 
 export function EditorPanel(): JSX.Element {
-  const { editor, setEditorContent, setCursorPosition, setIsRunning, execution } = useStore();
+  const { editor, setEditorContent, setCursorPosition, setIsRunning, execution, settings } = useStore();
+  const [cells, setCells] = useState<Cell[]>([]);
+  const [executingCellIndex, setExecutingCellIndex] = useState<number | null>(null);
+  const editorRef = useRef<MonacoEditor.IStandaloneCodeEditor | null>(null);
+  const decorationsRef = useRef<string[]>([]);
+
+  // Parse cells when content changes
+  useEffect(() => {
+    const filename = editor.filepath || 'Untitled.R';
+    const parsedCells = parseCells(editor.content, filename);
+    setCells(parsedCells);
+  }, [editor.content, editor.filepath]);
+
+  // Update decorations when cells change or settings change
+  useEffect(() => {
+    if (!editorRef.current) return;
+
+    const monacoEditor = editorRef.current;
+
+    // Clear old decorations
+    decorationsRef.current = monacoEditor.deltaDecorations(decorationsRef.current, []);
+
+    // Only show decorations if enabled
+    if (!settings.showCellDecorations) return;
+
+    const newDecorations: MonacoEditor.IModelDeltaDecoration[] = [];
+
+    cells.forEach((cell, index) => {
+      // Add line decoration at section boundaries
+      if (cell.startLine > 1) {
+        newDecorations.push({
+          range: {
+            startLineNumber: cell.startLine,
+            startColumn: 1,
+            endLineNumber: cell.startLine,
+            endColumn: 1
+          },
+          options: {
+            isWholeLine: true,
+            linesDecorationsClassName: 'cell-boundary-decoration',
+            overviewRuler: {
+              color: '#4285f4',
+              position: 4
+            }
+          }
+        });
+      }
+
+      // Highlight executing cell
+      if (settings.highlightExecutingCell && executingCellIndex === index) {
+        newDecorations.push({
+          range: {
+            startLineNumber: cell.startLine,
+            startColumn: 1,
+            endLineNumber: cell.endLine,
+            endColumn: 1
+          },
+          options: {
+            isWholeLine: true,
+            className: 'executing-cell-background'
+          }
+        });
+      }
+    });
+
+    decorationsRef.current = monacoEditor.deltaDecorations([], newDecorations);
+  }, [cells, settings.showCellDecorations, settings.highlightExecutingCell, executingCellIndex]);
 
   const handleEditorChange = (value: string | undefined): void => {
     if (value !== undefined) {
@@ -12,13 +81,97 @@ export function EditorPanel(): JSX.Element {
     }
   };
 
-  const handleRunCode = (): void => {
+  const executeCode = (code: string, cellIndex?: number): void => {
     const socket = socketService.getSocket();
     setIsRunning(true);
 
-    socket.emit('execute', editor.content, (result) => {
-      // Result will be handled by the socket listener in App.tsx
+    if (cellIndex !== undefined) {
+      setExecutingCellIndex(cellIndex);
+    }
+
+    socket.emit('execute', code, (result) => {
+      // Clear executing state
+      setExecutingCellIndex(null);
+      setIsRunning(false);
+
+      // Add result to store
+      const { addExecutionResult } = useStore.getState();
+      addExecutionResult(result);
+
       console.log('Execution completed');
+    });
+  };
+
+  const handleRunAll = (): void => {
+    executeCode(editor.content);
+  };
+
+  const handleRunCurrentCell = (): void => {
+    if (cells.length === 0) {
+      // No cells, run all
+      handleRunAll();
+      return;
+    }
+
+    const currentCell = getCurrentCell(cells, editor.cursorPosition.line);
+    if (currentCell) {
+      const cellIndex = cells.indexOf(currentCell);
+      const code = getCellCode(currentCell);
+      executeCode(code, cellIndex);
+    }
+  };
+
+  const handleRunCellAndMoveNext = (): void => {
+    if (cells.length === 0) {
+      handleRunAll();
+      return;
+    }
+
+    const currentCell = getCurrentCell(cells, editor.cursorPosition.line);
+    if (!currentCell) return;
+
+    const cellIndex = cells.indexOf(currentCell);
+    const code = getCellCode(currentCell);
+
+    // Execute current cell
+    executeCode(code, cellIndex);
+
+    // Move cursor to next cell
+    if (cellIndex < cells.length - 1 && editorRef.current) {
+      const nextCell = cells[cellIndex + 1];
+      editorRef.current.setPosition({
+        lineNumber: nextCell.startLine,
+        column: 1
+      });
+      editorRef.current.revealLineInCenter(nextCell.startLine);
+    }
+  };
+
+  const handleEditorDidMount = (monacoEditor: MonacoEditor.IStandaloneCodeEditor, monaco: Monaco): void => {
+    editorRef.current = monacoEditor;
+
+    // Track cursor position
+    monacoEditor.onDidChangeCursorPosition((e) => {
+      setCursorPosition({
+        line: e.position.lineNumber,
+        column: e.position.column
+      });
+    });
+
+    // Keyboard shortcuts
+    // Cmd/Ctrl + Enter: Run current cell
+    monacoEditor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
+      handleRunCurrentCell();
+    });
+
+    // Shift + Enter: Run current cell and move to next
+    monacoEditor.addCommand(monaco.KeyMod.Shift | monaco.KeyCode.Enter, () => {
+      handleRunCellAndMoveNext();
+    });
+
+    // Cmd/Ctrl + Shift + Enter: Run all
+    monacoEditor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.Enter, () => {
+      handleRunAll();
     });
   };
 
@@ -31,9 +184,18 @@ export function EditorPanel(): JSX.Element {
         </div>
         <div className="panel-actions">
           <button
-            className="btn btn-primary"
-            onClick={handleRunCode}
+            className="btn"
+            onClick={handleRunCurrentCell}
             disabled={execution.isRunning}
+            title="Run Current Cell (Cmd/Ctrl+Enter)"
+          >
+            ▶ Run Cell
+          </button>
+          <button
+            className="btn btn-primary"
+            onClick={handleRunAll}
+            disabled={execution.isRunning}
+            title="Run All (Cmd/Ctrl+Shift+Enter)"
           >
             {execution.isRunning ? (
               <>
@@ -41,7 +203,7 @@ export function EditorPanel(): JSX.Element {
                 Running
               </>
             ) : (
-              <>▶ Run</>
+              <>▶ Run All</>
             )}
           </button>
         </div>
@@ -70,14 +232,7 @@ export function EditorPanel(): JSX.Element {
               horizontalScrollbarSize: 12
             }
           }}
-          onMount={(editor) => {
-            editor.onDidChangeCursorPosition((e) => {
-              setCursorPosition({
-                line: e.position.lineNumber,
-                column: e.position.column
-              });
-            });
-          }}
+          onMount={handleEditorDidMount}
         />
       </div>
     </div>

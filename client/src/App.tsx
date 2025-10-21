@@ -33,31 +33,18 @@ function App(): JSX.Element {
       setConnected(false);
     });
 
+    // Execution results are now handled by callbacks in EditorPanel
+    // These event listeners can be used for push notifications if needed
     socket.on('execution-result', (result) => {
-      addExecutionResult(result);
+      // Handled by callback
     });
 
     socket.on('execution-error', (error) => {
-      addExecutionResult({
-        stdout: '',
-        stderr: error.message,
-        plots: [],
-        timestamp: error.timestamp,
-        duration: 0,
-        success: false
-      });
+      // Handled by callback
     });
 
-    socket.on('ai-response', (response) => {
-      addAIMessage({
-        id: Date.now().toString(),
-        role: 'assistant',
-        content: response.message,
-        code: response.suggestedCode,
-        timestamp: response.timestamp
-      });
-      setAILoading(false);
-    });
+    // AI response handled by callback in AIPanel.tsx
+    // This event listener can be removed or used for push notifications
 
     socket.on('file-changed', (data) => {
       setEditorContent(data.content);

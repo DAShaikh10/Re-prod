@@ -34,22 +34,34 @@ interface AppState {
 
 export const useStore = create<AppState>((set) => ({
   editor: {
-    content: `# Welcome to Re-Prod
+    content: `# Welcome to Re-Prod ----
 # AI-Powered R Analysis IDE
+# Try Cmd/Ctrl+Enter to run current section
+# Try Shift+Enter to run and move to next section
 
-# Example: Load and visualize data
+# Load Data ----
+# Load the built-in mtcars dataset
 data(mtcars)
+head(mtcars)
 
-# Summary statistics
+# Summary Statistics ----
+# Get basic statistics for the dataset
 summary(mtcars)
 
-# Create a scatter plot
+# Check structure
+str(mtcars)
+
+# Scatter Plot ----
+# Visualize relationship between MPG and Horsepower
 plot(mtcars$mpg, mtcars$hp,
      xlab = "Miles per Gallon",
      ylab = "Horsepower",
      main = "MPG vs Horsepower",
      col = "steelblue",
      pch = 19)
+
+# Add a trend line
+abline(lm(hp ~ mpg, data = mtcars), col = "red", lwd = 2)
 `,
     filepath: '',
     isDirty: false,
@@ -72,7 +84,9 @@ plot(mtcars$mpg, mtcars$hp,
     autoRun: false,
     theme: 'light',
     rPath: 'Rscript',
-    fontSize: 13
+    fontSize: 13,
+    showCellDecorations: true,      // Easy to disable
+    highlightExecutingCell: true    // Easy to disable
   },
 
   isConnected: false,

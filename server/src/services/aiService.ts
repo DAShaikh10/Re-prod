@@ -21,7 +21,7 @@ export class AIService {
   async getCompletion(request: AIRequest): Promise<AIResponse> {
     if (!this.client) {
       return {
-        message: 'AI service is not configured. Please add ANTHROPIC_API_KEY to your environment.',
+        message: '⚠️ AI service is not configured. Please add ANTHROPIC_API_KEY to your environment.',
         timestamp: Date.now()
       };
     }
@@ -58,11 +58,29 @@ export class AIService {
         suggestedCode,
         timestamp: Date.now()
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Claude API error:', error);
 
+      let errorMessage = '❌ Error communicating with AI';
+
+      // Handle specific Anthropic API errors
+      if (error?.status === 401) {
+        errorMessage = '🔐 Authentication failed. Please check your ANTHROPIC_API_KEY.';
+      } else if (error?.status === 429) {
+        errorMessage = '⏱️ Rate limit exceeded. Please wait a moment and try again.';
+      } else if (error?.error?.type === 'invalid_request_error') {
+        // Credit balance error
+        if (error.error.message?.includes('credit balance')) {
+          errorMessage = '💳 API credit balance is too low. Please add credits to your Anthropic account.\n\nVisit: https://console.anthropic.com/settings/plans';
+        } else {
+          errorMessage = `⚠️ Invalid request: ${error.error.message}`;
+        }
+      } else if (error instanceof Error) {
+        errorMessage = `❌ ${error.message}`;
+      }
+
       return {
-        message: `Error communicating with AI: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        message: errorMessage,
         timestamp: Date.now()
       };
     }

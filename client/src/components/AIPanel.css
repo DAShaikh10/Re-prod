@@ -104,6 +104,22 @@
   gap: 6px;
 }
 
+/* Error message styling */
+.message-assistant .message-content {
+  white-space: pre-wrap;
+}
+
+.message-content:has(+ .message-error),
+.message-content:contains("❌"),
+.message-content:contains("⚠️") {
+  color: var(--error-color);
+}
+
+.message-assistant:has([class*="Error"]) {
+  border: 1px solid var(--error-color);
+  background-color: rgba(217, 83, 79, 0.05);
+}
+
 .message-code {
   margin-top: 8px;
   padding: 8px;
