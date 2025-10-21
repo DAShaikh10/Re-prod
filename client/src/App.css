@@ -7,19 +7,6 @@
   overflow: hidden;
 }
 
-.main-workspace {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-}
-
-.bottom-workspace {
-  height: 200px;
-  min-height: 100px;
-  border-top: 1px solid var(--border-color);
-  background-color: var(--bg-primary);
-}
-
 /* Panel base styles */
 .panel {
   height: 100%;

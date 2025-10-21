@@ -58,26 +58,28 @@ function App(): JSX.Element {
   return (
     <div className="app">
       <MenuBar />
-      <div className="main-workspace">
-        <Allotment>
-          <Allotment.Pane minSize={400} preferredSize="60%">
-            <EditorPanel />
-          </Allotment.Pane>
-          <Allotment.Pane minSize={300} preferredSize="40%">
-            <Allotment vertical>
-              <Allotment.Pane minSize={200} preferredSize="50%">
-                <AIPanel />
-              </Allotment.Pane>
-              <Allotment.Pane minSize={200} preferredSize="50%">
-                <PlotsPanel />
-              </Allotment.Pane>
-            </Allotment>
-          </Allotment.Pane>
-        </Allotment>
-      </div>
-      <div className="bottom-workspace">
-        <ConsolePanel />
-      </div>
+      <Allotment vertical>
+        <Allotment.Pane minSize={300} preferredSize="70%">
+          <Allotment>
+            <Allotment.Pane minSize={400} preferredSize="60%">
+              <EditorPanel />
+            </Allotment.Pane>
+            <Allotment.Pane minSize={300} preferredSize="40%">
+              <AIPanel />
+            </Allotment.Pane>
+          </Allotment>
+        </Allotment.Pane>
+        <Allotment.Pane minSize={150} preferredSize="30%">
+          <Allotment>
+            <Allotment.Pane minSize={300} preferredSize="60%">
+              <ConsolePanel />
+            </Allotment.Pane>
+            <Allotment.Pane minSize={300} preferredSize="40%">
+              <PlotsPanel />
+            </Allotment.Pane>
+          </Allotment>
+        </Allotment.Pane>
+      </Allotment>
       <StatusBar />
     </div>
   );
