@@ -1,35 +1,94 @@
 import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 import type { AIRequest, AIResponse } from '../../../shared/src/types';
 
+type AIProvider = 'anthropic' | 'openai';
+
 export class AIService {
-  private client: Anthropic | null = null;
-  private apiKey: string | undefined;
+  private provider: AIProvider;
+  private anthropicClient: Anthropic | null = null;
+  private openaiClient: OpenAI | null = null;
+  private openaiModel: string;
 
   constructor() {
-    this.apiKey = process.env.ANTHROPIC_API_KEY;
+    // Determine which provider to use (default: openai)
+    this.provider = (process.env.AI_PROVIDER as AIProvider) || 'openai';
+    this.openaiModel = process.env.OPENAI_MODEL || 'gpt-4o';
 
-    if (this.apiKey) {
-      this.client = new Anthropic({
-        apiKey: this.apiKey
-      });
-      console.log('Claude API initialized');
-    } else {
-      console.warn('ANTHROPIC_API_KEY not found - AI features will be limited');
+    if (this.provider === 'anthropic') {
+      const anthropicKey = process.env.ANTHROPIC_API_KEY;
+      if (anthropicKey) {
+        this.anthropicClient = new Anthropic({ apiKey: anthropicKey });
+        console.log('Claude API initialized');
+      } else {
+        console.warn('ANTHROPIC_API_KEY not found');
+      }
+    } else if (this.provider === 'openai') {
+      const openaiKey = process.env.OPENAI_API_KEY;
+      if (openaiKey) {
+        this.openaiClient = new OpenAI({
+          apiKey: openaiKey,
+          baseURL: process.env.OPENAI_BASE_URL || undefined
+        });
+        console.log(`OpenAI API initialized (${this.openaiModel})`);
+      } else {
+        console.warn('OPENAI_API_KEY not found');
+      }
     }
   }
 
   async getCompletion(request: AIRequest): Promise<AIResponse> {
-    if (!this.client) {
+    if (this.provider === 'openai' && this.openaiClient) {
+      return this.getOpenAICompletion(request);
+    } else if (this.provider === 'anthropic' && this.anthropicClient) {
+      return this.getClaudeCompletion(request);
+    } else {
       return {
-        message: '⚠️ AI service is not configured. Please add ANTHROPIC_API_KEY to your environment.',
+        message: `⚠️ AI service is not configured. Please add ${this.provider === 'openai' ? 'OPENAI_API_KEY' : 'ANTHROPIC_API_KEY'} to your environment.`,
         timestamp: Date.now()
       };
     }
+  }
 
+  private async getOpenAICompletion(request: AIRequest): Promise<AIResponse> {
     try {
       const prompt = this.buildPrompt(request);
 
-      const response = await this.client.messages.create({
+      const response = await this.openaiClient!.chat.completions.create({
+        model: this.openaiModel,
+        messages: [{
+          role: 'user',
+          content: prompt
+        }],
+        temperature: 0.7,
+        max_tokens: 2048
+      });
+
+      const messageText = response.choices[0]?.message?.content || '';
+
+      // Extract code blocks if present
+      const codeBlockMatch = messageText.match(/```r?\n([\s\S]*?)\n```/);
+      const suggestedCode = codeBlockMatch ? codeBlockMatch[1].trim() : undefined;
+
+      // Remove code blocks from message for cleaner display
+      const cleanMessage = messageText.replace(/```r?\n[\s\S]*?\n```/g, '').trim();
+
+      return {
+        message: cleanMessage,
+        suggestedCode,
+        timestamp: Date.now()
+      };
+    } catch (error: any) {
+      console.error('OpenAI API error:', error);
+      return this.formatError(error, 'OpenAI');
+    }
+  }
+
+  private async getClaudeCompletion(request: AIRequest): Promise<AIResponse> {
+    try {
+      const prompt = this.buildPrompt(request);
+
+      const response = await this.anthropicClient!.messages.create({
         model: 'claude-3-5-sonnet-20241022',
         max_tokens: 2048,
         temperature: 0.7,
@@ -60,30 +119,38 @@ export class AIService {
       };
     } catch (error: any) {
       console.error('Claude API error:', error);
-
-      let errorMessage = '❌ Error communicating with AI';
-
-      // Handle specific Anthropic API errors
-      if (error?.status === 401) {
-        errorMessage = '🔐 Authentication failed. Please check your ANTHROPIC_API_KEY.';
-      } else if (error?.status === 429) {
-        errorMessage = '⏱️ Rate limit exceeded. Please wait a moment and try again.';
-      } else if (error?.error?.type === 'invalid_request_error') {
-        // Credit balance error
-        if (error.error.message?.includes('credit balance')) {
-          errorMessage = '💳 API credit balance is too low. Please add credits to your Anthropic account.\n\nVisit: https://console.anthropic.com/settings/plans';
-        } else {
-          errorMessage = `⚠️ Invalid request: ${error.error.message}`;
-        }
-      } else if (error instanceof Error) {
-        errorMessage = `❌ ${error.message}`;
-      }
-
-      return {
-        message: errorMessage,
-        timestamp: Date.now()
-      };
+      return this.formatError(error, 'Claude');
     }
+  }
+
+  private formatError(error: any, providerName: string): AIResponse {
+    let errorMessage = `❌ Error communicating with ${providerName}`;
+
+    // Handle authentication errors
+    if (error?.status === 401 || error?.code === 'invalid_api_key') {
+      errorMessage = `🔐 Authentication failed. Please check your ${providerName === 'OpenAI' ? 'OPENAI_API_KEY' : 'ANTHROPIC_API_KEY'}.`;
+    }
+    // Handle rate limits
+    else if (error?.status === 429) {
+      errorMessage = '⏱️ Rate limit exceeded. Please wait a moment and try again.';
+    }
+    // Handle credit/quota errors
+    else if (error?.error?.type === 'invalid_request_error' || error?.code === 'insufficient_quota') {
+      if (error.error?.message?.includes('credit balance') || error.message?.includes('quota')) {
+        errorMessage = `💳 ${providerName} API credit balance is too low. Please add credits to your account.\n\nVisit: ${providerName === 'OpenAI' ? 'https://platform.openai.com/account/billing' : 'https://console.anthropic.com/settings/plans'}`;
+      } else {
+        errorMessage = `⚠️ Invalid request: ${error.error?.message || error.message}`;
+      }
+    }
+    // Generic errors
+    else if (error instanceof Error) {
+      errorMessage = `❌ ${error.message}`;
+    }
+
+    return {
+      message: errorMessage,
+      timestamp: Date.now()
+    };
   }
 
   private buildPrompt(request: AIRequest): string {
@@ -121,6 +188,17 @@ export class AIService {
   }
 
   isConfigured(): boolean {
-    return this.client !== null;
+    if (this.provider === 'openai') {
+      return this.openaiClient !== null;
+    } else {
+      return this.anthropicClient !== null;
+    }
+  }
+
+  getProviderInfo(): { provider: string; model: string } {
+    return {
+      provider: this.provider,
+      model: this.provider === 'openai' ? this.openaiModel : 'claude-3-5-sonnet-20241022'
+    };
   }
 }

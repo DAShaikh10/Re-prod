@@ -84,17 +84,6 @@ export function AIPanel(): JSX.Element {
               <div className="ai-welcome-icon">🤖</div>
               <h3>AI Assistant</h3>
               <p>Ask me anything about R programming, data analysis, or visualization.</p>
-              <div className="ai-suggestions">
-                <button className="suggestion" onClick={() => setInput('How do I filter data in R?')}>
-                  How do I filter data?
-                </button>
-                <button className="suggestion" onClick={() => setInput('Create a scatter plot')}>
-                  Create a scatter plot
-                </button>
-                <button className="suggestion" onClick={() => setInput('Explain this code')}>
-                  Explain this code
-                </button>
-              </div>
             </div>
           ) : (
             <>
