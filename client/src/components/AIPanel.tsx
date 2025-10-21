@@ -9,6 +9,7 @@ export function AIPanel(): JSX.Element {
   const { ai, editor, execution, addAIMessage, setAILoading } = useStore();
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const timeoutIdRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -36,7 +37,11 @@ export function AIPanel(): JSX.Element {
         content: '⏱️ Request timeout. The AI service took too long to respond. Please try again.',
         timestamp: Date.now()
       });
+      timeoutIdRef.current = null;
     }, 30000);
+
+    // Store timeout ID for stop functionality
+    timeoutIdRef.current = timeoutId;
 
     const socket = socketService.getSocket();
 
@@ -55,7 +60,10 @@ export function AIPanel(): JSX.Element {
       }
     }, (response) => {
       // Clear timeout
-      clearTimeout(timeoutId);
+      if (timeoutIdRef.current) {
+        clearTimeout(timeoutIdRef.current);
+        timeoutIdRef.current = null;
+      }
 
       // Add AI response (including errors)
       addAIMessage({
@@ -72,6 +80,25 @@ export function AIPanel(): JSX.Element {
     setInput('');
   };
 
+  const handleStop = (): void => {
+    // Clear timeout
+    if (timeoutIdRef.current) {
+      clearTimeout(timeoutIdRef.current);
+      timeoutIdRef.current = null;
+    }
+
+    // Stop loading
+    setAILoading(false);
+
+    // Add stopped message
+    addAIMessage({
+      id: Date.now().toString(),
+      role: 'assistant',
+      content: '⏹️ Request stopped by user.',
+      timestamp: Date.now()
+    });
+  };
+
   const handleApplyCode = (codeBlock: CodeBlock): void => {
     // This will be connected to EditorPanel's applyCodeChange method
     const { applyCodeChange } = useStore.getState();
@@ -83,11 +110,14 @@ export function AIPanel(): JSX.Element {
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>): void => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>): void => {
+    // Enter without modifiers -> Send
+    // Shift + Enter or Alt/Option + Enter -> New line
+    if (e.key === 'Enter' && !e.shiftKey && !e.altKey && !e.metaKey) {
       e.preventDefault();
       handleAsk();
     }
+    // Shift+Enter or Alt+Enter -> allow default (new line)
   };
 
   return (
@@ -147,22 +177,33 @@ export function AIPanel(): JSX.Element {
           )}
         </div>
         <div className="ai-input-container">
-          <input
-            type="text"
+          <textarea
             className="ai-input"
-            placeholder="Ask a question..."
+            placeholder="Ask a question... (Enter to send, Shift/Alt+Enter for new line)"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyPress={handleKeyPress}
+            onKeyDown={handleKeyDown}
             disabled={ai.isLoading}
+            rows={3}
           />
-          <button
-            className="btn btn-primary"
-            onClick={handleAsk}
-            disabled={ai.isLoading || !input.trim()}
-          >
-            Send
-          </button>
+          {ai.isLoading ? (
+            <button
+              className="btn btn-stop"
+              onClick={handleStop}
+              title="Stop generation"
+            >
+              ⏹ Stop
+            </button>
+          ) : (
+            <button
+              className="btn btn-primary"
+              onClick={handleAsk}
+              disabled={!input.trim()}
+              title="Send message (Enter)"
+            >
+              Send
+            </button>
+          )}
         </div>
       </div>
     </div>

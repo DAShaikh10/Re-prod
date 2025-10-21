@@ -53,12 +53,27 @@ export interface AIRequest {
   context?: {
     executionHistory?: ExecutionResult[];
     cursorPosition?: { line: number; column: number };
+    lastError?: string;
+    selectedText?: string;
   };
+}
+
+export interface CodeBlock {
+  id: string;
+  code: string;
+  language: 'r';
+  action: 'replace-all' | 'replace-lines' | 'insert-at-cursor';
+  targetLines?: {
+    start: number;
+    end: number;
+  };
+  explanation?: string;
 }
 
 export interface AIResponse {
   message: string;
-  suggestedCode?: string;
+  suggestedCode?: string; // Deprecated: use codeBlocks instead
+  codeBlocks?: CodeBlock[];
   explanation?: string;
   timestamp: number;
 }
@@ -106,7 +121,8 @@ export interface AIMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
-  code?: string;
+  code?: string; // Deprecated: use codeBlocks instead
+  codeBlocks?: CodeBlock[];
   timestamp: number;
 }
 

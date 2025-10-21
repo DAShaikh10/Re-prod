@@ -149,16 +149,41 @@
 
 .ai-input {
   flex: 1;
-  padding: 6px 10px;
+  padding: 8px 10px;
   border: 1px solid var(--border-color);
   border-radius: 4px;
   background-color: var(--bg-primary);
   color: var(--text-primary);
   font-size: 12px;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 60px;
+  max-height: 200px;
+  line-height: 1.4;
 }
 
 .ai-input:focus {
   outline: 2px solid var(--accent-blue-light);
   outline-offset: 0;
   border-color: var(--accent-blue);
+}
+
+.ai-input::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.7;
+}
+
+.btn-stop {
+  background-color: #d9534f;
+  color: white;
+  border-color: #d43f3a;
+}
+
+.btn-stop:hover:not(:disabled) {
+  background-color: #c9302c;
+  border-color: #ac2925;
+}
+
+.btn-stop:active:not(:disabled) {
+  background-color: #ac2925;
 }

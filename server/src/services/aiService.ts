@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
-import type { AIRequest, AIResponse } from '../../../shared/src/types';
+import type { AIRequest, AIResponse, CodeBlock } from '../../../shared/src/types';
 
 type AIProvider = 'anthropic' | 'openai';
 
@@ -66,16 +66,22 @@ export class AIService {
 
       const messageText = response.choices[0]?.message?.content || '';
 
-      // Extract code blocks if present
-      const codeBlockMatch = messageText.match(/```r?\n([\s\S]*?)\n```/);
-      const suggestedCode = codeBlockMatch ? codeBlockMatch[1].trim() : undefined;
+      // Parse code blocks with special markers
+      const codeBlocks = this.parseCodeBlocks(messageText);
 
-      // Remove code blocks from message for cleaner display
-      const cleanMessage = messageText.replace(/```r?\n[\s\S]*?\n```/g, '').trim();
+      // Remove marked code blocks from message for cleaner display
+      const cleanMessage = messageText
+        .replace(/<!--\s*(REPLACE_ALL|REPLACE_LINES:\d+-\d+)\s*-->\s*```r?\s*\n[\s\S]*?```/g, '')
+        .trim();
+
+      // Legacy: Extract any remaining unmarked code blocks as suggestedCode
+      const codeBlockMatch = messageText.match(/```r?\n([\s\S]*?)\n```/);
+      const suggestedCode = codeBlockMatch && codeBlocks.length === 0 ? codeBlockMatch[1].trim() : undefined;
 
       return {
         message: cleanMessage,
         suggestedCode,
+        codeBlocks: codeBlocks.length > 0 ? codeBlocks : undefined,
         timestamp: Date.now()
       };
     } catch (error: any) {
@@ -105,16 +111,22 @@ export class AIService {
 
       const messageText = content.text;
 
-      // Extract code blocks if present
-      const codeBlockMatch = messageText.match(/```r?\n([\s\S]*?)\n```/);
-      const suggestedCode = codeBlockMatch ? codeBlockMatch[1].trim() : undefined;
+      // Parse code blocks with special markers
+      const codeBlocks = this.parseCodeBlocks(messageText);
 
-      // Remove code blocks from message for cleaner display
-      const cleanMessage = messageText.replace(/```r?\n[\s\S]*?\n```/g, '').trim();
+      // Remove marked code blocks from message for cleaner display
+      const cleanMessage = messageText
+        .replace(/<!--\s*(REPLACE_ALL|REPLACE_LINES:\d+-\d+)\s*-->\s*```r?\s*\n[\s\S]*?```/g, '')
+        .trim();
+
+      // Legacy: Extract any remaining unmarked code blocks as suggestedCode
+      const codeBlockMatch = messageText.match(/```r?\n([\s\S]*?)\n```/);
+      const suggestedCode = codeBlockMatch && codeBlocks.length === 0 ? codeBlockMatch[1].trim() : undefined;
 
       return {
         message: cleanMessage,
         suggestedCode,
+        codeBlocks: codeBlocks.length > 0 ? codeBlocks : undefined,
         timestamp: Date.now()
       };
     } catch (error: any) {
@@ -157,7 +169,7 @@ export class AIService {
     let prompt = 'You are an expert R programming assistant helping with data analysis and visualization.\n\n';
 
     if (request.code && request.code.trim().length > 0) {
-      prompt += `Current R code:\n\`\`\`r\n${request.code}\n\`\`\`\n\n`;
+      prompt += `Current R code in editor:\n\`\`\`r\n${request.code}\n\`\`\`\n\n`;
     }
 
     if (request.context?.executionHistory && request.context.executionHistory.length > 0) {
@@ -172,19 +184,66 @@ export class AIService {
       }
     }
 
+    if (request.context?.lastError) {
+      prompt += `Last error:\n\`\`\`\n${request.context.lastError}\n\`\`\`\n\n`;
+    }
+
+    if (request.context?.selectedText) {
+      prompt += `User selected code:\n\`\`\`r\n${request.context.selectedText}\n\`\`\`\n\n`;
+    }
+
     if (request.context?.cursorPosition) {
       prompt += `Cursor is at line ${request.context.cursorPosition.line}, column ${request.context.cursorPosition.column}.\n\n`;
     }
 
     prompt += `User question: ${request.prompt}\n\n`;
 
-    prompt += 'Please provide a helpful, concise response. If you suggest code:\n';
-    prompt += '1. Wrap R code in ```r code blocks\n';
-    prompt += '2. Explain what the code does\n';
-    prompt += '3. Include comments in the code for clarity\n';
-    prompt += '4. Suggest best practices for R data analysis\n';
+    prompt += 'INSTRUCTIONS:\n';
+    prompt += '1. Analyze if the user\'s request requires code modification\n';
+    prompt += '2. If code modification is needed, provide the code with special markers:\n\n';
+    prompt += 'To REPLACE the entire editor content:\n';
+    prompt += '<!-- REPLACE_ALL -->\n';
+    prompt += '```r\n';
+    prompt += 'complete new code here\n';
+    prompt += '```\n\n';
+    prompt += 'To REPLACE specific lines (e.g., lines 5-8):\n';
+    prompt += '<!-- REPLACE_LINES:5-8 -->\n';
+    prompt += '```r\n';
+    prompt += 'code for those lines\n';
+    prompt += '```\n\n';
+    prompt += '3. Explain what the code does and why it solves the problem\n';
+    prompt += '4. Include comments in the code for clarity\n';
+    prompt += '5. If the question doesn\'t need code changes, just provide a helpful answer\n';
 
     return prompt;
+  }
+
+  private parseCodeBlocks(responseText: string): CodeBlock[] {
+    const blocks: CodeBlock[] = [];
+
+    // Match patterns like:
+    // <!-- REPLACE_ALL --> or <!-- REPLACE_LINES:5-8 -->
+    // followed by ```r ... ```
+    const pattern = /<!--\s*(REPLACE_ALL|REPLACE_LINES:(\d+)-(\d+))\s*-->\s*```r?\s*\n([\s\S]*?)```/g;
+
+    let match;
+    let blockIndex = 0;
+    while ((match = pattern.exec(responseText)) !== null) {
+      const [, action, startLine, endLine, code] = match;
+
+      blocks.push({
+        id: `block_${Date.now()}_${blockIndex++}`,
+        code: code.trim(),
+        language: 'r',
+        action: action === 'REPLACE_ALL' ? 'replace-all' : 'replace-lines',
+        targetLines: action !== 'REPLACE_ALL' ? {
+          start: parseInt(startLine, 10),
+          end: parseInt(endLine, 10)
+        } : undefined
+      });
+    }
+
+    return blocks;
   }
 
   isConfigured(): boolean {
