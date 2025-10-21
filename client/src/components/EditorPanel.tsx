@@ -4,10 +4,11 @@ import type { editor as MonacoEditor } from 'monaco-editor';
 import { useStore } from '../store/useStore';
 import { socketService } from '../services/socket';
 import { parseCells, getCurrentCell, getCellCode, type Cell } from '../utils/cellParser';
+import type { CodeBlock } from '../../../shared/src/types';
 import './EditorPanel.css';
 
 export function EditorPanel(): JSX.Element {
-  const { editor, setEditorContent, setCursorPosition, setIsRunning, execution, settings } = useStore();
+  const { editor, setEditorContent, setCursorPosition, setIsRunning, execution, settings, setApplyCodeChange } = useStore();
   const [cells, setCells] = useState<Cell[]>([]);
   const [executingCellIndex, setExecutingCellIndex] = useState<number | null>(null);
   const editorRef = useRef<MonacoEditor.IStandaloneCodeEditor | null>(null);
@@ -146,6 +147,66 @@ export function EditorPanel(): JSX.Element {
       editorRef.current.revealLineInCenter(nextCell.startLine);
     }
   };
+
+  // Apply code changes from AI
+  const applyCodeChange = (codeBlock: CodeBlock): void => {
+    const monacoEditor = editorRef.current;
+    if (!monacoEditor) {
+      console.error('Editor not ready');
+      return;
+    }
+
+    const model = monacoEditor.getModel();
+    if (!model) return;
+
+    if (codeBlock.action === 'replace-all') {
+      // Replace entire editor content
+      monacoEditor.setValue(codeBlock.code);
+      setEditorContent(codeBlock.code);
+
+    } else if (codeBlock.action === 'replace-lines' && codeBlock.targetLines) {
+      // Replace specific lines
+      const { start, end } = codeBlock.targetLines;
+
+      const range = {
+        startLineNumber: start,
+        startColumn: 1,
+        endLineNumber: end,
+        endColumn: model.getLineMaxColumn(end)
+      };
+
+      monacoEditor.executeEdits('ai-apply', [{
+        range: range,
+        text: codeBlock.code
+      }]);
+
+      // Update store with new content
+      setEditorContent(monacoEditor.getValue());
+
+    } else if (codeBlock.action === 'insert-at-cursor') {
+      // Insert at current cursor position
+      const position = monacoEditor.getPosition();
+      if (position) {
+        monacoEditor.executeEdits('ai-insert', [{
+          range: {
+            startLineNumber: position.lineNumber,
+            startColumn: position.column,
+            endLineNumber: position.lineNumber,
+            endColumn: position.column
+          },
+          text: codeBlock.code
+        }]);
+
+        // Update store
+        setEditorContent(monacoEditor.getValue());
+      }
+    }
+  };
+
+  // Register applyCodeChange with store on mount
+  useEffect(() => {
+    setApplyCodeChange(applyCodeChange);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleEditorDidMount = (monacoEditor: MonacoEditor.IStandaloneCodeEditor, monaco: Monaco): void => {
     editorRef.current = monacoEditor;

@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { socketService } from '../services/socket';
+import { CodeBlockWithApply } from './CodeBlockWithApply';
+import type { CodeBlock } from '../../../shared/src/types';
 import './AIPanel.css';
 
 export function AIPanel(): JSX.Element {
-  const { ai, editor, addAIMessage, setAILoading, setEditorContent } = useStore();
+  const { ai, editor, execution, addAIMessage, setAILoading } = useStore();
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -37,11 +39,19 @@ export function AIPanel(): JSX.Element {
     }, 30000);
 
     const socket = socketService.getSocket();
+
+    // Get last error from execution history
+    const lastError = execution.history.length > 0
+      ? execution.history[execution.history.length - 1].stderr
+      : undefined;
+
     socket.emit('ai-request', {
       code: editor.content,
       prompt: input,
       context: {
-        cursorPosition: editor.cursorPosition
+        cursorPosition: editor.cursorPosition,
+        executionHistory: execution.history.slice(-3), // Last 3 executions
+        lastError: lastError && lastError.trim().length > 0 ? lastError : undefined
       }
     }, (response) => {
       // Clear timeout
@@ -53,6 +63,7 @@ export function AIPanel(): JSX.Element {
         role: 'assistant',
         content: response.message,
         code: response.suggestedCode,
+        codeBlocks: response.codeBlocks,
         timestamp: response.timestamp
       });
       setAILoading(false);
@@ -61,8 +72,15 @@ export function AIPanel(): JSX.Element {
     setInput('');
   };
 
-  const handleApplyCode = (code: string): void => {
-    setEditorContent(editor.content + '\n\n' + code);
+  const handleApplyCode = (codeBlock: CodeBlock): void => {
+    // This will be connected to EditorPanel's applyCodeChange method
+    const { applyCodeChange } = useStore.getState();
+    if (applyCodeChange) {
+      applyCodeChange(codeBlock);
+    } else {
+      // Fallback: just append to end for now
+      console.warn('applyCodeChange not available, using fallback');
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>): void => {
@@ -97,17 +115,20 @@ export function AIPanel(): JSX.Element {
                   <div className="message-content">
                     {message.content}
                   </div>
-                  {message.code && (
+                  {/* Legacy code display */}
+                  {message.code && !message.codeBlocks && (
                     <div className="message-code">
                       <pre><code>{message.code}</code></pre>
-                      <button
-                        className="btn btn-primary"
-                        onClick={() => handleApplyCode(message.code!)}
-                      >
-                        Apply to Editor
-                      </button>
                     </div>
                   )}
+                  {/* New code blocks with Apply buttons */}
+                  {message.codeBlocks && message.codeBlocks.map((codeBlock) => (
+                    <CodeBlockWithApply
+                      key={codeBlock.id}
+                      codeBlock={codeBlock}
+                      onApply={handleApplyCode}
+                    />
+                  ))}
                 </div>
               ))}
               {ai.isLoading && (

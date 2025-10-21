@@ -5,7 +5,8 @@ import type {
   AIState,
   AppSettings,
   ExecutionResult,
-  AIMessage
+  AIMessage,
+  CodeBlock
 } from '../../../shared/src/types';
 
 interface AppState {
@@ -30,6 +31,10 @@ interface AppState {
 
   updateSettings: (settings: Partial<AppSettings>) => void;
   setConnected: (connected: boolean) => void;
+
+  // AI Code Application
+  applyCodeChange: ((codeBlock: CodeBlock) => void) | null;
+  setApplyCodeChange: (fn: (codeBlock: CodeBlock) => void) => void;
 }
 
 export const useStore = create<AppState>((set) => ({
@@ -154,5 +159,9 @@ abline(lm(hp ~ mpg, data = mtcars), col = "red", lwd = 2)
       settings: { ...state.settings, ...newSettings }
     })),
 
-  setConnected: (connected) => set({ isConnected: connected })
+  setConnected: (connected) => set({ isConnected: connected }),
+
+  // AI Code Application
+  applyCodeChange: null,
+  setApplyCodeChange: (fn) => set({ applyCodeChange: fn })
 }));
