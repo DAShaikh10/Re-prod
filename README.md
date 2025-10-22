@@ -1,3 +1,7 @@
+[English](README.md) | [日本語](README.ja.md)
+
+---
+
 # Re-Prod
 
 AI-Powered R Analysis IDE - A modern, AI-native alternative to RStudio.
