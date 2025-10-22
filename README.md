@@ -2,7 +2,7 @@
 
 ---
 
-# Re-Prod
+# Re-prod
 
 AI-Powered R Analysis IDE - A modern, AI-native alternative to RStudio.
 
@@ -11,9 +11,9 @@ AI-Powered R Analysis IDE - A modern, AI-native alternative to RStudio.
 Data analysts and researchers shouldn't need to spend half a day reading R package documentation or juggling fragmented tools just to perform analysis. 
 This inefficiency represents a significant opportunity cost for the scientific community whether you're a biologist, statistician, or data scientist.
 
-Re-Prod transforms **R and sparse tools into natural language**, letting AI handle the complexity while you focus on insights.
+Re-prod transforms **R and sparse tools into natural language**, letting AI handle the complexity while you focus on insights.
 
-Furthermore unlike traditional IDEs, Re-Prod **will ensure perfect reproducibility** through complete execution history and **will provide an end-to-end platform** that eliminates constant context-switching. We're building toward a future where R analysis is accessible, reproducible, and efficient for everyone.
+Furthermore unlike traditional IDEs, Re-prod **will ensure perfect reproducibility** through complete execution history and **will provide an end-to-end platform** that eliminates constant context-switching. We're building toward a future where R analysis is accessible, reproducible, and efficient for everyone.
 
 ---
 
@@ -84,7 +84,7 @@ npm run dev:client
 ## Project Structure
 
 ```
-Re-Prod/
+Re-prod/
 ├── client/                    # React frontend
 │   ├── src/
 │   │   ├── components/        # UI components
@@ -113,7 +113,7 @@ Re-Prod/
 
 ## Usage
 
-1. **Open Re-Prod** in browser at `http://localhost:5173`
+1. **Open Re-prod** in browser at `http://localhost:5173`
 2. **Write R code** in the Monaco editor (left pane)
 3. **Run code** by clicking "▶ Run" button
 4. **View output** in Console panel (bottom)
