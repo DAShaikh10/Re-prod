@@ -1,29 +1,32 @@
 .console-panel {
-  border-right: none;
-  border-bottom: none;
+  border: none;
+  background: transparent;
 }
 
 .console-panel .panel-header {
-  display: flex;
-  justify-content: space-between;
-  padding: 0;
+  padding: 0 12px;
+  background: transparent;
+  box-shadow: none;
 }
 
 .console-panel .tabs {
   flex: 1;
   margin: 0;
-  border-bottom: none;
+  padding-left: 0;
+  background: transparent;
 }
 
 .console-content {
   font-family: Monaco, Menlo, Consolas, monospace;
   font-size: 12px;
+  background: var(--bg-primary);
 }
 
 .console-output {
-  padding: 12px;
+  padding: 18px;
   overflow-y: auto;
   height: 100%;
+  background: var(--bg-primary);
 }
 
 .console-welcome {
@@ -32,26 +35,32 @@
 }
 
 .console-entry {
-  margin-bottom: 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--border-light);
+  margin-bottom: 18px;
+  padding: 16px;
+  border-radius: 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 12px 18px rgba(15, 23, 42, 0.06);
 }
 
 .console-entry:last-child {
-  border-bottom: none;
+  margin-bottom: 0;
 }
 
 .console-meta {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
+  gap: 10px;
+  margin-bottom: 10px;
   font-size: 11px;
   color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .console-time {
-  font-weight: 500;
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 .console-duration {
@@ -59,83 +68,86 @@
 }
 
 .console-error-badge {
-  background-color: var(--error-color);
-  color: white;
-  padding: 1px 6px;
-  border-radius: 3px;
+  background: rgba(220, 76, 63, 0.12);
+  color: var(--error-color);
+  padding: 2px 8px;
+  border-radius: 999px;
   font-size: 10px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .console-stdout,
 .console-stderr {
-  margin: 6px 0;
-  padding: 8px;
-  border-radius: 3px;
+  margin: 10px 0;
+  padding: 12px;
+  border-radius: 10px;
   overflow-x: auto;
   white-space: pre-wrap;
   word-wrap: break-word;
   font-size: 12px;
-  line-height: 1.5;
+  line-height: 1.55;
+  background: var(--bg-code);
+  border: 1px solid rgba(148, 163, 184, 0.25);
 }
 
 .console-stdout {
-  background-color: var(--bg-secondary);
-  color: var(--text-primary);
-  border-left: 3px solid var(--success-color);
+  border-left: 4px solid var(--success-color);
 }
 
 .console-stderr {
-  background-color: rgba(217, 83, 79, 0.05);
   color: var(--error-color);
-  border-left: 3px solid var(--error-color);
+  border-left: 4px solid var(--error-color);
+  background: rgba(220, 76, 63, 0.08);
 }
 
 .console-plots-info {
-  padding: 6px 8px;
-  background-color: var(--bg-secondary);
-  border-left: 3px solid var(--accent-blue);
-  border-radius: 3px;
-  margin-top: 6px;
+  padding: 10px 12px;
+  background-color: rgba(47, 111, 237, 0.1);
+  border-left: 4px solid var(--accent-blue);
+  border-radius: 10px;
+  margin-top: 10px;
   font-size: 11px;
   color: var(--accent-blue);
+  font-weight: 600;
 }
 
 .console-history {
-  padding: 12px;
+  padding: 18px;
   overflow-y: auto;
   height: 100%;
+  background: var(--bg-primary);
 }
 
 .history-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .history-item {
-  padding: 8px 12px;
+  padding: 14px 16px;
   background-color: var(--bg-secondary);
-  border-radius: 4px;
-  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
   cursor: pointer;
-  transition: background-color 0.15s;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .history-item:hover {
-  background-color: var(--bg-tertiary);
+  transform: translateY(-1px);
+  box-shadow: 0 12px 20px rgba(15, 23, 42, 0.08);
 }
 
 .history-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 4px;
+  gap: 10px;
+  margin-bottom: 6px;
   font-size: 11px;
 }
 
 .history-number {
-  font-weight: 600;
+  font-weight: 700;
   color: var(--accent-blue);
 }
 
@@ -145,7 +157,7 @@
 }
 
 .history-status {
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .history-status.success {

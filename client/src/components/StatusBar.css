@@ -2,34 +2,36 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  height: 22px;
-  background-color: var(--bg-toolbar);
-  border-top: 1px solid var(--border-color);
-  padding: 0 12px;
+  height: 28px;
+  padding: 0 16px;
+  background: linear-gradient(180deg, rgba(245, 247, 253, 0.88), rgba(236, 240, 250, 0.9));
+  border: 1px solid var(--border-color);
+  border-radius: var(--panel-radius);
   font-size: 11px;
   color: var(--text-secondary);
-  flex-shrink: 0;
+  backdrop-filter: blur(12px);
+  box-shadow: var(--shadow-sm);
 }
 
 .statusbar-left,
 .statusbar-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
 }
 
 .statusbar-item {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
 }
 
 .statusbar-modified {
   color: var(--warning-color);
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .statusbar-running {
   color: var(--accent-blue);
-  font-weight: 500;
+  font-weight: 600;
 }

@@ -39,28 +39,30 @@ function App(): JSX.Element {
   return (
     <div className="app">
       <MenuBar />
-      <Allotment vertical>
-        <Allotment.Pane minSize={300} preferredSize="70%">
-          <Allotment>
-            <Allotment.Pane minSize={400} preferredSize="60%">
-              <EditorPanel />
-            </Allotment.Pane>
-            <Allotment.Pane minSize={300} preferredSize="40%">
-              <AIPanel />
-            </Allotment.Pane>
-          </Allotment>
-        </Allotment.Pane>
-        <Allotment.Pane minSize={150} preferredSize="30%">
-          <Allotment>
-            <Allotment.Pane minSize={300} preferredSize="60%">
-              <ConsolePanel />
-            </Allotment.Pane>
-            <Allotment.Pane minSize={300} preferredSize="40%">
-              <PlotsPanel />
-            </Allotment.Pane>
-          </Allotment>
-        </Allotment.Pane>
-      </Allotment>
+      <div className="workspace-shell">
+        <Allotment vertical>
+          <Allotment.Pane minSize={300} preferredSize="70%">
+            <Allotment>
+              <Allotment.Pane minSize={400} preferredSize="60%">
+                <EditorPanel />
+              </Allotment.Pane>
+              <Allotment.Pane minSize={300} preferredSize="40%">
+                <AIPanel />
+              </Allotment.Pane>
+            </Allotment>
+          </Allotment.Pane>
+          <Allotment.Pane minSize={150} preferredSize="30%">
+            <Allotment>
+              <Allotment.Pane minSize={300} preferredSize="60%">
+                <ConsolePanel />
+              </Allotment.Pane>
+              <Allotment.Pane minSize={300} preferredSize="40%">
+                <PlotsPanel />
+              </Allotment.Pane>
+            </Allotment>
+          </Allotment.Pane>
+        </Allotment>
+      </div>
       <StatusBar />
     </div>
   );

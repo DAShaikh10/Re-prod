@@ -1,34 +1,40 @@
-/* RStudio-inspired color palette and styling */
 :root {
-  /* RStudio-like colors */
+  /* Surface palette */
   --bg-primary: #ffffff;
-  --bg-secondary: #f7f7f7;
-  --bg-tertiary: #ececec;
-  --bg-toolbar: #e1e1e1;
+  --bg-secondary: #f4f6fb;
+  --bg-tertiary: #e8ecf7;
+  --bg-toolbar: rgba(250, 252, 255, 0.86);
+  --bg-elevated: rgba(255, 255, 255, 0.92);
+  --bg-code: #f9fafc;
 
-  --text-primary: #333333;
-  --text-secondary: #6c6c6c;
-  --text-muted: #999999;
+  /* Typography */
+  --text-primary: #1f2937;
+  --text-secondary: #4b5565;
+  --text-muted: #8a93a4;
 
-  --border-color: #d0d0d0;
-  --border-light: #e0e0e0;
+  /* Borders & depth */
+  --border-color: rgba(30, 41, 59, 0.12);
+  --border-light: rgba(148, 163, 184, 0.2);
+  --border-strong: rgba(15, 23, 42, 0.22);
+  --panel-radius: 12px;
+  --shadow-sm: 0 8px 18px rgba(15, 23, 42, 0.08);
+  --shadow-md: 0 18px 40px rgba(15, 23, 42, 0.12);
+  --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.65);
 
-  --accent-blue: #4285f4;
-  --accent-blue-hover: #3367d6;
-  --accent-blue-light: #75aadb;
+  /* Brand accents (RStudio-inspired blue) */
+  --accent-blue: #2f6fed;
+  --accent-blue-hover: #2556c8;
+  --accent-blue-light: rgba(47, 111, 237, 0.16);
 
-  --success-color: #5cb85c;
-  --error-color: #d9534f;
-  --warning-color: #f0ad4e;
+  --success-color: #1f9254;
+  --error-color: #dc4c3f;
+  --warning-color: #f59e0b;
 
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.1);
-
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  font-family: 'Inter', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.55;
   font-weight: 400;
+  letter-spacing: -0.01em;
 }
 
 * {
@@ -47,7 +53,7 @@ body,
 
 body {
   margin: 0;
-  background-color: var(--bg-primary);
+  background: linear-gradient(135deg, #edf2ff 0%, #e7ecf6 45%, #eef3ff 100%);
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -68,7 +74,7 @@ button {
 
 button:disabled {
   cursor: not-allowed;
-  opacity: 0.5;
+  opacity: 0.6;
 }
 
 input,
@@ -83,51 +89,52 @@ textarea {
 input:focus,
 textarea:focus {
   outline: 2px solid var(--accent-blue-light);
-  outline-offset: 0;
+  outline-offset: 1px;
   border-color: var(--accent-blue);
 }
 
-/* Scrollbar styling - RStudio-like */
+/* Scrollbars */
 ::-webkit-scrollbar {
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--bg-secondary);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #c0c0c0;
-  border-radius: 0;
-  border: 2px solid var(--bg-secondary);
+  background: rgba(100, 116, 139, 0.3);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #a0a0a0;
+  background: rgba(100, 116, 139, 0.45);
 }
 
 ::-webkit-scrollbar-corner {
-  background: var(--bg-secondary);
+  background: transparent;
 }
 
 /* Allotment (split pane) overrides */
 .split-view-view {
-  background: var(--bg-primary);
+  background: transparent;
 }
 
 .sash {
-  background-color: var(--border-color) !important;
+  background-color: rgba(148, 163, 184, 0.35) !important;
 }
 
 .sash:hover {
-  background-color: var(--accent-blue-light) !important;
+  background-color: rgba(47, 111, 237, 0.45) !important;
 }
 
 .sash-vertical {
-  width: 1px !important;
+  width: 2px !important;
 }
 
 .sash-horizontal {
-  height: 1px !important;
+  height: 2px !important;
 }

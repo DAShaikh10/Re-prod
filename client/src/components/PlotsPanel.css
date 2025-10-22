@@ -1,26 +1,35 @@
+.plots-panel {
+  border: none;
+  background: transparent;
+}
+
 .plots-panel .panel-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0;
+  padding: 0 14px;
+  background: transparent;
+  box-shadow: none;
 }
 
 .plots-panel .tabs {
   flex: 1;
   margin: 0;
-  border-bottom: none;
+  padding-left: 0;
+  background: transparent;
 }
 
 .plots-panel .panel-actions {
-  padding: 0 8px;
-  gap: 6px;
+  padding: 0 10px;
+  gap: 8px;
 }
 
 .plot-counter {
   font-size: 11px;
   color: var(--text-secondary);
-  min-width: 50px;
+  min-width: 56px;
   text-align: center;
+  font-weight: 600;
 }
 
 .plots-container,
@@ -28,6 +37,7 @@
 .help-container {
   height: 100%;
   overflow: auto;
+  background: var(--bg-primary);
 }
 
 .empty-state {
@@ -38,22 +48,22 @@
   height: 100%;
   color: var(--text-secondary);
   text-align: center;
-  padding: 24px;
+  padding: 36px;
+  gap: 12px;
 }
 
 .empty-icon {
   font-size: 48px;
-  margin-bottom: 12px;
 }
 
 .empty-state p {
-  font-size: 12px;
+  font-size: 13px;
   margin: 0;
 }
 
 .empty-hint {
-  margin-top: 6px;
   color: var(--text-muted);
+  font-size: 12px;
 }
 
 .plot-viewer {
@@ -61,36 +71,44 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  padding: 16px;
-  background-color: var(--bg-secondary);
+  padding: 18px;
+  background: linear-gradient(160deg, rgba(248, 249, 253, 0.95), rgba(236, 240, 250, 0.95));
 }
 
 .plot-image {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  background-color: white;
-  border: 1px solid var(--border-color);
-  box-shadow: var(--shadow-sm);
+  background-color: #ffffff;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 18px;
+  box-shadow: 0 20px 34px rgba(15, 23, 42, 0.12);
+  padding: 12px;
 }
 
 .help-content {
-  padding: 16px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
 }
 
 .help-content h3 {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: 16px;
 }
 
 .help-section {
-  margin-bottom: 16px;
+  padding: 16px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.06);
 }
 
 .help-section h4 {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
   margin-bottom: 8px;
@@ -99,19 +117,25 @@
 .help-section ul {
   list-style: none;
   padding: 0;
+  display: grid;
+  gap: 6px;
 }
 
 .help-section li {
   font-size: 12px;
-  padding: 4px 0;
   color: var(--text-secondary);
-  padding-left: 16px;
+  padding-left: 18px;
   position: relative;
 }
 
 .help-section li::before {
-  content: '•';
+  content: '';
   position: absolute;
   left: 4px;
-  color: var(--accent-blue);
+  top: 6px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-blue);
+  box-shadow: 0 0 0 3px rgba(47, 111, 237, 0.12);
 }
