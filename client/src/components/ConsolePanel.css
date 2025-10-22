@@ -101,6 +101,9 @@
 }
 
 .console-plots-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   padding: 10px 12px;
   background-color: rgba(47, 111, 237, 0.1);
   border-left: 4px solid var(--accent-blue);
@@ -109,6 +112,11 @@
   font-size: 11px;
   color: var(--accent-blue);
   font-weight: 600;
+}
+
+.console-plots-info svg {
+  width: 16px;
+  height: 16px;
 }
 
 .console-history {
@@ -157,7 +165,16 @@
 }
 
 .history-status {
-  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+}
+
+.history-status svg {
+  width: 16px;
+  height: 16px;
 }
 
 .history-status.success {

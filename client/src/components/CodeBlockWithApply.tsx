@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { IconClipboard, IconCheck, IconLightbulb } from './icons';
 import type { CodeBlock } from '../../../shared/src/types';
 import './CodeBlockWithApply.css';
 
@@ -32,7 +33,8 @@ export function CodeBlockWithApply({ codeBlock, onApply }: Props): JSX.Element {
     <div className="code-block-container">
       {codeBlock.explanation && (
         <div className="code-explanation">
-          💡 {codeBlock.explanation}
+          <IconLightbulb width={16} height={16} aria-hidden />
+          <span>{codeBlock.explanation}</span>
         </div>
       )}
 
@@ -48,11 +50,14 @@ export function CodeBlockWithApply({ codeBlock, onApply }: Props): JSX.Element {
 
         <div className="code-actions">
           <button
-            className="btn btn-icon"
+            className="btn"
             onClick={handleCopy}
             title="Copy to clipboard"
           >
-            📋 Copy
+            <>
+              <IconClipboard width={16} height={16} aria-hidden />
+              Copy
+            </>
           </button>
 
           <button
@@ -61,7 +66,17 @@ export function CodeBlockWithApply({ codeBlock, onApply }: Props): JSX.Element {
             disabled={applied}
             title={applied ? 'Already applied' : 'Apply to editor'}
           >
-            {applied ? '✓ Applied' : '✓ Apply to Editor'}
+            {applied ? (
+              <>
+                <IconCheck width={16} height={16} aria-hidden />
+                Applied
+              </>
+            ) : (
+              <>
+                <IconCheck width={16} height={16} aria-hidden />
+                Apply to Editor
+              </>
+            )}
           </button>
         </div>
       </div>

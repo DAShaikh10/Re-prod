@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { IconRobot, IconSend, IconSquare } from './icons';
 import { useStore } from '../store/useStore';
 import { socketService } from '../services/socket';
 import { CodeBlockWithApply } from './CodeBlockWithApply';
@@ -34,7 +35,7 @@ export function AIPanel(): JSX.Element {
       addAIMessage({
         id: Date.now().toString(),
         role: 'assistant',
-        content: '⏱️ Request timeout. The AI service took too long to respond. Please try again.',
+        content: 'Request timed out. The AI service took too long to respond. Please try again.',
         timestamp: Date.now()
       });
       timeoutIdRef.current = null;
@@ -94,7 +95,7 @@ export function AIPanel(): JSX.Element {
     addAIMessage({
       id: Date.now().toString(),
       role: 'assistant',
-      content: '⏹️ Request stopped by user.',
+      content: 'Request stopped by user.',
       timestamp: Date.now()
     });
   };
@@ -129,7 +130,9 @@ export function AIPanel(): JSX.Element {
         <div className="ai-messages">
           {ai.messages.length === 0 ? (
             <div className="ai-welcome">
-              <div className="ai-welcome-icon">🤖</div>
+              <div className="ai-welcome-icon">
+                <IconRobot width={48} height={48} aria-hidden />
+              </div>
               <h3>AI Assistant</h3>
               <p>Ask me anything about R programming, data analysis, or visualization.</p>
             </div>
@@ -192,7 +195,10 @@ export function AIPanel(): JSX.Element {
               onClick={handleStop}
               title="Stop generation"
             >
-              ⏹ Stop
+              <>
+                <IconSquare width={16} height={16} aria-hidden />
+                Stop
+              </>
             </button>
           ) : (
             <button
@@ -201,7 +207,10 @@ export function AIPanel(): JSX.Element {
               disabled={!input.trim()}
               title="Send message (Enter)"
             >
-              Send
+              <>
+                <IconSend width={16} height={16} aria-hidden />
+                Send
+              </>
             </button>
           )}
         </div>

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { IconBarChart, IconChevronLeft, IconChevronRight } from './icons';
 import { useStore } from '../store/useStore';
 import './PlotsPanel.css';
 
@@ -52,8 +53,8 @@ export function PlotsPanel(): JSX.Element {
               onClick={handlePrevious}
               disabled={selectedPlotIndex === 0}
               title="Previous plot"
-            >
-              ◀
+              aria-label="Previous plot">
+              <IconChevronLeft width={16} height={16} aria-hidden />
             </button>
             <span className="plot-counter">
               {selectedPlotIndex + 1} / {allPlots.length}
@@ -63,8 +64,8 @@ export function PlotsPanel(): JSX.Element {
               onClick={handleNext}
               disabled={selectedPlotIndex >= allPlots.length - 1}
               title="Next plot"
-            >
-              ▶
+              aria-label="Next plot">
+              <IconChevronRight width={16} height={16} aria-hidden />
             </button>
           </div>
         )}
@@ -74,7 +75,9 @@ export function PlotsPanel(): JSX.Element {
           <div className="plots-container">
             {allPlots.length === 0 ? (
               <div className="empty-state">
-                <div className="empty-icon">📊</div>
+                <div className="empty-icon">
+                  <IconBarChart width={48} height={48} aria-hidden />
+                </div>
                 <p>No plots yet</p>
                 <p className="empty-hint">Run R code to generate visualizations</p>
               </div>

@@ -53,7 +53,15 @@
 }
 
 .empty-icon {
-  font-size: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.empty-icon svg {
+  width: 48px;
+  height: 48px;
+  color: var(--accent-blue);
 }
 
 .empty-state p {

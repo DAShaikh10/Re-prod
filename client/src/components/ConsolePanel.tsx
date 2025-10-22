@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { IconTrash, IconBarChart, IconCheckCircle, IconXCircle } from './icons';
 import { useStore } from '../store/useStore';
 import './ConsolePanel.css';
 
@@ -35,8 +36,8 @@ export function ConsolePanel(): JSX.Element {
             className="btn btn-icon"
             title="Clear Console"
             onClick={clearResults}
-          >
-            ✕
+            aria-label="Clear console">
+            <IconTrash width={16} height={16} aria-hidden />
           </button>
         </div>
       </div>
@@ -70,7 +71,8 @@ export function ConsolePanel(): JSX.Element {
                     )}
                     {result.plots.length > 0 && (
                       <div className="console-plots-info">
-                        📊 Generated {result.plots.length} plot{result.plots.length > 1 ? 's' : ''}
+                        <IconBarChart width={16} height={16} aria-hidden />
+                        Generated {result.plots.length} plot{result.plots.length > 1 ? 's' : ''}
                       </div>
                     )}
                   </div>
@@ -96,7 +98,11 @@ export function ConsolePanel(): JSX.Element {
                         {new Date(result.timestamp).toLocaleString()}
                       </span>
                       <span className={`history-status ${result.success ? 'success' : 'error'}`}>
-                        {result.success ? '✓' : '✗'}
+                        {result.success ? (
+                          <IconCheckCircle width={14} height={14} aria-hidden />
+                        ) : (
+                          <IconXCircle width={14} height={14} aria-hidden />
+                        )}
                       </span>
                     </div>
                     <div className="history-summary">

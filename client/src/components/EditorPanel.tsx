@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import Editor, { Monaco } from '@monaco-editor/react';
+import { IconPlay, IconPlayCircle } from './icons';
 import type { editor as MonacoEditor } from 'monaco-editor';
 import { useStore } from '../store/useStore';
 import { socketService } from '../services/socket';
@@ -259,7 +260,8 @@ export function EditorPanel(): JSX.Element {
             disabled={execution.isRunning}
             title="Run Current Cell (Cmd/Ctrl+Enter)"
           >
-            ▶ Run Cell
+            <IconPlay width={16} height={16} aria-hidden />
+            Run Cell
           </button>
           <button
             className="btn btn-primary"
@@ -273,7 +275,10 @@ export function EditorPanel(): JSX.Element {
                 Running
               </>
             ) : (
-              <>▶ Run All</>
+              <>
+                <IconPlayCircle width={16} height={16} aria-hidden />
+                Run All
+              </>
             )}
           </button>
         </div>

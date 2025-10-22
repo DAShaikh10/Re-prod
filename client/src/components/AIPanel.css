@@ -29,8 +29,13 @@
 }
 
 .ai-welcome-icon {
-  font-size: 48px;
   margin-bottom: 12px;
+  color: var(--accent-blue);
+}
+
+.ai-welcome-icon svg {
+  width: 48px;
+  height: 48px;
 }
 
 .ai-welcome h3 {
