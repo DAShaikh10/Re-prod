@@ -102,7 +102,7 @@ export function PlotsPanel(): JSX.Element {
         {activeTab === 'help' && (
           <div className="help-container">
             <div className="help-content">
-              <h3>Re-Prod Help</h3>
+              <h3>Re-prod Help</h3>
               <div className="help-section">
                 <h4>Getting Started</h4>
                 <ul>

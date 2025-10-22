@@ -7,7 +7,7 @@ export function MenuBar(): JSX.Element {
   return (
     <div className="menubar">
       <div className="menubar-left">
-        <span className="menubar-brand">Re-Prod</span>
+        <span className="menubar-brand">Re-prod</span>
         <div className="menubar-menu">
           <div className="menu-item">File</div>
           <div className="menu-item">Edit</div>

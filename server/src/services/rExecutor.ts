@@ -80,7 +80,7 @@ export class RExecutor {
     const tempDirEscaped = this.tempDir.replace(/\\/g, '/');
 
     return `
-# Re-Prod plot capture setup
+# Re-prod plot capture setup
 .reprod_plot_counter <- 0
 .reprod_temp_dir <- "${tempDirEscaped}"
 .reprod_plot_prefix <- "${plotPrefix}"

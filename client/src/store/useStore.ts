@@ -90,8 +90,8 @@ abline(lm(hp ~ mpg, data = mtcars), col = "red", lwd = 2)
     theme: 'light',
     rPath: 'Rscript',
     fontSize: 13,
-    showCellDecorations: true,      // Easy to disable
-    highlightExecutingCell: true    // Easy to disable
+    showCellDecorations: true,
+    highlightExecutingCell: true
   },
 
   isConnected: false,

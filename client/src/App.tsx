@@ -12,13 +12,7 @@ import { useStore } from './store/useStore';
 import './App.css';
 
 function App(): JSX.Element {
-  const {
-    setConnected,
-    addExecutionResult,
-    addAIMessage,
-    setAILoading,
-    setEditorContent
-  } = useStore();
+  const { setConnected, setEditorContent } = useStore();
 
   useEffect(() => {
     const socket = socketService.connect();
@@ -33,19 +27,6 @@ function App(): JSX.Element {
       setConnected(false);
     });
 
-    // Execution results are now handled by callbacks in EditorPanel
-    // These event listeners can be used for push notifications if needed
-    socket.on('execution-result', (result) => {
-      // Handled by callback
-    });
-
-    socket.on('execution-error', (error) => {
-      // Handled by callback
-    });
-
-    // AI response handled by callback in AIPanel.tsx
-    // This event listener can be removed or used for push notifications
-
     socket.on('file-changed', (data) => {
       setEditorContent(data.content);
     });
@@ -53,7 +34,7 @@ function App(): JSX.Element {
     return () => {
       socketService.disconnect();
     };
-  }, [setConnected, addExecutionResult, addAIMessage, setAILoading, setEditorContent]);
+  }, [setConnected, setEditorContent]);
 
   return (
     <div className="app">

@@ -134,7 +134,7 @@ setInterval(() => {
 
 // Start server
 httpServer.listen(PORT, () => {
-  console.log(`🚀 Re-Prod server running on http://localhost:${PORT}`);
+  console.log(`🚀 Re-prod server running on http://localhost:${PORT}`);
   console.log(`📡 WebSocket server ready`);
   console.log(`🤖 AI service: ${aiService.isConfigured() ? 'Configured' : 'Not configured'}`);
   console.log(`📊 R path: ${process.env.R_PATH || 'Rscript'}`);

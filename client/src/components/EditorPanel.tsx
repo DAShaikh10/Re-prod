@@ -4,7 +4,7 @@ import type { editor as MonacoEditor } from 'monaco-editor';
 import { useStore } from '../store/useStore';
 import { socketService } from '../services/socket';
 import { parseCells, getCurrentCell, getCellCode, type Cell } from '../utils/cellParser';
-import type { CodeBlock } from '../../../shared/src/types';
+import type { CodeBlock, ExecutionError, ExecutionResult } from '../../../shared/src/types';
 import './EditorPanel.css';
 
 export function EditorPanel(): JSX.Element {
@@ -91,13 +91,24 @@ export function EditorPanel(): JSX.Element {
     }
 
     socket.emit('execute', code, (result) => {
-      // Clear executing state
       setExecutingCellIndex(null);
       setIsRunning(false);
 
-      // Add result to store
       const { addExecutionResult } = useStore.getState();
-      addExecutionResult(result);
+      if (result.success) {
+        addExecutionResult(result);
+      } else {
+        const errorResult = result as ExecutionError;
+        const normalized: ExecutionResult = {
+          stdout: '',
+          stderr: errorResult.message,
+          plots: [],
+          timestamp: errorResult.timestamp,
+          duration: 0,
+          success: false
+        };
+        addExecutionResult(normalized);
+      }
 
       console.log('Execution completed');
     });
@@ -109,7 +120,6 @@ export function EditorPanel(): JSX.Element {
 
   const handleRunCurrentCell = (): void => {
     if (cells.length === 0) {
-      // No cells, run all
       handleRunAll();
       return;
     }
@@ -203,7 +213,6 @@ export function EditorPanel(): JSX.Element {
     }
   };
 
-  // Register applyCodeChange with store on mount
   useEffect(() => {
     setApplyCodeChange(applyCodeChange);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
