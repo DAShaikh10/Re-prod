@@ -2,15 +2,22 @@
 
 AI-Powered R Analysis IDE - A modern, AI-native alternative to RStudio.
 
+## Mission
+
+Data analysts and researchers shouldn't need to spend half a day reading R package documentation or juggling fragmented tools just to perform analysis. 
+This inefficiency represents a significant opportunity cost for the scientific community whether you're a biologist, statistician, or data scientist.
+
+Re-Prod transforms **R and sparse tools into natural language**, letting AI handle the complexity while you focus on insights.
+
+Furthermore unlike traditional IDEs, Re-Prod **will ensure perfect reproducibility** through complete execution history and **will provide an end-to-end platform** that eliminates constant context-switching. We're building toward a future where R analysis is accessible, reproducible, and efficient for everyone.
+
+---
+
 ## Features
 
-- 🤖 **Real AI Integration**: Claude API for intelligent R programming assistance
-- 📊 **Live R Execution**: Direct R process spawning with real-time output
-- 🎨 **RStudio-Inspired UI**: Familiar layout with light grays, muted blues, clean borders
-- 📈 **Automatic Plot Capture**: Plots generated in R are automatically displayed
+- 🤖 **AI Agent Integration**: LLM APIs for intelligent R programming assistance
 - 🔄 **File Watching**: Real-time file monitoring with chokidar
 - 📝 **Execution History**: Complete log of all R executions
-- ⚡ **WebSocket Communication**: Real-time bidirectional updates
 
 ## Architecture
 
@@ -18,14 +25,14 @@ AI-Powered R Analysis IDE - A modern, AI-native alternative to RStudio.
 - Node.js + Express + TypeScript
 - Socket.io for WebSocket communication
 - Real R execution via child_process
-- Claude API integration (@anthropic-ai/sdk)
+- LLM API integration
+  - GPT from OpenAI
+  - Claude from Anthropic
 - Chokidar for file watching
 
 ### Frontend
 - React + TypeScript + Vite
 - Monaco Editor for code editing
-- Allotment for resizable panes
-- Zustand for state management
 - RStudio-inspired color palette
 
 ## Prerequisites
@@ -77,12 +84,7 @@ Re-Prod/
 ├── client/                    # React frontend
 │   ├── src/
 │   │   ├── components/        # UI components
-│   │   │   ├── MenuBar.tsx
-│   │   │   ├── StatusBar.tsx
-│   │   │   ├── EditorPanel.tsx
-│   │   │   ├── AIPanel.tsx
-│   │   │   ├── PlotsPanel.tsx
-│   │   │   └── ConsolePanel.tsx
+│   │   │   ├── ...
 │   │   ├── services/
 │   │   │   └── socket.ts      # WebSocket client
 │   │   ├── store/
@@ -94,19 +96,13 @@ Re-Prod/
 ├── server/                    # Node.js backend
 │   ├── src/
 │   │   ├── services/
-│   │   │   ├── rExecutor.ts   # Real R execution
-│   │   │   ├── fileWatcher.ts # File watching
-│   │   │   └── aiService.ts   # Claude API
+│   │   │   └── ... 
 │   │   └── server.ts          # Main server
 │   ├── .env                   # Environment config (has your API key)
 │   └── package.json
 ├── shared/                    # Shared TypeScript types
 │   └── src/
 │       └── types.ts
-├── docs/                      # Documentation
-│   ├── architecture.md
-│   ├── data-flow-and-ui.md
-│   └── overview.md
 ├── AGENTS.md                  # Coding guidelines
 └── package.json               # Root workspace config
 ```
@@ -133,11 +129,6 @@ The AI assistant supports both **OpenAI** (default) and **Claude**:
 - Strong coding capabilities
 - Set `AI_PROVIDER=anthropic` in `server/.env`
 
-**Features:**
-- Ask R programming questions
-- Get code suggestions with syntax highlighting
-- Apply suggested code directly to editor
-- Context-aware based on your current code and execution history
 
 **Switching Providers:**
 ```env
@@ -152,51 +143,6 @@ ANTHROPIC_API_KEY=sk-...  # for Claude
 - `Cmd/Ctrl + Enter`: Run current cell/section
 - `Shift + Enter`: Run current cell and move to next
 - `Cmd/Ctrl + Shift + Enter`: Run all code
-
-### Cell-Based Execution
-
-Re-Prod follows RStudio's section convention. Mark sections with comments followed by at least 4 dashes:
-
-```r
-# Load Data ----
-data <- read.csv("data.csv")
-
-# Analyze Data ----
-summary(data)
-
-# Visualize ----
-plot(data$x, data$y)
-```
-
-**Features:**
-- Visual indicators show section boundaries (blue line in left margin)
-- Executing cells are highlighted with light blue background
-- Can be disabled via settings: `showCellDecorations` and `highlightExecutingCell`
-
-## Configuration
-
-### Environment Variables
-
-Edit `server/.env`:
-
-```env
-PORT=4000
-CLIENT_URL=http://localhost:5173
-NODE_ENV=development
-
-# AI Provider (openai or anthropic)
-AI_PROVIDER=openai
-
-# OpenAI Configuration (default)
-OPENAI_API_KEY=sk-...
-OPENAI_MODEL=gpt-4o
-
-# Anthropic Configuration (alternative)
-ANTHROPIC_API_KEY=sk-ant-...
-
-# R Configuration
-R_PATH=Rscript
-```
 
 ### R Path
 
@@ -250,16 +196,9 @@ Socket connection error
 ### AI not responding
 
 **Solution**:
-1. Verify `ANTHROPIC_API_KEY` is set in `server/.env`
+1. Verify either of `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` is set in `server/.env`
 2. Check server logs for API errors
 3. Ensure you have API credits
-
-### Plots not showing
-
-**Solution**:
-1. Ensure your R code generates plots
-2. Check Console panel for R errors
-3. Verify `server/temp/` directory exists and is writable
 
 ## Implementation Notes
 
@@ -291,5 +230,4 @@ MIT
 ## Acknowledgments
 
 - Inspired by RStudio's excellent UI/UX
-- Powered by Claude AI (Anthropic)
 - Built with React, Monaco Editor, and Socket.io
