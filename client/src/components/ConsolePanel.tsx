@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { IconTrash, IconBarChart, IconCheckCircle, IconXCircle } from './icons';
 import { useStore } from '../store/useStore';
-import './ConsolePanel.css';
 
 export function ConsolePanel(): JSX.Element {
   const { execution, clearResults } = useStore();

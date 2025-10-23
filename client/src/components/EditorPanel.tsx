@@ -6,7 +6,6 @@ import { useStore } from '../store/useStore';
 import { socketService } from '../services/socket';
 import { parseCells, getCurrentCell, getCellCode, type Cell } from '../utils/cellParser';
 import type { CodeBlock, ExecutionError, ExecutionResult } from '../../../shared/src/types';
-import './EditorPanel.css';
 
 export function EditorPanel(): JSX.Element {
   const { editor, setEditorContent, setCursorPosition, setIsRunning, execution, settings, setApplyCodeChange } = useStore();

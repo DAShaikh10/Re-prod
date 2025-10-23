@@ -4,7 +4,6 @@ import { useStore } from '../store/useStore';
 import { socketService } from '../services/socket';
 import { CodeBlockWithApply } from './CodeBlockWithApply';
 import type { CodeBlock } from '../../../shared/src/types';
-import './AIPanel.css';
 
 export function AIPanel(): JSX.Element {
   const { ai, editor, execution, addAIMessage, setAILoading } = useStore();

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { IconBarChart, IconChevronLeft, IconChevronRight } from './icons';
 import { useStore } from '../store/useStore';
-import './PlotsPanel.css';
 
 export function PlotsPanel(): JSX.Element {
   const { execution } = useStore();

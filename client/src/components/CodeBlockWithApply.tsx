@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { IconClipboard, IconCheck, IconLightbulb } from './icons';
 import type { CodeBlock } from '../../../shared/src/types';
-import './CodeBlockWithApply.css';
 
 interface Props {
   codeBlock: CodeBlock;

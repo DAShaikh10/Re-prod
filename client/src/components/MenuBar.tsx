@@ -1,5 +1,4 @@
 import { useStore } from '../store/useStore';
-import './MenuBar.css';
 
 export function MenuBar(): JSX.Element {
   const { isConnected } = useStore();

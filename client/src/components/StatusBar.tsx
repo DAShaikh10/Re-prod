@@ -1,5 +1,4 @@
 import { useStore } from '../store/useStore';
-import './StatusBar.css';
 
 export function StatusBar(): JSX.Element {
   const { editor, settings, execution } = useStore();
