@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { IconBarChart, IconChevronLeft, IconChevronRight } from './icons';
+import { IconBarChart, IconChevronLeft, IconChevronRight } from '@/components/shared';
 import { useStore } from '@/core';
 
 export function PlotsPanel(): JSX.Element {
-  const { execution } = useStore();
+  const execution = useStore((state) => state.execution);
   const [activeTab, setActiveTab] = useState<'plots' | 'viewer' | 'help'>('plots');
   const [selectedPlotIndex, setSelectedPlotIndex] = useState(0);
 

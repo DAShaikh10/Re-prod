@@ -1,18 +1,18 @@
 import { useEffect } from 'react';
 import { Allotment } from 'allotment';
 import 'allotment/dist/style.css';
-import { MenuBar } from './components/MenuBar';
-import { EditorPanel } from './components/EditorPanel';
-import { AIPanel } from './components/AIPanel';
-import { PlotsPanel } from './components/PlotsPanel';
-import { ConsolePanel } from './components/ConsolePanel';
-import { StatusBar } from './components/StatusBar';
+import { MenuBar, StatusBar } from '@/components/menu';
+import { EditorPanel } from '@/components/editor';
+import { AIPanel } from '@/components/ai-panel';
+import { PlotsPanel } from '@/components/plots';
+import { ConsolePanel } from '@/components/console';
 import { socketService } from './services/socket';
 import { useStore } from '@/core';
 import './App.css';
 
 function App(): JSX.Element {
-  const { setConnected, setEditorContent } = useStore();
+  const setConnected = useStore((state) => state.setConnected);
+  const setEditorContent = useStore((state) => state.setEditorContent);
 
   useEffect(() => {
     const socket = socketService.connect();

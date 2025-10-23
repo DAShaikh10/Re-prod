@@ -1,13 +1,20 @@
 import { useEffect, useState, useRef } from 'react';
 import Editor, { Monaco } from '@monaco-editor/react';
-import { IconPlay, IconPlayCircle } from './icons';
+import { IconPlay, IconPlayCircle } from '@/components/shared';
 import type { editor as MonacoEditor } from 'monaco-editor';
 import { useStore, parseCells, getCurrentCell, getCellCode, type Cell } from '@/core';
-import { socketService } from '../services/socket';
-import type { CodeBlock, ExecutionError, ExecutionResult } from '../../../shared/src/types';
+import { socketService } from '@/services/socket';
+import type { CodeBlock, ExecutionError, ExecutionResult } from '../../../../shared/src/types';
 
 export function EditorPanel(): JSX.Element {
-  const { editor, setEditorContent, setEditorCursorPosition, setIsRunning, execution, settings, setApplyCodeChange } = useStore();
+  const editor = useStore((state) => state.editor);
+  const execution = useStore((state) => state.execution);
+  const settings = useStore((state) => state.settings);
+  const setEditorContent = useStore((state) => state.setEditorContent);
+  const setEditorCursorPosition = useStore((state) => state.setEditorCursorPosition);
+  const setIsRunning = useStore((state) => state.setIsRunning);
+  const setApplyCodeChange = useStore((state) => state.setApplyCodeChange);
+  const addExecutionResult = useStore((state) => state.addExecutionResult);
   const [cells, setCells] = useState<Cell[]>([]);
   const [executingCellIndex, setExecutingCellIndex] = useState<number | null>(null);
   const editorRef = useRef<MonacoEditor.IStandaloneCodeEditor | null>(null);
@@ -93,7 +100,6 @@ export function EditorPanel(): JSX.Element {
       setExecutingCellIndex(null);
       setIsRunning(false);
 
-      const { addExecutionResult } = useStore.getState();
       if (result.success) {
         addExecutionResult(result);
       } else {

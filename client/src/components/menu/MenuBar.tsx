@@ -1,7 +1,7 @@
 import { useStore } from '@/core';
 
 export function MenuBar(): JSX.Element {
-  const { isConnected } = useStore();
+  const isConnected = useStore((state) => state.isConnected);
 
   return (
     <div className="menubar">

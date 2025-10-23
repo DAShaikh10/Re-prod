@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { IconTrash, IconBarChart, IconCheckCircle, IconXCircle } from './icons';
+import { IconTrash, IconBarChart, IconCheckCircle, IconXCircle } from '@/components/shared';
 import { useStore } from '@/core';
 
 export function ConsolePanel(): JSX.Element {
-  const { execution, clearExecutionResults } = useStore();
+  const execution = useStore((state) => state.execution);
+  const clearExecutionResults = useStore((state) => state.clearExecutionResults);
   const [activeTab, setActiveTab] = useState<'console' | 'history'>('console');
   const consoleEndRef = useRef<HTMLDivElement>(null);
 

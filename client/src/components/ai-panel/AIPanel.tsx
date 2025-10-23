@@ -1,12 +1,17 @@
 import { useState, useRef, useEffect } from 'react';
-import { IconRobot, IconSend, IconSquare } from './icons';
+import { IconRobot, IconSend, IconSquare } from '@/components/shared';
 import { useStore } from '@/core';
-import { socketService } from '../services/socket';
+import { socketService } from '@/services/socket';
 import { CodeBlockWithApply } from './CodeBlockWithApply';
-import type { CodeBlock } from '../../../shared/src/types';
+import type { CodeBlock } from '../../../../shared/src/types';
 
 export function AIPanel(): JSX.Element {
-  const { ai, editor, execution, addAIMessage, setAILoading } = useStore();
+  const ai = useStore((state) => state.ai);
+  const editor = useStore((state) => state.editor);
+  const execution = useStore((state) => state.execution);
+  const addAIMessage = useStore((state) => state.addAIMessage);
+  const setAILoading = useStore((state) => state.setAILoading);
+  const applyCodeChange = useStore((state) => state.applyCodeChange);
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const timeoutIdRef = useRef<NodeJS.Timeout | null>(null);
@@ -101,7 +106,6 @@ export function AIPanel(): JSX.Element {
 
   const handleApplyCode = (codeBlock: CodeBlock): void => {
     // This will be connected to EditorPanel's applyCodeChange method
-    const { applyCodeChange } = useStore.getState();
     if (applyCodeChange) {
       applyCodeChange(codeBlock);
     } else {

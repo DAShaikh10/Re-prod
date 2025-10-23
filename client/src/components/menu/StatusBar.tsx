@@ -1,7 +1,9 @@
 import { useStore } from '@/core';
 
 export function StatusBar(): JSX.Element {
-  const { editor, settings, execution } = useStore();
+  const editor = useStore((state) => state.editor);
+  const settings = useStore((state) => state.settings);
+  const execution = useStore((state) => state.execution);
 
   return (
     <div className="statusbar">
