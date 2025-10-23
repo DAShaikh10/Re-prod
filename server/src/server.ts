@@ -2,10 +2,10 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import { RExecutor } from './services/rExecutor';
 import { FileWatcher } from './services/fileWatcher';
 import { AIService } from './services/aiService';
+import { AppConfig } from './config/settings';
 import type {
   ServerToClientEvents,
   ClientToServerEvents,
@@ -13,23 +13,22 @@ import type {
   ExecutionError
 } from '../../shared/src/types';
 
-dotenv.config();
-
 const app = express();
 const httpServer = createServer(app);
+const config = AppConfig.getInstance();
 const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer, {
   cors: {
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    origin: config.clientUrl,
     methods: ['GET', 'POST'],
     credentials: true
   }
 });
 
-const PORT = process.env.PORT || 4000;
+const PORT = config.port;
 
 // Middleware
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  origin: config.clientUrl,
   credentials: true
 }));
 app.use(express.json());
@@ -137,7 +136,7 @@ httpServer.listen(PORT, () => {
   console.log(`🚀 Re-prod server running on http://localhost:${PORT}`);
   console.log(`📡 WebSocket server ready`);
   console.log(`🤖 AI service: ${aiService.isConfigured() ? 'Configured' : 'Not configured'}`);
-  console.log(`📊 R path: ${process.env.R_PATH || 'Rscript'}`);
+  console.log(`📊 R path: ${config.rPath}`);
 });
 
 // Graceful shutdown

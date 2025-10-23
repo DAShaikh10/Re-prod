@@ -8,7 +8,6 @@ import { PlotsPanel } from '@/components/plots';
 import { ConsolePanel } from '@/components/console';
 import { socketService } from './services/socket';
 import { useStore } from '@/core';
-import './App.css';
 
 function App(): JSX.Element {
   const setConnected = useStore((state) => state.setConnected);
