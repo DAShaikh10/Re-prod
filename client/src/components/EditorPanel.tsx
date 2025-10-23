@@ -2,13 +2,12 @@ import { useEffect, useState, useRef } from 'react';
 import Editor, { Monaco } from '@monaco-editor/react';
 import { IconPlay, IconPlayCircle } from './icons';
 import type { editor as MonacoEditor } from 'monaco-editor';
-import { useStore } from '../store/useStore';
+import { useStore, parseCells, getCurrentCell, getCellCode, type Cell } from '@/core';
 import { socketService } from '../services/socket';
-import { parseCells, getCurrentCell, getCellCode, type Cell } from '../utils/cellParser';
 import type { CodeBlock, ExecutionError, ExecutionResult } from '../../../shared/src/types';
 
 export function EditorPanel(): JSX.Element {
-  const { editor, setEditorContent, setCursorPosition, setIsRunning, execution, settings, setApplyCodeChange } = useStore();
+  const { editor, setEditorContent, setEditorCursorPosition, setIsRunning, execution, settings, setApplyCodeChange } = useStore();
   const [cells, setCells] = useState<Cell[]>([]);
   const [executingCellIndex, setExecutingCellIndex] = useState<number | null>(null);
   const editorRef = useRef<MonacoEditor.IStandaloneCodeEditor | null>(null);
@@ -222,7 +221,7 @@ export function EditorPanel(): JSX.Element {
 
     // Track cursor position
     monacoEditor.onDidChangeCursorPosition((e) => {
-      setCursorPosition({
+      setEditorCursorPosition({
         line: e.position.lineNumber,
         column: e.position.column
       });

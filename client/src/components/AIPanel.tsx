@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { IconRobot, IconSend, IconSquare } from './icons';
-import { useStore } from '../store/useStore';
+import { useStore } from '@/core';
 import { socketService } from '../services/socket';
 import { CodeBlockWithApply } from './CodeBlockWithApply';
 import type { CodeBlock } from '../../../shared/src/types';
@@ -154,7 +154,7 @@ export function AIPanel(): JSX.Element {
                     </div>
                   )}
                   {/* New code blocks with Apply buttons */}
-                  {message.codeBlocks && message.codeBlocks.map((codeBlock) => (
+                  {message.codeBlocks?.map((codeBlock: CodeBlock) => (
                     <CodeBlockWithApply
                       key={codeBlock.id}
                       codeBlock={codeBlock}

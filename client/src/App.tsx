@@ -8,7 +8,7 @@ import { PlotsPanel } from './components/PlotsPanel';
 import { ConsolePanel } from './components/ConsolePanel';
 import { StatusBar } from './components/StatusBar';
 import { socketService } from './services/socket';
-import { useStore } from './store/useStore';
+import { useStore } from '@/core';
 import './App.css';
 
 function App(): JSX.Element {

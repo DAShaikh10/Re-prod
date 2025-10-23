@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { IconTrash, IconBarChart, IconCheckCircle, IconXCircle } from './icons';
-import { useStore } from '../store/useStore';
+import { useStore } from '@/core';
 
 export function ConsolePanel(): JSX.Element {
-  const { execution, clearResults } = useStore();
+  const { execution, clearExecutionResults } = useStore();
   const [activeTab, setActiveTab] = useState<'console' | 'history'>('console');
   const consoleEndRef = useRef<HTMLDivElement>(null);
 
@@ -34,7 +34,7 @@ export function ConsolePanel(): JSX.Element {
           <button
             className="btn btn-icon"
             title="Clear Console"
-            onClick={clearResults}
+            onClick={clearExecutionResults}
             aria-label="Clear console">
             <IconTrash width={16} height={16} aria-hidden />
           </button>

@@ -1,4 +1,4 @@
-import { useStore } from '../store/useStore';
+import { useStore } from '@/core';
 
 export function StatusBar(): JSX.Element {
   const { editor, settings, execution } = useStore();

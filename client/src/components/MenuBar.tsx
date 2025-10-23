@@ -1,4 +1,4 @@
-import { useStore } from '../store/useStore';
+import { useStore } from '@/core';
 
 export function MenuBar(): JSX.Element {
   const { isConnected } = useStore();
