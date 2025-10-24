@@ -1,8 +1,8 @@
 import { AI_EVENTS } from '../events';
 import type { AppSocket } from '../types';
 import { aiRequestSchema } from '../../schemas/ai.schema';
-import type { AIService } from '../../core/ai/aiService';
-import type { ClientToServerEvents } from '../../../../shared/src/types';
+import type { AIService } from '@server/core/ai/aiService';
+import type { ClientToServerEvents } from '@shared/types';
 
 type AIArgs = Parameters<ClientToServerEvents['ai-request']>;
 

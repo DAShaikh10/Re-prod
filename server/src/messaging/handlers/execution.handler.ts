@@ -1,8 +1,8 @@
 import { EXECUTION_EVENTS } from '../events';
 import type { AppSocket } from '../types';
 import { executionRequestSchema } from '../../schemas/execution.schema';
-import type { RExecutor } from '../../core/execution/rExecutor';
-import type { ExecutionError, ClientToServerEvents } from '../../../../shared/src/types';
+import type { RExecutor } from '@server/core/execution/rExecutor';
+import type { ExecutionError, ClientToServerEvents } from '@shared/types';
 
 type ExecuteArgs = Parameters<ClientToServerEvents['execute']>;
 

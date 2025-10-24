@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { AIService } from '../core/ai/aiService';
+import { AIService } from '@server/core/ai/aiService';
 import { resetEnvCache } from '../config/env';
 
 const originalEnv = { ...process.env };

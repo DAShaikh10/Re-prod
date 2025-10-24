@@ -2,8 +2,8 @@ import { spawn } from 'child_process';
 import { writeFile, unlink, readFile, mkdir } from 'fs/promises';
 import { existsSync } from 'fs';
 import { join } from 'path';
-import type { ExecutionResult, PlotInfo } from '../../../../shared/src/types';
-import { AppConfig } from '../../config/settings';
+import type { ExecutionResult, PlotInfo } from '@shared/types';
+import { AppConfig } from '@server/config/settings';
 
 export class RExecutor {
   private tempDir: string;

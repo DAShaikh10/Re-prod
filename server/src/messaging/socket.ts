@@ -1,8 +1,8 @@
 import type { AppServer } from './types';
 import { ExecutionHandler, AIHandler, FilesHandler, ConnectionHandler } from './handlers';
-import type { RExecutor } from '../core/execution/rExecutor';
-import type { FileWatcher } from '../core/files/fileWatcher';
-import type { AIService } from '../core/ai/aiService';
+import type { RExecutor } from '@server/core/execution/rExecutor';
+import type { FileWatcher } from '@server/core/files/fileWatcher';
+import type { AIService } from '@server/core/ai/aiService';
 
 export interface MessagingDependencies {
   rExecutor: RExecutor;

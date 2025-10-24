@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
 import { Router } from 'express';
-import { AppConfig } from '../../config/settings';
-import type { AIService } from '../../core/ai/aiService';
+import { AppConfig } from '@server/config/settings';
+import type { AIService } from '@server/core/ai/aiService';
 
 export function createHealthRouter(aiService: AIService): Router {
   const router = Router();

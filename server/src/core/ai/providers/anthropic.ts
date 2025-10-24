@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import type { AIRequest, AIResponse, CodeBlock } from '../../../../../shared/src/types';
+import type { AIRequest, AIResponse, CodeBlock } from '@shared/types';
 import { AppConfig } from '../../../config/settings';
 import { AIProvider } from './base';
 

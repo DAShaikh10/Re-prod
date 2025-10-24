@@ -2,6 +2,9 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
+import { requestLogger } from './api/middleware/logger';
+import { errorHandler } from './api/middleware/errorHandler';
+import { createHealthRouter } from './api/routes/health';
 import { RExecutor } from './core/execution/rExecutor';
 import { FileWatcher } from './core/files/fileWatcher';
 import { AIService } from './core/ai/aiService';
@@ -26,6 +29,7 @@ const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer, {
 const PORT = config.port;
 
 // Middleware
+app.use(requestLogger);
 app.use(cors({
   origin: config.clientUrl,
   credentials: true
@@ -37,14 +41,8 @@ const rExecutor = new RExecutor();
 const fileWatcher = new FileWatcher(io);
 const aiService = new AIService();
 
-// Health check endpoint
-app.get('/health', (_req, res) => {
-  res.json({
-    status: 'ok',
-    timestamp: Date.now(),
-    aiConfigured: aiService.isConfigured()
-  });
-});
+// API routes
+app.use('/health', createHealthRouter(aiService));
 
 registerSocketHandlers(io, {
   rExecutor,
@@ -53,10 +51,11 @@ registerSocketHandlers(io, {
 });
 
 // Cleanup old temp files periodically
-
 setInterval(() => {
   rExecutor.cleanup();
 }, 3600000); // Every hour
+
+app.use(errorHandler);
 
 // Start server
 httpServer.listen(PORT, () => {

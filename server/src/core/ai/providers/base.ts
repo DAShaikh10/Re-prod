@@ -1,4 +1,4 @@
-import type { AIRequest, AIResponse } from '../../../../../shared/src/types';
+import type { AIRequest, AIResponse } from '@shared/types';
 
 export interface AIProvider {
   getCompletion(request: AIRequest): Promise<AIResponse>;
