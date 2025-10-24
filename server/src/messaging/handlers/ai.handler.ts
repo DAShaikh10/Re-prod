@@ -1,13 +1,16 @@
 import { AI_EVENTS } from '../events';
 import type { AppSocket } from '../types';
 import { aiRequestSchema } from '../../schemas/ai.schema';
-import type { AIService } from '../../services/aiService';
+import type { AIService } from '@server/core/ai/aiService';
+import type { ClientToServerEvents } from '@shared/types';
+
+type AIArgs = Parameters<ClientToServerEvents['ai-request']>;
 
 export class AIHandler {
   constructor(private readonly aiService: AIService) {}
 
   register(socket: AppSocket): void {
-    socket.on(AI_EVENTS.REQUEST, async (request, callback) => {
+    socket.on(AI_EVENTS.REQUEST, async (request: AIArgs[0], callback: AIArgs[1]) => {
       const validation = aiRequestSchema.safeParse(request);
 
       if (!validation.success) {

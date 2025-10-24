@@ -1,5 +1,5 @@
 import type { AppSocket } from '../types';
-import type { FileWatcher } from '../../services/fileWatcher';
+import type { FileWatcher } from '@server/core/files/fileWatcher';
 
 export class ConnectionHandler {
   constructor(private readonly fileWatcher: FileWatcher) {}

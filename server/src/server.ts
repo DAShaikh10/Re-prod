@@ -2,17 +2,15 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
-import { RExecutor } from './services/rExecutor';
-import { FileWatcher } from './services/fileWatcher';
-import { AIService } from './services/aiService';
+import { RExecutor } from './core/execution/rExecutor';
+import { FileWatcher } from './core/files/fileWatcher';
+import { AIService } from './core/ai/aiService';
 import { AppConfig } from './config/settings';
 import { registerSocketHandlers } from './messaging/socket';
 import type {
   ServerToClientEvents,
-  ClientToServerEvents,
-  ExecutionResult,
-  ExecutionError
-} from '../../shared/src/types';
+  ClientToServerEvents
+} from '@shared/types';
 
 const app = express();
 const httpServer = createServer(app);
@@ -40,7 +38,7 @@ const fileWatcher = new FileWatcher(io);
 const aiService = new AIService();
 
 // Health check endpoint
-app.get('/health', (req, res) => {
+app.get('/health', (_req, res) => {
   res.json({
     status: 'ok',
     timestamp: Date.now(),
