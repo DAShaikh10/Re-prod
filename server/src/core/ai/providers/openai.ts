@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import type { AIRequest, AIResponse, CodeBlock } from '@shared/types';
+import type { AIRequest, AIResponse, CodeBlock } from '../../../../../shared/src/types';
 import { AppConfig } from '../../../config/settings';
 import { AIProvider } from './base';
 

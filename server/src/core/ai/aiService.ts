@@ -1,4 +1,4 @@
-import type { AIRequest, AIResponse } from '@shared/types';
+import type { AIRequest, AIResponse } from '../../../../shared/src/types';
 import { AppConfig } from '../../config/settings';
 import { AnthropicProvider, OpenAIProvider, AIProvider } from './providers';
 

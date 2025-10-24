@@ -2,7 +2,7 @@ import chokidar, { FSWatcher } from 'chokidar';
 import { readFile, writeFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import type { Server } from 'socket.io';
-import type { ServerToClientEvents, ClientToServerEvents } from '@shared/types';
+import type { ServerToClientEvents, ClientToServerEvents } from '../../../../shared/src/types';
 
 export class FileWatcher {
   private watchers: Map<string, FSWatcher> = new Map();

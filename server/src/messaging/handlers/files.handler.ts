@@ -1,8 +1,8 @@
 import { FILE_EVENTS } from '../events';
 import type { AppSocket } from '../types';
 import { loadFileSchema, saveFileSchema, unwatchFileSchema, watchFileSchema } from '../../schemas/files.schema';
-import type { FileWatcher } from '@server/core/files/fileWatcher';
-import type { ClientToServerEvents, FileChangeData } from '@shared/types';
+import type { FileWatcher } from '../../core/files/fileWatcher';
+import type { ClientToServerEvents, FileChangeData } from '../../../../shared/src/types';
 
 type WatchArgs = Parameters<ClientToServerEvents['watch-file']>;
 type UnwatchArgs = Parameters<ClientToServerEvents['unwatch-file']>;
