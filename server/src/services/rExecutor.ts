@@ -3,6 +3,7 @@ import { writeFile, unlink, readFile, mkdir } from 'fs/promises';
 import { existsSync } from 'fs';
 import { join } from 'path';
 import type { ExecutionResult, PlotInfo } from '../../../shared/src/types';
+import { AppConfig } from '../config/settings';
 
 export class RExecutor {
   private tempDir: string;
@@ -10,8 +11,9 @@ export class RExecutor {
   private rPath: string;
 
   constructor() {
-    this.tempDir = join(process.cwd(), 'temp');
-    this.rPath = process.env.R_PATH || 'Rscript';
+    const config = AppConfig.getInstance();
+    this.tempDir = join(process.cwd(), config.tempDir);
+    this.rPath = config.rPath;
     this.ensureTempDir();
   }
 

@@ -28,7 +28,7 @@ const aiContextSchema = z.object({
 });
 
 export const aiRequestSchema = z.object({
-  code: z.string().optional(),
+  code: z.string().default(''),
   prompt: z.string().min(1, 'Prompt is required'),
   context: aiContextSchema.optional()
 });

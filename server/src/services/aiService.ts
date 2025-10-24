@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
 import type { AIRequest, AIResponse, CodeBlock } from '../../../shared/src/types';
+import { AppConfig } from '../config/settings';
 
 type AIProvider = 'anthropic' | 'openai';
 
@@ -9,14 +10,17 @@ export class AIService {
   private anthropicClient: Anthropic | null = null;
   private openaiClient: OpenAI | null = null;
   private openaiModel: string;
+  private openaiBaseUrl: string | undefined;
 
   constructor() {
-    // Determine which provider to use (default: openai)
-    this.provider = (process.env.AI_PROVIDER as AIProvider) || 'openai';
-    this.openaiModel = process.env.OPENAI_MODEL || 'gpt-4o';
+    const config = AppConfig.getInstance();
+
+    this.provider = config.aiProvider;
+    this.openaiModel = config.openaiModel;
+    this.openaiBaseUrl = config.openaiBaseUrl;
 
     if (this.provider === 'anthropic') {
-      const anthropicKey = process.env.ANTHROPIC_API_KEY;
+      const anthropicKey = config.anthropicApiKey;
       if (anthropicKey) {
         this.anthropicClient = new Anthropic({ apiKey: anthropicKey });
         console.log('Claude API initialized');
@@ -24,11 +28,11 @@ export class AIService {
         console.warn('ANTHROPIC_API_KEY not found');
       }
     } else if (this.provider === 'openai') {
-      const openaiKey = process.env.OPENAI_API_KEY;
+      const openaiKey = config.openaiApiKey;
       if (openaiKey) {
         this.openaiClient = new OpenAI({
           apiKey: openaiKey,
-          baseURL: process.env.OPENAI_BASE_URL || undefined
+          baseURL: this.openaiBaseUrl
         });
         console.log(`OpenAI API initialized (${this.openaiModel})`);
       } else {
@@ -40,14 +44,18 @@ export class AIService {
   async getCompletion(request: AIRequest): Promise<AIResponse> {
     if (this.provider === 'openai' && this.openaiClient) {
       return this.getOpenAICompletion(request);
-    } else if (this.provider === 'anthropic' && this.anthropicClient) {
-      return this.getClaudeCompletion(request);
-    } else {
-      return {
-        message: `⚠️ AI service is not configured. Please add ${this.provider === 'openai' ? 'OPENAI_API_KEY' : 'ANTHROPIC_API_KEY'} to your environment.`,
-        timestamp: Date.now()
-      };
     }
+
+    if (this.provider === 'anthropic' && this.anthropicClient) {
+      return this.getClaudeCompletion(request);
+    }
+
+    const missingKey = this.provider === 'openai' ? 'OPENAI_API_KEY' : 'ANTHROPIC_API_KEY';
+
+    return {
+      message: `⚠️ AI service is not configured. Please add ${missingKey} to your environment.`,
+      timestamp: Date.now()
+    };
   }
 
   private async getOpenAICompletion(request: AIRequest): Promise<AIResponse> {

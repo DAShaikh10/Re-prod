@@ -6,6 +6,7 @@ import { RExecutor } from './services/rExecutor';
 import { FileWatcher } from './services/fileWatcher';
 import { AIService } from './services/aiService';
 import { AppConfig } from './config/settings';
+import { registerSocketHandlers } from './messaging/socket';
 import type {
   ServerToClientEvents,
   ClientToServerEvents,
@@ -47,86 +48,14 @@ app.get('/health', (req, res) => {
   });
 });
 
-// WebSocket connection handling
-io.on('connection', (socket) => {
-  console.log(`Client connected: ${socket.id}`);
-
-  // Execute R code
-  socket.on('execute', async (code: string, callback) => {
-    try {
-      const result = await rExecutor.execute(code);
-      callback(result);
-    } catch (error) {
-      const errorResult: ExecutionError = {
-        message: error instanceof Error ? error.message : 'Unknown error',
-        type: 'system',
-        timestamp: Date.now(),
-        success: false
-      };
-      callback(errorResult);
-    }
-  });
-
-  // Watch file
-  socket.on('watch-file', (filepath: string) => {
-    fileWatcher.watch(filepath, socket.id);
-  });
-
-  // Unwatch file
-  socket.on('unwatch-file', (filepath: string) => {
-    fileWatcher.unwatch(filepath, socket.id);
-  });
-
-  // AI request
-  socket.on('ai-request', async (request, callback) => {
-    try {
-      const response = await aiService.getCompletion(request);
-      callback(response);
-    } catch (error) {
-      callback({
-        message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        timestamp: Date.now()
-      });
-    }
-  });
-
-  // Save file
-  socket.on('save-file', async (data, callback) => {
-    const success = await fileWatcher.saveFile(data.filepath, data.content);
-    callback(success);
-
-    if (success) {
-      io.emit('status-update', {
-        type: 'info',
-        message: `File saved: ${data.filepath}`,
-        timestamp: Date.now()
-      });
-    }
-  });
-
-  // Load file
-  socket.on('load-file', async (filepath: string, callback) => {
-    const content = await fileWatcher.loadFile(filepath);
-
-    if (content !== null) {
-      callback({
-        filepath,
-        content,
-        timestamp: Date.now()
-      });
-    } else {
-      callback(null);
-    }
-  });
-
-  // Disconnect handler
-  socket.on('disconnect', () => {
-    console.log(`Client disconnected: ${socket.id}`);
-    fileWatcher.cleanupClient(socket.id);
-  });
+registerSocketHandlers(io, {
+  rExecutor,
+  fileWatcher,
+  aiService
 });
 
 // Cleanup old temp files periodically
+
 setInterval(() => {
   rExecutor.cleanup();
 }, 3600000); // Every hour

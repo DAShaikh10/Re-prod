@@ -38,3 +38,8 @@ export function loadEnv(): Env {
   cachedEnv = result.data;
   return cachedEnv;
 }
+
+export function resetEnvCache(): void {
+  cachedEnv = null;
+}
+
