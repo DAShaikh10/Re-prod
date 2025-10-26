@@ -23,5 +23,20 @@
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@shared/*": [
+        "shared/src/*"
+      ],
+      "@server/*": [
+        "server/src/*"
+      ]
+    },
+    "rootDirs": [
+      "server/src",
+      "shared/src"
+    ]
   }
 }

@@ -1,0 +1,40 @@
+:root {
+  /* Surface palette */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f4f6fb;
+  --bg-tertiary: #e8ecf7;
+  --bg-toolbar: rgba(250, 252, 255, 0.86);
+  --bg-elevated: rgba(255, 255, 255, 0.92);
+  --bg-code: #f9fafc;
+
+  /* Typography */
+  --text-primary: #1f2937;
+  --text-secondary: #4b5565;
+  --text-muted: #8a93a4;
+
+  /* Borders & depth */
+  --border-color: rgba(30, 41, 59, 0.12);
+  --border-light: rgba(148, 163, 184, 0.2);
+  --border-strong: rgba(15, 23, 42, 0.22);
+  --panel-radius: 12px;
+  --shadow-sm: 0 8px 18px rgba(15, 23, 42, 0.08);
+  --shadow-md: 0 18px 40px rgba(15, 23, 42, 0.12);
+  --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+
+  /* Brand accents */
+  --accent-blue: #2f6fed;
+  --accent-blue-hover: #2556c8;
+  --accent-blue-light: rgba(47, 111, 237, 0.16);
+
+  /* State colors */
+  --success-color: #1f9254;
+  --error-color: #dc4c3f;
+  --warning-color: #f59e0b;
+
+  /* Typography tokens */
+  --font-family-base: 'Inter', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  --font-size-base: 13px;
+  --line-height-base: 1.55;
+  --font-weight-base: 400;
+  --letter-spacing-base: -0.01em;
+}

@@ -86,15 +86,26 @@ npm run dev:client
 Re-prod/
 ├── client/                    # Reactフロントエンド
 │   ├── src/
-│   │   ├── components/        # UIコンポーネント
-│   │   │   ├── ...
+│   │   ├── components/        # 機能別UIコンポーネント
+│   │   │   ├── ai-panel/
+│   │   │   ├── console/
+│   │   │   ├── editor/
+│   │   │   ├── menu/
+│   │   │   ├── plots/
+│   │   │   └── shared/        # アイコンなどの共通部品
+│   │   ├── core/              # Zustandストアと実行ロジック
+│   │   │   ├── execution/
+│   │   │   └── state/
+│   │   ├── css/               # グローバル/コンポーネントスタイル
+│   │   │   ├── globals.css
+│   │   │   ├── index.css
+│   │   │   └── components/
 │   │   ├── services/
 │   │   │   └── socket.ts      # WebSocketクライアント
-│   │   ├── store/
-│   │   │   └── useStore.ts    # Zustand状態管理
+│   │   ├── utils/
+│   │   │   └── cn.ts          # クラス名ヘルパー
 │   │   ├── App.tsx
-│   │   ├── App.css
-│   │   └── index.css          # RStudioカラー
+│   │   └── main.tsx
 │   └── package.json
 ├── server/                    # Node.jsバックエンド
 │   ├── src/
