@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import Editor, { Monaco } from '@monaco-editor/react';
 import { IconPlay, IconPlayCircle } from '@/components/shared';
 import type { editor as MonacoEditor } from 'monaco-editor';
-import { useStore, parseCells, getCurrentCell, getCellCode, type Cell } from '@/core';
+import { useStore, parseCells, type Cell, getExecutionTarget, getExecutionTargetAndNext, getAllCode } from '@/core';
 import { socketService } from '@/services/socket';
 import type { CodeBlock, ExecutionError, ExecutionResult } from '../../../../shared/src/types';
 
@@ -120,46 +120,35 @@ export function EditorPanel(): JSX.Element {
   };
 
   const handleRunAll = (): void => {
-    executeCode(editor.content);
+    const code = getAllCode(editorRef.current);
+    if (code) {
+      executeCode(code);
+    }
   };
 
   const handleRunCurrentCell = (): void => {
-    if (cells.length === 0) {
-      handleRunAll();
-      return;
-    }
+    const target = getExecutionTarget(editorRef.current, cells, editor.cursorPosition.line);
 
-    const currentCell = getCurrentCell(cells, editor.cursorPosition.line);
-    if (currentCell) {
-      const cellIndex = cells.indexOf(currentCell);
-      const code = getCellCode(currentCell);
-      executeCode(code, cellIndex);
+    if (target) {
+      executeCode(target.code, target.cellIndex);
     }
   };
 
   const handleRunCellAndMoveNext = (): void => {
-    if (cells.length === 0) {
-      handleRunAll();
-      return;
-    }
+    const result = getExecutionTargetAndNext(editorRef.current, cells, editor.cursorPosition.line);
 
-    const currentCell = getCurrentCell(cells, editor.cursorPosition.line);
-    if (!currentCell) return;
+    if (!result) return;
 
-    const cellIndex = cells.indexOf(currentCell);
-    const code = getCellCode(currentCell);
+    // Execute the target (selection, cell, or whole document)
+    executeCode(result.target.code, result.target.cellIndex);
 
-    // Execute current cell
-    executeCode(code, cellIndex);
-
-    // Move cursor to next cell
-    if (cellIndex < cells.length - 1 && editorRef.current) {
-      const nextCell = cells[cellIndex + 1];
+    // Only move to next cell if we executed a cell and there's a next cell
+    if (result.nextCell && editorRef.current) {
       editorRef.current.setPosition({
-        lineNumber: nextCell.startLine,
+        lineNumber: result.nextCell.startLine,
         column: 1
       });
-      editorRef.current.revealLineInCenter(nextCell.startLine);
+      editorRef.current.revealLineInCenter(result.nextCell.startLine);
     }
   };
 

@@ -109,9 +109,17 @@ export function PlotsPanel(): JSX.Element {
                 <h4>Getting Started</h4>
                 <ul>
                   <li>Write R code in the editor</li>
-                  <li>Click "Run" or press Ctrl+Enter to execute</li>
+                  <li>Organize code using section markers: <code># Section Name ----</code></li>
                   <li>View results in the Console panel</li>
                   <li>Plots appear automatically in this panel</li>
+                </ul>
+              </div>
+              <div className="help-section">
+                <h4>Keyboard Shortcuts</h4>
+                <ul>
+                  <li><strong>Cmd/Ctrl + Enter:</strong> Run current cell or selection</li>
+                  <li><strong>Shift + Enter:</strong> Run cell and move to next</li>
+                  <li><strong>Cmd/Ctrl + Shift + Enter:</strong> Run all code</li>
                 </ul>
               </div>
               <div className="help-section">
