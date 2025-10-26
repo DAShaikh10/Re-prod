@@ -1,4 +1,4 @@
-[English](README.md) | [日本語](README.ja.md)
+[English](README.md) | [Japanese](README.ja.md)
 
 ---
 
@@ -87,15 +87,26 @@ npm run dev:client
 Re-prod/
 ├── client/                    # React frontend
 │   ├── src/
-│   │   ├── components/        # UI components
-│   │   │   ├── ...
+│   │   ├── components/        # Feature-oriented UI
+│   │   │   ├── ai-panel/
+│   │   │   ├── console/
+│   │   │   ├── editor/
+│   │   │   ├── menu/
+│   │   │   ├── plots/
+│   │   │   └── shared/        # Icons, shared atoms
+│   │   ├── core/              # Zustand store + execution utilities
+│   │   │   ├── execution/
+│   │   │   └── state/
+│   │   ├── css/               # Global and component styles
+│   │   │   ├── globals.css
+│   │   │   ├── index.css
+│   │   │   └── components/
 │   │   ├── services/
 │   │   │   └── socket.ts      # WebSocket client
-│   │   ├── store/
-│   │   │   └── useStore.ts    # Zustand state
+│   │   ├── utils/
+│   │   │   └── cn.ts          # Classname helper
 │   │   ├── App.tsx
-│   │   ├── App.css
-│   │   └── index.css          # RStudio colors
+│   │   └── main.tsx
 │   └── package.json
 ├── server/                    # Node.js backend
 │   ├── src/
