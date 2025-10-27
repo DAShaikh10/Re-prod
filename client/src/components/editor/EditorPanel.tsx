@@ -1,28 +1,43 @@
-import { useEffect, useState, useRef } from 'react';
-import Editor, { Monaco } from '@monaco-editor/react';
-import { IconPlay, IconPlayCircle } from '@/components/shared';
-import type { editor as MonacoEditor } from 'monaco-editor';
-import { useStore, parseCells, type Cell, getExecutionTarget, getExecutionTargetAndNext, getAllCode } from '@/core';
-import { socketService } from '@/services/socket';
-import type { CodeBlock, ExecutionError, ExecutionResult } from '../../../../shared/src/types';
+import { useEffect, useState, useRef } from "react";
+import Editor, { Monaco } from "@monaco-editor/react";
+import { IconPlay, IconPlayCircle } from "@/components/shared";
+import type { editor as MonacoEditor } from "monaco-editor";
+import {
+  useStore,
+  parseCells,
+  type Cell,
+  getExecutionTarget,
+  getExecutionTargetAndNext,
+  getAllCode,
+} from "@/core";
+import { socketService } from "@/services/socket";
+import type {
+  CodeBlock,
+  ExecutionError,
+  ExecutionResult,
+} from "../../../../shared/src/types";
 
 export function EditorPanel(): JSX.Element {
   const editor = useStore((state) => state.editor);
   const execution = useStore((state) => state.execution);
   const settings = useStore((state) => state.settings);
   const setEditorContent = useStore((state) => state.setEditorContent);
-  const setEditorCursorPosition = useStore((state) => state.setEditorCursorPosition);
+  const setEditorCursorPosition = useStore(
+    (state) => state.setEditorCursorPosition,
+  );
   const setIsRunning = useStore((state) => state.setIsRunning);
   const setApplyCodeChange = useStore((state) => state.setApplyCodeChange);
   const addExecutionResult = useStore((state) => state.addExecutionResult);
   const [cells, setCells] = useState<Cell[]>([]);
-  const [executingCellIndex, setExecutingCellIndex] = useState<number | null>(null);
+  const [executingCellIndex, setExecutingCellIndex] = useState<number | null>(
+    null,
+  );
   const editorRef = useRef<MonacoEditor.IStandaloneCodeEditor | null>(null);
   const decorationsRef = useRef<string[]>([]);
 
   // Parse cells when content changes
   useEffect(() => {
-    const filename = editor.filepath || 'Untitled.R';
+    const filename = editor.filepath || "Untitled.R";
     const parsedCells = parseCells(editor.content, filename);
     setCells(parsedCells);
   }, [editor.content, editor.filepath]);
@@ -34,7 +49,10 @@ export function EditorPanel(): JSX.Element {
     const monacoEditor = editorRef.current;
 
     // Clear old decorations
-    decorationsRef.current = monacoEditor.deltaDecorations(decorationsRef.current, []);
+    decorationsRef.current = monacoEditor.deltaDecorations(
+      decorationsRef.current,
+      [],
+    );
 
     // Only show decorations if enabled
     if (!settings.showCellDecorations) return;
@@ -49,16 +67,16 @@ export function EditorPanel(): JSX.Element {
             startLineNumber: cell.startLine,
             startColumn: 1,
             endLineNumber: cell.startLine,
-            endColumn: 1
+            endColumn: 1,
           },
           options: {
             isWholeLine: true,
-            linesDecorationsClassName: 'cell-boundary-decoration',
+            linesDecorationsClassName: "cell-boundary-decoration",
             overviewRuler: {
-              color: '#4285f4',
-              position: 4
-            }
-          }
+              color: "#4285f4",
+              position: 4,
+            },
+          },
         });
       }
 
@@ -69,18 +87,23 @@ export function EditorPanel(): JSX.Element {
             startLineNumber: cell.startLine,
             startColumn: 1,
             endLineNumber: cell.endLine,
-            endColumn: 1
+            endColumn: 1,
           },
           options: {
             isWholeLine: true,
-            className: 'executing-cell-background'
-          }
+            className: "executing-cell-background",
+          },
         });
       }
     });
 
     decorationsRef.current = monacoEditor.deltaDecorations([], newDecorations);
-  }, [cells, settings.showCellDecorations, settings.highlightExecutingCell, executingCellIndex]);
+  }, [
+    cells,
+    settings.showCellDecorations,
+    settings.highlightExecutingCell,
+    executingCellIndex,
+  ]);
 
   const handleEditorChange = (value: string | undefined): void => {
     if (value !== undefined) {
@@ -96,7 +119,7 @@ export function EditorPanel(): JSX.Element {
       setExecutingCellIndex(cellIndex);
     }
 
-    socket.emit('execute', code, (result) => {
+    socket.emit("execute", code, (result) => {
       setExecutingCellIndex(null);
       setIsRunning(false);
 
@@ -105,17 +128,17 @@ export function EditorPanel(): JSX.Element {
       } else {
         const errorResult = result as ExecutionError;
         const normalized: ExecutionResult = {
-          stdout: '',
+          stdout: "",
           stderr: errorResult.message,
           plots: [],
           timestamp: errorResult.timestamp,
           duration: 0,
-          success: false
+          success: false,
         };
         addExecutionResult(normalized);
       }
 
-      console.log('Execution completed');
+      console.log("Execution completed");
     });
   };
 
@@ -127,7 +150,11 @@ export function EditorPanel(): JSX.Element {
   };
 
   const handleRunCurrentCell = (): void => {
-    const target = getExecutionTarget(editorRef.current, cells, editor.cursorPosition.line);
+    const target = getExecutionTarget(
+      editorRef.current,
+      cells,
+      editor.cursorPosition.line,
+    );
 
     if (target) {
       executeCode(target.code, target.cellIndex);
@@ -135,7 +162,11 @@ export function EditorPanel(): JSX.Element {
   };
 
   const handleRunCellAndMoveNext = (): void => {
-    const result = getExecutionTargetAndNext(editorRef.current, cells, editor.cursorPosition.line);
+    const result = getExecutionTargetAndNext(
+      editorRef.current,
+      cells,
+      editor.cursorPosition.line,
+    );
 
     if (!result) return;
 
@@ -146,7 +177,7 @@ export function EditorPanel(): JSX.Element {
     if (result.nextCell && editorRef.current) {
       editorRef.current.setPosition({
         lineNumber: result.nextCell.startLine,
-        column: 1
+        column: 1,
       });
       editorRef.current.revealLineInCenter(result.nextCell.startLine);
     }
@@ -156,19 +187,18 @@ export function EditorPanel(): JSX.Element {
   const applyCodeChange = (codeBlock: CodeBlock): void => {
     const monacoEditor = editorRef.current;
     if (!monacoEditor) {
-      console.error('Editor not ready');
+      console.error("Editor not ready");
       return;
     }
 
     const model = monacoEditor.getModel();
     if (!model) return;
 
-    if (codeBlock.action === 'replace-all') {
+    if (codeBlock.action === "replace-all") {
       // Replace entire editor content
       monacoEditor.setValue(codeBlock.code);
       setEditorContent(codeBlock.code);
-
-    } else if (codeBlock.action === 'replace-lines' && codeBlock.targetLines) {
+    } else if (codeBlock.action === "replace-lines" && codeBlock.targetLines) {
       // Replace specific lines
       const { start, end } = codeBlock.targetLines;
 
@@ -176,30 +206,33 @@ export function EditorPanel(): JSX.Element {
         startLineNumber: start,
         startColumn: 1,
         endLineNumber: end,
-        endColumn: model.getLineMaxColumn(end)
+        endColumn: model.getLineMaxColumn(end),
       };
 
-      monacoEditor.executeEdits('ai-apply', [{
-        range: range,
-        text: codeBlock.code
-      }]);
+      monacoEditor.executeEdits("ai-apply", [
+        {
+          range: range,
+          text: codeBlock.code,
+        },
+      ]);
 
       // Update store with new content
       setEditorContent(monacoEditor.getValue());
-
-    } else if (codeBlock.action === 'insert-at-cursor') {
+    } else if (codeBlock.action === "insert-at-cursor") {
       // Insert at current cursor position
       const position = monacoEditor.getPosition();
       if (position) {
-        monacoEditor.executeEdits('ai-insert', [{
-          range: {
-            startLineNumber: position.lineNumber,
-            startColumn: position.column,
-            endLineNumber: position.lineNumber,
-            endColumn: position.column
+        monacoEditor.executeEdits("ai-insert", [
+          {
+            range: {
+              startLineNumber: position.lineNumber,
+              startColumn: position.column,
+              endLineNumber: position.lineNumber,
+              endColumn: position.column,
+            },
+            text: codeBlock.code,
           },
-          text: codeBlock.code
-        }]);
+        ]);
 
         // Update store
         setEditorContent(monacoEditor.getValue());
@@ -211,22 +244,28 @@ export function EditorPanel(): JSX.Element {
     setApplyCodeChange(applyCodeChange);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleEditorDidMount = (monacoEditor: MonacoEditor.IStandaloneCodeEditor, monaco: Monaco): void => {
+  const handleEditorDidMount = (
+    monacoEditor: MonacoEditor.IStandaloneCodeEditor,
+    monaco: Monaco,
+  ): void => {
     editorRef.current = monacoEditor;
 
     // Track cursor position
     monacoEditor.onDidChangeCursorPosition((e) => {
       setEditorCursorPosition({
         line: e.position.lineNumber,
-        column: e.position.column
+        column: e.position.column,
       });
     });
 
     // Keyboard shortcuts
     // Cmd/Ctrl + Enter: Run current cell
-    monacoEditor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
-      handleRunCurrentCell();
-    });
+    monacoEditor.addCommand(
+      monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter,
+      () => {
+        handleRunCurrentCell();
+      },
+    );
 
     // Shift + Enter: Run current cell and move to next
     monacoEditor.addCommand(monaco.KeyMod.Shift | monaco.KeyCode.Enter, () => {
@@ -234,16 +273,19 @@ export function EditorPanel(): JSX.Element {
     });
 
     // Cmd/Ctrl + Shift + Enter: Run all
-    monacoEditor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.Enter, () => {
-      handleRunAll();
-    });
+    monacoEditor.addCommand(
+      monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.Enter,
+      () => {
+        handleRunAll();
+      },
+    );
   };
 
   return (
     <div className="panel editor-panel">
       <div className="panel-header">
         <div className="panel-title">
-          {editor.filepath || 'Untitled.R'}
+          {editor.filepath || "Untitled.R"}
           {editor.isDirty && <span className="dirty-marker"> •</span>}
         </div>
         <div className="panel-actions">
@@ -254,7 +296,7 @@ export function EditorPanel(): JSX.Element {
             title="Run Current Cell (Cmd/Ctrl+Enter)"
           >
             <IconPlay width={16} height={16} aria-hidden />
-            Run Cell
+            Run Selection
           </button>
           <button
             className="btn btn-primary"
@@ -285,20 +327,20 @@ export function EditorPanel(): JSX.Element {
           onChange={handleEditorChange}
           options={{
             fontSize: 13,
-            fontFamily: 'Monaco, Menlo, Consolas, monospace',
+            fontFamily: "Monaco, Menlo, Consolas, monospace",
             minimap: { enabled: false },
             scrollBeyondLastLine: false,
-            wordWrap: 'on',
-            lineNumbers: 'on',
-            renderWhitespace: 'selection',
+            wordWrap: "on",
+            lineNumbers: "on",
+            renderWhitespace: "selection",
             tabSize: 2,
             automaticLayout: true,
             padding: { top: 8, bottom: 8 },
             scrollbar: {
               useShadows: false,
               verticalScrollbarSize: 12,
-              horizontalScrollbarSize: 12
-            }
+              horizontalScrollbarSize: 12,
+            },
           }}
           onMount={handleEditorDidMount}
         />
