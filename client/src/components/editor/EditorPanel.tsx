@@ -129,7 +129,7 @@ export function EditorPanel(): JSX.Element {
           stdout: result.output,
           stderr: result.error || "",
           plots: result.plots.map(p => ({
-            data: p.base64_data,
+            data: `data:image/png;base64,${p.base64_data}`,
             format: 'png',
             timestamp: Date.now(),
           })),
