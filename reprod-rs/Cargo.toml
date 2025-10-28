@@ -4,6 +4,7 @@ members = [
     "common",
     "core",
     "desktop",
+    "server",
 ]
 resolver = "2"
 
@@ -55,6 +56,12 @@ base64 = "0.22"
 
 # Directory utilities
 dirs = "5"
+
+# Web framework (server only)
+axum = { version = "0.7", features = ["ws"] }
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors", "trace"] }
+axum-extra = { version = "0.9", features = ["typed-header"] }
 
 [workspace.lints]
 rust = {}
