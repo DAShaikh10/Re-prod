@@ -11,11 +11,14 @@ Rust workspace for Re-prod desktop application with Tauri.
 ## Project Structure
 
 ```
-reprod-rs/
-├── protocol/      # Shared types
-├── common/        # Error handling
-├── core/          # Business logic
-└── desktop/       # Tauri desktop app
+Re-prod/
+├── Cargo.toml         # Rust workspace root
+├── protocol/          # Shared types
+├── common/            # Error handling
+├── core/              # Business logic
+├── desktop/           # Tauri desktop app
+├── server/            # Axum web server
+└── client/            # React frontend
 ```
 
 ## Development
@@ -25,6 +28,12 @@ reprod-rs/
 ```bash
 cd desktop
 cargo tauri dev
+```
+
+### Run web server
+
+```bash
+cargo run -p reprod-server
 ```
 
 ### Build desktop app

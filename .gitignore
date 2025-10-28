@@ -34,9 +34,20 @@ logs/
 *.njsproj
 *.sln
 *.sw?
+*.swp
+*.swo
+*~
 
 # TypeScript
 *.tsbuildinfo
+
+# Rust build artifacts
+/target/
+**/target/
+Cargo.lock
+
+# Tauri
+**/gen/
 
 # R temporary files
 .Rhistory

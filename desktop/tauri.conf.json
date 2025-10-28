@@ -4,10 +4,10 @@
   "version": "0.1.0",
   "identifier": "com.reprod.app",
   "build": {
-    "beforeDevCommand": "cd ../../client && npm run dev",
+    "beforeDevCommand": "cd ../client && npm run dev",
     "devUrl": "http://localhost:5173",
-    "beforeBuildCommand": "cd ../../client && npm run build",
-    "frontendDist": "../../client/dist"
+    "beforeBuildCommand": "cd ../client && npm run build",
+    "frontendDist": "../client/dist"
   },
   "app": {
     "windows": [
