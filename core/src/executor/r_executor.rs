@@ -11,6 +11,7 @@ use base64::Engine;
 pub struct RExecutor {
     temp_dir: PathBuf,
     r_path: String,
+    #[allow(dead_code)]
     plot_counter: AtomicU32,
 }
 
