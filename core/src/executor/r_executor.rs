@@ -67,31 +67,23 @@ impl RExecutor {
 
     fn wrap_code_with_plot_capture(&self, code: &str, plot_prefix: &str) -> String {
         let temp_dir_str = self.temp_dir.to_str().unwrap_or("");
+        let plot_file = format!("{}_{}.png", plot_prefix, 1);
 
         format!(
             r#"
 # Auto-generated plot capture wrapper
-.reprod_plot_counter <- 0
-.reprod_old_plot <- getOption("device")
+.reprod_plot_file <- file.path("{}", "{}")
 
-.reprod_capture_plot <- function() {{
-  .reprod_plot_counter <<- .reprod_plot_counter + 1
-  filename <- file.path("{}", paste0("{}_{{}}.png", .reprod_plot_counter))
-  png(filename, width = 800, height = 600)
-}}
-
-options(device = .reprod_capture_plot)
+# Open PNG device
+png(.reprod_plot_file, width = 800, height = 600)
 
 # User code
 {}
 
-# Close any open devices
-while (dev.cur() > 1) dev.off()
-
-# Restore original device
-options(device = .reprod_old_plot)
+# Close device to save file
+dev.off()
 "#,
-            temp_dir_str, plot_prefix, code
+            temp_dir_str, plot_file, code
         )
     }
 
