@@ -112,26 +112,38 @@ export function EditorPanel(): JSX.Element {
   };
 
   const executeCode = (code: string, cellIndex?: number): void => {
-    const socket = socketService.getSocket();
     setIsRunning(true);
 
     if (cellIndex !== undefined) {
       setExecutingCellIndex(cellIndex);
     }
 
-    socket.emit("execute", code, (result) => {
+    socketService.send({ type: 'execute', code }, (response) => {
       setExecutingCellIndex(null);
       setIsRunning(false);
 
-      if (result.success) {
-        addExecutionResult(result);
-      } else {
-        const errorResult = result as ExecutionError;
+      if (response.type === 'execution_result') {
+        const result = response.result;
+        // Convert Rust format to client format
+        const normalized: ExecutionResult = {
+          stdout: result.output,
+          stderr: result.error || "",
+          plots: result.plots.map(p => ({
+            data: p.base64_data,
+            format: 'png',
+            timestamp: Date.now(),
+          })),
+          timestamp: Date.now(),
+          duration: result.execution_time_ms,
+          success: result.success,
+        };
+        addExecutionResult(normalized);
+      } else if (response.type === 'error') {
         const normalized: ExecutionResult = {
           stdout: "",
-          stderr: errorResult.message,
+          stderr: response.message,
           plots: [],
-          timestamp: errorResult.timestamp,
+          timestamp: Date.now(),
           duration: 0,
           success: false,
         };

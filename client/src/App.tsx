@@ -14,26 +14,18 @@ function App(): JSX.Element {
   const setEditorContent = useStore((state) => state.setEditorContent);
 
   useEffect(() => {
-    const socket = socketService.connect();
+    socketService.connect();
 
-    socket.on('connect', () => {
-      console.log('Connected to server');
-      setConnected(true);
-    });
-
-    socket.on('disconnect', () => {
-      console.log('Disconnected from server');
-      setConnected(false);
-    });
-
-    socket.on('file-changed', (data) => {
-      setEditorContent(data.content);
-    });
+    // Check connection status
+    const checkConnection = setInterval(() => {
+      setConnected(socketService.isConnected());
+    }, 1000);
 
     return () => {
+      clearInterval(checkConnection);
       socketService.disconnect();
     };
-  }, [setConnected, setEditorContent]);
+  }, [setConnected]);
 
   return (
     <div className="app">
