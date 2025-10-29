@@ -114,6 +114,21 @@
   font-weight: 600;
 }
 
+.console-plots-info.clickable {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.console-plots-info.clickable:hover {
+  background-color: rgba(47, 111, 237, 0.18);
+  transform: translateX(2px);
+}
+
+.console-plots-info.clickable:active {
+  transform: translateX(4px);
+  background-color: rgba(47, 111, 237, 0.25);
+}
+
 .console-plots-info svg {
   width: 16px;
   height: 16px;

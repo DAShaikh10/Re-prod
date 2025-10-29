@@ -1,0 +1,22 @@
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum ReprodError {
+    #[error("Execution error: {0}")]
+    ExecutionError(String),
+
+    #[error("IO error: {0}")]
+    IoError(String),
+
+    #[error("Configuration error: {0}")]
+    ConfigError(String),
+
+    #[error("AI provider error: {0}")]
+    AIError(String),
+}
+
+impl From<std::io::Error> for ReprodError {
+    fn from(err: std::io::Error) -> Self {
+        ReprodError::IoError(err.to_string())
+    }
+}

@@ -1,40 +1,108 @@
-import { io, Socket } from 'socket.io-client';
-import type { ServerToClientEvents, ClientToServerEvents } from '../../../shared/src/types';
+type WSRequest =
+  | { type: 'execute'; code: string }
+  | { type: 'ai_message'; messages: Array<{ role: string; content: string }> };
+
+type WSResponse =
+  | { type: 'execution_result'; result: ExecutionResult }
+  | { type: 'ai_response'; response: string }
+  | { type: 'error'; message: string };
+
+interface ExecutionResult {
+  success: boolean;
+  output: string;
+  error: string | null;
+  plots: Array<{ filename: string; base64_data: string; index: number }>;
+  execution_time_ms: number;
+}
+
+type MessageHandler = (response: WSResponse) => void;
 
 class SocketService {
-  private socket: Socket<ServerToClientEvents, ClientToServerEvents> | null = null;
+  private ws: WebSocket | null = null;
+  private messageHandlers: Map<string, MessageHandler> = new Map();
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private url: string = '';
 
-  connect(url: string = 'http://localhost:4000'): Socket<ServerToClientEvents, ClientToServerEvents> {
-    if (this.socket?.connected) {
-      return this.socket;
+  connect(url: string = 'ws://localhost:3001/ws'): void {
+    if (this.ws?.readyState === WebSocket.OPEN) {
+      return;
     }
 
-    this.socket = io(url, {
-      reconnection: true,
-      reconnectionDelay: 1000,
-      reconnectionAttempts: 5,
-      transports: ['websocket', 'polling']
-    });
+    this.url = url;
+    this.ws = new WebSocket(url);
 
-    return this.socket;
+    this.ws.onopen = () => {
+      console.log('WebSocket connected');
+      if (this.reconnectTimer) {
+        clearTimeout(this.reconnectTimer);
+        this.reconnectTimer = null;
+      }
+    };
+
+    this.ws.onmessage = (event) => {
+      try {
+        const response: WSResponse = JSON.parse(event.data);
+
+        // Call all registered handlers
+        this.messageHandlers.forEach((handler) => handler(response));
+      } catch (e) {
+        console.error('Failed to parse WebSocket message:', e);
+      }
+    };
+
+    this.ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+
+    this.ws.onclose = () => {
+      console.log('WebSocket disconnected');
+      // Auto-reconnect after 2 seconds
+      this.reconnectTimer = setTimeout(() => {
+        console.log('Attempting to reconnect...');
+        this.connect(this.url);
+      }, 2000);
+    };
   }
 
-  getSocket(): Socket<ServerToClientEvents, ClientToServerEvents> {
-    if (!this.socket) {
-      throw new Error('Socket not connected. Call connect() first.');
+  send(request: WSRequest, handler?: MessageHandler): void {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      console.error('WebSocket is not connected');
+      return;
     }
-    return this.socket;
+
+    if (handler) {
+      const id = Math.random().toString(36).substring(7);
+      this.messageHandlers.set(id, (response) => {
+        handler(response);
+        this.messageHandlers.delete(id);
+      });
+    }
+
+    this.ws.send(JSON.stringify(request));
+  }
+
+  on(event: string, handler: MessageHandler): void {
+    this.messageHandlers.set(event, handler);
+  }
+
+  off(event: string): void {
+    this.messageHandlers.delete(event);
   }
 
   disconnect(): void {
-    if (this.socket) {
-      this.socket.disconnect();
-      this.socket = null;
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
     }
+    if (this.ws) {
+      this.ws.close();
+      this.ws = null;
+    }
+    this.messageHandlers.clear();
   }
 
   isConnected(): boolean {
-    return this.socket?.connected || false;
+    return this.ws?.readyState === WebSocket.OPEN;
   }
 }
 
