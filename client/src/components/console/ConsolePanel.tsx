@@ -70,7 +70,25 @@ export function ConsolePanel(): JSX.Element {
                       <pre className="console-stderr">{result.stderr}</pre>
                     )}
                     {result.plots.length > 0 && (
-                      <div className="console-plots-info">
+                      <div
+                        className="console-plots-info clickable"
+                        onClick={() => {
+                          // Calculate the global plot index for this result
+                          const previousPlots = execution.results
+                            .slice(0, index)
+                            .reduce((sum, r) => sum + r.plots.length, 0);
+
+                          // Dispatch custom event to focus on this plot
+                          window.dispatchEvent(
+                            new CustomEvent('focusPlot', {
+                              detail: { plotIndex: previousPlots }
+                            })
+                          );
+                        }}
+                        role="button"
+                        tabIndex={0}
+                        title="Click to view plot"
+                      >
                         <IconBarChart width={16} height={16} aria-hidden />
                         Generated {result.plots.length} plot{result.plots.length > 1 ? 's' : ''}
                       </div>

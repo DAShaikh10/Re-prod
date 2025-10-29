@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { IconBarChart, IconChevronLeft, IconChevronRight } from '@/components/shared';
 import { useStore } from '@/core';
 
@@ -9,6 +9,21 @@ export function PlotsPanel(): JSX.Element {
 
   const allPlots = execution.results.flatMap(result => result.plots);
   const currentPlot = allPlots[selectedPlotIndex];
+
+  // Listen for plot focus events from ConsolePanel
+  useEffect(() => {
+    const handleFocusPlot = (event: CustomEvent) => {
+      const { plotIndex } = event.detail;
+      setActiveTab('plots');
+      setSelectedPlotIndex(plotIndex);
+    };
+
+    window.addEventListener('focusPlot', handleFocusPlot as EventListener);
+
+    return () => {
+      window.removeEventListener('focusPlot', handleFocusPlot as EventListener);
+    };
+  }, []);
 
   const handlePrevious = (): void => {
     if (selectedPlotIndex > 0) {
