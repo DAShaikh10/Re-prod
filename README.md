@@ -19,9 +19,9 @@ Furthermore unlike traditional IDEs, Re-prod **will ensure perfect reproducibili
 
 ## Features
 
-- 🤖 **AI Agent Integration**: LLM APIs for intelligent R programming assistance
-- 🔄 **File Watching**: Real-time file monitoring with chokidar
+- 🤖 **AI Agent Integration**: Claude API for intelligent R programming assistance
 - 📝 **Execution History**: Complete log of all R executions
+- 📊 **Plot Management**: Automatic plot capture and interactive viewing
 
 ## Architecture
 
@@ -162,24 +162,29 @@ Re-prod/
 
 ### AI Assistant
 
-The AI assistant supports both **OpenAI** (default) and **Claude**:
+The AI assistant uses **Claude (Anthropic)** for intelligent R programming assistance:
 
-**OpenAI (GPT-4o)** - Default:
-- Faster responses
-- Excellent R programming knowledge
-- Configure via `OPENAI_API_KEY` in `server/.env`
+**Claude (claude-sonnet-4-5)**:
+- Strong R programming knowledge
+- Code generation and explanation
+- Debugging assistance
 
-**Claude (3.5 Sonnet)** - Alternative:
-- Strong coding capabilities
-- Set `AI_PROVIDER=anthropic` in `server/.env`
+**Configuration:**
 
+The API key can be configured in two ways:
 
-**Switching Providers:**
-```env
-# In server/.env
-AI_PROVIDER=openai        # or "anthropic"
-OPENAI_API_KEY=sk-...     # for OpenAI
-ANTHROPIC_API_KEY=sk-...  # for Claude
+1. **Configuration file** (Recommended):
+```bash
+~/.reprod/auth.json
+{
+  "anthropic_api_key": "sk-ant-...",
+  "r_path": "Rscript"
+}
+```
+
+2. **Environment variable** (Fallback):
+```bash
+export ANTHROPIC_API_KEY="sk-ant-..."
 ```
 
 ### Keyboard Shortcuts
@@ -190,10 +195,13 @@ ANTHROPIC_API_KEY=sk-...  # for Claude
 
 ### R Path
 
-If `Rscript` is not in your PATH, set the full path:
+If `Rscript` is not in your PATH, set the full path in `~/.reprod/auth.json`:
 
-```env
-R_PATH=/usr/local/bin/Rscript
+```json
+{
+  "anthropic_api_key": null,
+  "r_path": "/usr/local/bin/Rscript"
+}
 ```
 
 ## Development
@@ -233,24 +241,26 @@ Socket connection error
 ```
 
 **Solution**:
-1. Ensure backend is running on port 4000
-2. Check `CLIENT_URL` in server/.env matches frontend URL
-3. Check browser console for CORS errors
+1. Ensure backend is running on port 3001
+2. Check that no other service is using port 3001 (`lsof -i :3001`)
+3. Verify frontend is connecting to `ws://localhost:3001/ws`
+4. Check browser console for connection errors
 
 ### AI not responding
 
 **Solution**:
-1. Verify either of `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` is set in `server/.env`
-2. Check server logs for API errors
-3. Ensure you have API credits
+1. Verify `ANTHROPIC_API_KEY` is set in `~/.reprod/auth.json` or as environment variable
+2. Check server/desktop logs for API errors
+3. Ensure you have Anthropic API credits
+4. Verify API key format: `sk-ant-...`
 
 ## Implementation Notes
 
 Following AGENTS.md guidelines:
 - ✅ No dummy implementations - all services are real
-- ✅ Real Claude API integration
-- ✅ Real R execution via child_process
-- ✅ Real file watching via chokidar
+- ✅ Real Claude API integration (Anthropic)
+- ✅ Real R execution via tokio::process
+- ✅ Native WebSocket communication (Rust Axum)
 - ✅ RStudio-inspired UI (light grays, muted blues)
 - ✅ TypeScript strict mode with explicit types
 - ✅ Functional React components
