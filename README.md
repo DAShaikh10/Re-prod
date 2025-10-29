@@ -25,100 +25,129 @@ Furthermore unlike traditional IDEs, Re-prod **will ensure perfect reproducibili
 
 ## Architecture
 
-### Backend
-- Node.js + Express + TypeScript
-- Socket.io for WebSocket communication
-- Real R execution via child_process
-- LLM API integration
-  - GPT from OpenAI
-  - Claude from Anthropic
-- Chokidar for file watching
+### Backend (Rust)
+- **Rust workspace** with Cargo
+- **Tauri** for desktop app (cross-platform)
+- **Axum** for web server (optional)
+- Native WebSocket communication
+- Real R execution via tokio::process
+- AI provider integration (Anthropic, OpenAI, etc.)
+- Platform-agnostic core library
 
 ### Frontend
 - React + TypeScript + Vite
 - Monaco Editor for code editing
 - RStudio-inspired color palette
+- Works with both Desktop (Tauri) and Web (Axum server)
 
 ## Prerequisites
 
-- Node.js 18+
-- npm
-- R (4.0+) with `Rscript` in PATH
-- **OpenAI API key** (default) OR **Anthropic API key** (alternative)
+- **Rust** (latest stable) - Install from [rustup.rs](https://rustup.rs/)
+- **Node.js** 18+ and npm
+- **R** (4.0+) with `Rscript` in PATH
+- **Anthropic API key** (optional, for AI features)
 
 ## Installation
 
+### 1. Install Rust (if not already installed)
+
 ```bash
-# Install all dependencies for all workspaces
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+```
+
+### 2. Install Tauri CLI
+
+```bash
+cargo install tauri-cli --version "^2.0"
+```
+
+### 3. Install Node.js dependencies
+
+```bash
 npm install
 ```
 
-This will install dependencies for:
-- Root workspace
-- `client/` (React frontend)
-- `server/` (Node.js backend)
-- `shared/` (TypeScript types)
+### 4. Configure Application (Optional)
+
+Create `~/.reprod/auth.json` for AI features:
+
+```bash
+mkdir -p ~/.reprod
+cat > ~/.reprod/auth.json << 'EOF'
+{
+  "anthropic_api_key": "your-api-key-here",
+  "r_path": "Rscript"
+}
+EOF
+```
 
 ## Running the Application
 
-### Start Both Frontend and Backend
+### Option 1: Desktop App (Recommended)
 
 ```bash
+cd desktop
+cargo tauri dev
+```
+
+This launches the Tauri desktop application with:
+- Native desktop window
+- Automatic frontend startup
+- Rust backend built-in
+
+### Option 2: Web Version
+
+```bash
+# Start both Rust server and React client
 npm run dev
 ```
 
 This starts:
-- Backend: `http://localhost:4000`
-- Frontend: `http://localhost:5173`
+- **Rust server**: `http://localhost:3001`
+- **React client**: `http://localhost:5173`
 
-### Run Separately
-
-```bash
-# Terminal 1: Backend
-npm run dev:server
-
-# Terminal 2: Frontend
-npm run dev:client
-```
+Access at: http://localhost:5173
 
 ## Project Structure
 
 ```
 Re-prod/
+├── Cargo.toml                 # Rust workspace root
+├── protocol/                  # Shared type definitions
+│   └── src/messages.rs
+├── common/                    # Error handling utilities
+│   └── src/errors.rs
+├── core/                      # Platform-agnostic business logic
+│   ├── src/executor/         # R code execution
+│   ├── src/ai/               # AI provider integration
+│   └── src/config/           # Configuration management
+├── desktop/                   # Tauri desktop app
+│   ├── src/
+│   │   ├── main.rs           # Desktop entry point
+│   │   └── commands/         # Tauri commands
+│   └── tauri.conf.json
+├── server/                    # Axum web server (optional)
+│   └── src/
+│       ├── main.rs           # Server entry point
+│       ├── routes.rs         # HTTP routes
+│       └── handlers.rs       # WebSocket handlers
 ├── client/                    # React frontend
 │   ├── src/
-│   │   ├── components/        # Feature-oriented UI
+│   │   ├── components/       # Feature-oriented UI
 │   │   │   ├── ai-panel/
 │   │   │   ├── console/
 │   │   │   ├── editor/
 │   │   │   ├── menu/
 │   │   │   ├── plots/
-│   │   │   └── shared/        # Icons, shared atoms
-│   │   ├── core/              # Zustand store + execution utilities
-│   │   │   ├── execution/
-│   │   │   └── state/
-│   │   ├── css/               # Global and component styles
-│   │   │   ├── globals.css
-│   │   │   ├── index.css
-│   │   │   └── components/
+│   │   │   └── shared/
+│   │   ├── core/             # Zustand store
 │   │   ├── services/
-│   │   │   └── socket.ts      # WebSocket client
-│   │   ├── utils/
-│   │   │   └── cn.ts          # Classname helper
-│   │   ├── App.tsx
-│   │   └── main.tsx
-│   └── package.json
-├── server/                    # Node.js backend
-│   ├── src/
-│   │   ├── services/
-│   │   │   └── ... 
-│   │   └── server.ts          # Main server
-│   ├── .env                   # Environment config (has your API key)
+│   │   │   └── socket.ts     # Native WebSocket client
+│   │   └── css/
 │   └── package.json
 ├── shared/                    # Shared TypeScript types
-│   └── src/
-│       └── types.ts
-├── AGENTS.md                  # Coding guidelines
+├── docs/                      # Architecture documentation
+├── AGENTS.md                  # AI agent guidelines
 └── package.json               # Root workspace config
 ```
 
