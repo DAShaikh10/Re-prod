@@ -46,6 +46,9 @@ logs/
 **/target/
 Cargo.lock
 
+# Cargo local config (environment-specific)
+.cargo/
+
 # Tauri
 **/gen/
 
