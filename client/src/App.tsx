@@ -11,7 +11,6 @@ import { useStore } from '@/core';
 
 function App(): JSX.Element {
   const setConnected = useStore((state) => state.setConnected);
-  const setEditorContent = useStore((state) => state.setEditorContent);
 
   useEffect(() => {
     socketService.connect();
