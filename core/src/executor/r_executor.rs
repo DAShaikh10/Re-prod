@@ -14,7 +14,7 @@ use crate::{
 use tokio::{fs, process::Command};
 use uuid::Uuid;
 
-use super::{segment_r_code, NoopTimeline, SegmentationInput, TimelineSink};
+use super::{NoopTimeline, TimelineSink, segment_r_code, SegmentationInput};
 
 pub struct RExecutor {
     temp_dir: PathBuf,
