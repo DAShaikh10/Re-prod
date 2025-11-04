@@ -1,14 +1,14 @@
 use axum::{
     extract::{
-        ws::{WebSocket, WebSocketUpgrade, Message},
+        ws::{Message, WebSocket, WebSocketUpgrade},
         State,
     },
     response::Response,
 };
+use reprod_core::{AIProvider, AnthropicProvider, Config, RExecutor};
+use reprod_protocol::{ChatMessage, ExecutionRequest, ExecutionResult};
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use reprod_core::{RExecutor, AnthropicProvider, Config, AIProvider};
-use reprod_protocol::{ExecutionResult, ChatMessage};
 
 #[derive(Clone)]
 pub struct AppState {
@@ -17,10 +17,7 @@ pub struct AppState {
     pub config: Arc<Mutex<Config>>,
 }
 
-pub async fn ws_handler(
-    ws: WebSocketUpgrade,
-    State(state): State<AppState>,
-) -> Response {
+pub async fn ws_handler(ws: WebSocketUpgrade, State(state): State<AppState>) -> Response {
     ws.on_upgrade(|socket| handle_socket(socket, state))
 }
 
@@ -60,7 +57,7 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
 #[serde(tag = "type")]
 enum WSRequest {
     #[serde(rename = "execute")]
-    Execute { code: String },
+    Execute { request: ExecutionRequest },
     #[serde(rename = "ai_message")]
     AIMessage { messages: Vec<ChatMessage> },
 }
@@ -78,18 +75,22 @@ enum WSResponse {
 
 async fn handle_ws_request(request: WSRequest, state: &AppState) -> WSResponse {
     match request {
-        WSRequest::Execute { code } => {
+        WSRequest::Execute { request } => {
             let executor = state.r_executor.lock().await;
-            match executor.execute(code).await {
+            match executor.execute(request).await {
                 Ok(result) => WSResponse::ExecutionResult { result },
-                Err(e) => WSResponse::Error { message: e.to_string() },
+                Err(e) => WSResponse::Error {
+                    message: e.to_string(),
+                },
             }
         }
         WSRequest::AIMessage { messages } => {
             let ai_provider = state.ai_provider.lock().await;
             match ai_provider.send_message(messages).await {
                 Ok(response) => WSResponse::AIResponse { response },
-                Err(e) => WSResponse::Error { message: e.to_string() },
+                Err(e) => WSResponse::Error {
+                    message: e.to_string(),
+                },
             }
         }
     }

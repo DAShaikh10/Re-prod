@@ -1,7 +1,7 @@
 use super::AIProvider;
 use async_trait::async_trait;
-use reprod_protocol::ChatMessage;
 use reprod_common::ReprodError;
+use reprod_protocol::ChatMessage;
 use reqwest::Client;
 use serde_json::json;
 
@@ -29,10 +29,13 @@ impl AnthropicProvider {
 #[async_trait]
 impl AIProvider for AnthropicProvider {
     async fn send_message(&self, messages: Vec<ChatMessage>) -> Result<String, ReprodError> {
-        let api_key = self.api_key.as_ref()
+        let api_key = self
+            .api_key
+            .as_ref()
             .ok_or_else(|| ReprodError::AIError("Anthropic API key not configured".to_string()))?;
 
-        let response = self.client
+        let response = self
+            .client
             .post(&self.base_url)
             .header("x-api-key", api_key)
             .header("anthropic-version", "2023-06-01")
@@ -47,7 +50,9 @@ impl AIProvider for AnthropicProvider {
             .await
             .map_err(|e| ReprodError::AIError(format!("Request failed: {}", e)))?;
 
-        let data: serde_json::Value = response.json().await
+        let data: serde_json::Value = response
+            .json()
+            .await
             .map_err(|e| ReprodError::AIError(format!("Invalid response: {}", e)))?;
 
         data["content"][0]["text"]

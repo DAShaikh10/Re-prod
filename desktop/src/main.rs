@@ -2,7 +2,7 @@
 
 mod commands;
 
-use reprod_core::{RExecutor, AnthropicProvider, Config};
+use reprod_core::{AnthropicProvider, Config, RExecutor};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -20,13 +20,11 @@ async fn main() {
         eprintln!("Failed to create temp directory: {}", e);
     }
 
-    let r_executor = Arc::new(Mutex::new(
-        RExecutor::new(temp_dir, config.r_path.clone())
-    ));
+    let r_executor = Arc::new(Mutex::new(RExecutor::new(temp_dir, config.r_path.clone())));
 
-    let ai_provider = Arc::new(Mutex::new(
-        AnthropicProvider::new(config.anthropic_api_key.clone())
-    ));
+    let ai_provider = Arc::new(Mutex::new(AnthropicProvider::new(
+        config.anthropic_api_key.clone(),
+    )));
 
     let config_state = Arc::new(Mutex::new(config));
 

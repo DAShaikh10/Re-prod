@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 /// Result of code execution
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ExecutionResult {
     pub success: bool,
     pub output: String,
@@ -11,7 +11,7 @@ pub struct ExecutionResult {
 }
 
 /// Plot information
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct PlotInfo {
     pub filename: String,
     pub base64_data: String,
@@ -19,15 +19,190 @@ pub struct PlotInfo {
 }
 
 /// Chat message for AI communication
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ChatMessage {
     pub role: String,
     pub content: String,
 }
 
 /// File change event
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct FileChangeEvent {
     pub event_type: String,
     pub path: String,
+}
+
+/// Source of an R execution request.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ExecutionSource {
+    Selection,
+    Cell,
+    WholeDocument,
+    Unknown,
+}
+
+impl Default for ExecutionSource {
+    fn default() -> Self {
+        ExecutionSource::Unknown
+    }
+}
+
+/// Actor initiating the execution event (user vs AI).
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ExecutionActor {
+    User,
+    Ai,
+}
+
+impl Default for ExecutionActor {
+    fn default() -> Self {
+        ExecutionActor::User
+    }
+}
+
+/// Type of code block captured during execution.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum CodeBlockKind {
+    Section,
+    Chunk,
+    Document,
+    Selection,
+}
+
+/// Metadata describing a captured code block.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct CodeBlockMetadata {
+    pub id: String,
+    pub index: u32,
+    pub kind: CodeBlockKind,
+    pub label: Option<String>,
+    pub start_line: u32,
+    pub end_line: u32,
+    pub code: String,
+}
+
+/// Context supplied when triggering R execution.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+pub struct ExecutionContext {
+    #[serde(default)]
+    pub source: ExecutionSource,
+    #[serde(default)]
+    pub document_path: Option<String>,
+    #[serde(default)]
+    pub cell_index: Option<u32>,
+    /// Epoch milliseconds supplied by the caller (0 if unknown).
+    #[serde(default)]
+    pub triggered_at_ms: u64,
+    #[serde(default)]
+    pub actor: ExecutionActor,
+}
+
+/// Incoming execution request from UI/backend client.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ExecutionRequest {
+    pub code: String,
+    #[serde(default)]
+    pub context: ExecutionContext,
+    #[serde(default)]
+    pub blocks: Vec<CodeBlockMetadata>,
+}
+
+/// Snapshot of the environment used when executing R code.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct EnvironmentSnapshot {
+    pub r_path: String,
+    pub working_dir: String,
+    pub temp_dir: String,
+}
+
+/// Event emitted to the timeline after execution completes.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ExecutionEvent {
+    pub event_id: String,
+    pub context: ExecutionContext,
+    pub blocks: Vec<CodeBlockMetadata>,
+    pub result: ExecutionResult,
+    pub environment: EnvironmentSnapshot,
+    pub created_at_ms: u64,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn execution_request_roundtrip() {
+        let request = ExecutionRequest {
+            code: "print('hello')".to_string(),
+            context: ExecutionContext {
+                source: ExecutionSource::Cell,
+                document_path: Some("analysis.R".to_string()),
+                cell_index: Some(2),
+                triggered_at_ms: 1_706_000_000_000,
+                actor: ExecutionActor::User,
+            },
+            blocks: vec![CodeBlockMetadata {
+                id: "block-1".to_string(),
+                index: 0,
+                kind: CodeBlockKind::Section,
+                label: Some("Setup".to_string()),
+                start_line: 1,
+                end_line: 3,
+                code: "# Setup ----\nprint('hello')".to_string(),
+            }],
+        };
+
+        let json = serde_json::to_string(&request).expect("serialize");
+        let parsed: ExecutionRequest = serde_json::from_str(&json).expect("deserialize");
+
+        assert_eq!(parsed, request);
+    }
+
+    #[test]
+    fn execution_event_roundtrip() {
+        let event = ExecutionEvent {
+            event_id: "evt-123".to_string(),
+            context: ExecutionContext {
+                source: ExecutionSource::Selection,
+                document_path: Some("analysis.R".into()),
+                cell_index: None,
+                triggered_at_ms: 1_706_000_123_000,
+                actor: ExecutionActor::Ai,
+            },
+            blocks: vec![CodeBlockMetadata {
+                id: "block-xyz".into(),
+                index: 1,
+                kind: CodeBlockKind::Selection,
+                label: Some("Selection".into()),
+                start_line: 10,
+                end_line: 14,
+                code: "x <- 1:10".into(),
+            }],
+            result: ExecutionResult {
+                success: true,
+                output: "[1] 1 2 3".into(),
+                error: None,
+                plots: vec![PlotInfo {
+                    filename: "plot.png".into(),
+                    base64_data: "ZGF0YQ==".into(),
+                    index: 1,
+                }],
+                execution_time_ms: 42,
+            },
+            environment: EnvironmentSnapshot {
+                r_path: "Rscript".into(),
+                working_dir: "/tmp".into(),
+                temp_dir: "/tmp/reprod".into(),
+            },
+            created_at_ms: 1_706_000_123_500,
+        };
+
+        let value = serde_json::to_value(&event).expect("serialize");
+        let decoded: ExecutionEvent = serde_json::from_value(value).expect("deserialize");
+
+        assert_eq!(decoded, event);
+    }
 }
