@@ -1,3 +1,61 @@
+// Execution metadata shared between frontend and backend
+export type ExecutionSource = 'selection' | 'cell' | 'whole_document' | 'unknown';
+export type ExecutionActor = 'user' | 'ai';
+export type CodeBlockKind = 'section' | 'chunk' | 'document' | 'selection';
+
+export interface ExecutionContextPayload {
+  source: ExecutionSource;
+  document_path?: string | null;
+  cell_index?: number | null;
+  triggered_at_ms: number;
+  actor: ExecutionActor;
+}
+
+export interface CodeBlockMetadataPayload {
+  id: string;
+  index: number;
+  kind: CodeBlockKind;
+  label?: string | null;
+  start_line: number;
+  end_line: number;
+  code: string;
+}
+
+export interface ExecutionRequestPayload {
+  code: string;
+  context: ExecutionContextPayload;
+  blocks: CodeBlockMetadataPayload[];
+}
+
+export interface EnvironmentSnapshotPayload {
+  r_path: string;
+  working_dir: string;
+  temp_dir: string;
+}
+
+export interface ExecutionEventPayload {
+  event_id: string;
+  context: ExecutionContextPayload;
+  blocks: CodeBlockMetadataPayload[];
+  result: ExecutionResultPayload;
+  environment: EnvironmentSnapshotPayload;
+  created_at_ms: number;
+}
+
+export interface ExecutionResultPayload {
+  success: boolean;
+  output: string;
+  error?: string | null;
+  plots: PlotInfoPayload[];
+  execution_time_ms: number;
+}
+
+export interface PlotInfoPayload {
+  filename: string;
+  base64_data: string;
+  index: number;
+}
+
 // WebSocket Event Types
 export interface ServerToClientEvents {
   'execution-result': (result: ExecutionResult) => void;
