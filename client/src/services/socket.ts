@@ -13,7 +13,10 @@ type MessageHandler = (response: WSResponse) => void;
 
 class SocketService {
   private ws: WebSocket | null = null;
+  // Event handlers keyed by response.type (e.g., 'ai_response').
   private messageHandlers: Map<string, MessageHandler> = new Map();
+  // One-shot handlers for request/response style calls. FIFO dispatch.
+  private oneShotHandlers: MessageHandler[] = [];
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private url: string = '';
 
@@ -38,9 +41,15 @@ class SocketService {
     this.ws.onmessage = (event) => {
       try {
         const response: WSResponse = JSON.parse(event.data);
-
-        // Call all registered handlers
-        this.messageHandlers.forEach((handler) => handler(response));
+        // Deliver to one-shot handler if queued
+        const next = this.oneShotHandlers.shift();
+        if (next) next(response);
+        // Deliver to type-specific handler
+        const specific = this.messageHandlers.get((response as any).type);
+        if (specific) specific(response);
+        // Wildcard handler (optional)
+        const anyHandler = this.messageHandlers.get('*');
+        if (anyHandler) anyHandler(response);
       } catch (e) {
         console.error('Failed to parse WebSocket message:', e);
       }
@@ -64,13 +73,7 @@ class SocketService {
       return;
     }
 
-    if (handler) {
-      const id = Math.random().toString(36).substring(7);
-      this.messageHandlers.set(id, (response) => {
-        handler(response);
-        this.messageHandlers.delete(id);
-      });
-    }
+    if (handler) this.oneShotHandlers.push(handler);
 
     this.ws.send(JSON.stringify(request));
   }
@@ -95,6 +98,7 @@ class SocketService {
       this.ws = null;
     }
     this.messageHandlers.clear();
+    this.oneShotHandlers = [];
   }
 
   isConnected(): boolean {
