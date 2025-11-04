@@ -3,8 +3,8 @@ use axum::{
     http::StatusCode,
     Json,
 };
-use reprod_protocol::{ExecutionResult, ChatMessage};
-use reprod_core::AIProvider;
+use reprod_core::{AIProvider, ToolManifest};
+use reprod_protocol::{ChatMessage, ExecutionResult, ToolExecutionRequest, ToolExecutionResult};
 use crate::handlers::AppState;
 
 pub async fn health() -> &'static str {
@@ -68,6 +68,50 @@ pub async fn set_api_key(
     config
         .save()
         .map(|_| StatusCode::OK)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))
+}
+
+pub async fn list_tools(State(state): State<AppState>) -> Json<Vec<ToolManifest>> {
+    let manifests = state.tool_registry.iter().cloned().collect();
+    Json(manifests)
+}
+
+pub async fn execute_tool(
+    State(state): State<AppState>,
+    Json(request): Json<ToolExecutionRequest>,
+) -> Result<Json<ToolExecutionResult>, (StatusCode, String)> {
+    let mut r_executor = state.r_executor.lock().await;
+
+    state
+        .tool_executor
+        .execute(
+            &request.tool_id,
+            &request.capability_id,
+            request.parameters,
+            &mut r_executor,
+        )
+        .await
+        .map(|result| {
+            Json(ToolExecutionResult {
+                tool_id: result.tool_id,
+                capability_id: result.capability_id,
+                success: result.success,
+                stdout: result.stdout,
+                stderr: result.stderr,
+                artifacts: result
+                    .artifacts
+                    .into_iter()
+                    .map(|a| reprod_protocol::ArtifactInfo {
+                        path: a.path,
+                        artifact_type: a.artifact_type,
+                        label: a.label,
+                        record_as: a.record_as,
+                    })
+                    .collect(),
+                execution_time_ms: result.execution_time_ms,
+                error: result.error,
+            })
+        })
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))
 }
 

@@ -1,15 +1,13 @@
 mod routes;
 mod handlers;
 
-use axum::{
-    Router,
-    routing::get,
-};
+use axum::{routing::get, Router};
 use std::sync::Arc;
+use std::path::PathBuf;
 use tokio::sync::Mutex;
 use tower_http::cors::{CorsLayer, Any};
 use tower_http::trace::TraceLayer;
-use reprod_core::{RExecutor, AnthropicProvider, Config};
+use reprod_core::{AnthropicProvider, Config, RExecutor, ToolExecutor, ToolRegistry};
 
 #[tokio::main]
 async fn main() {
@@ -35,6 +33,22 @@ async fn main() {
 
     let config_state = Arc::new(Mutex::new(config));
 
+    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../core/tools");
+    tracing::info!("Attempting to load tool manifests from: {}", manifest_dir.display());
+    let tool_registry = ToolRegistry::load_from_dir(&manifest_dir)
+        .unwrap_or_else(|error| {
+            tracing::warn!(
+                "Failed to load tool manifests from {}: {}. Continuing with empty registry.",
+                manifest_dir.display(),
+                error
+            );
+            ToolRegistry::new()
+        });
+    tracing::info!("Loaded {} tool manifests", tool_registry.len());
+    let tool_registry = Arc::new(tool_registry);
+
+    let tool_executor = Arc::new(ToolExecutor::new(tool_registry.clone()));
+
     // Build application
     let app = Router::new()
         .route("/health", get(routes::health))
@@ -42,6 +56,8 @@ async fn main() {
         .route("/api/ai/message", axum::routing::post(routes::send_ai_message))
         .route("/api/config/key/:provider", get(routes::get_api_key))
         .route("/api/config/key/:provider", axum::routing::put(routes::set_api_key))
+        .route("/api/tools", get(routes::list_tools))
+        .route("/api/tools/execute", axum::routing::post(routes::execute_tool))
         .route("/ws", get(handlers::ws_handler))
         .layer(
             CorsLayer::new()
@@ -54,6 +70,8 @@ async fn main() {
             r_executor,
             ai_provider,
             config: config_state,
+            tool_registry: tool_registry.clone(),
+            tool_executor: tool_executor.clone(),
         });
 
     let addr = "127.0.0.1:3001";
