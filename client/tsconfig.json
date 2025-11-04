@@ -14,7 +14,9 @@
       "@/core/*": ["src/core/*"],
       "@/hooks/*": ["src/hooks/*"],
       "@/utils/*": ["src/utils/*"],
-      "@/css/*": ["src/css/*"]
+      "@/css/*": ["src/css/*"],
+      "shared": ["../shared/src/index.ts"],
+      "shared/*": ["../shared/src/*"]
     },
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
