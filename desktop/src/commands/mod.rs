@@ -30,11 +30,11 @@ pub async fn get_api_key(
     let config = config.lock().await;
 
     match provider.as_str() {
-        "anthropic" => config
+        reprod_core::ai::PROVIDER_ANTHROPIC => config
             .anthropic_api_key
             .clone()
             .ok_or_else(|| "Anthropic API key not configured".to_string()),
-        "openai" => config
+        reprod_core::ai::PROVIDER_OPENAI => config
             .openai_api_key
             .clone()
             .ok_or_else(|| "OpenAI API key not configured".to_string()),
@@ -51,8 +51,8 @@ pub async fn set_api_key(
     let mut config = config.lock().await;
 
     match provider.as_str() {
-        "anthropic" => config.anthropic_api_key = Some(api_key),
-        "openai" => config.openai_api_key = Some(api_key),
+        reprod_core::ai::PROVIDER_ANTHROPIC => config.anthropic_api_key = Some(api_key),
+        reprod_core::ai::PROVIDER_OPENAI => config.openai_api_key = Some(api_key),
         _ => return Err(format!("Unknown provider: {}", provider)),
     }
 
