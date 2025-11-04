@@ -1,9 +1,23 @@
+pub mod protocol;
+pub mod error;
 pub mod ai;
 pub mod config;
 pub mod executor;
 pub mod tools;
 
+// Re-export protocol types (for API boundaries)
+pub use protocol::*;
+pub use error::*;
+
+// Re-export core services
 pub use ai::{AIProvider, AnthropicProvider, OpenAIProvider};
 pub use config::Config;
 pub use executor::{CommandOutput, CommandRunner, RExecutor, RExecutorBuilder};
-pub use tools::*;
+
+// Re-export tools (excluding ToolExecutionResult to avoid conflict with protocol)
+pub use tools::{
+    executor::{Artifact as ToolArtifact, ToolExecutor},
+    manifest::*,
+    registry::ToolRegistry,
+    validator::{ToolValidator, ValidationResult},
+};

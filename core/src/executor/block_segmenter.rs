@@ -1,4 +1,4 @@
-use reprod_protocol::{CodeBlockKind, CodeBlockMetadata};
+use crate::{CodeBlockKind, CodeBlockMetadata};
 use uuid::Uuid;
 
 /// Represents a document to segment into code blocks.
