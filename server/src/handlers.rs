@@ -5,7 +5,10 @@ use axum::{
     },
     response::Response,
 };
-use reprod_core::{AIProvider, AnthropicProvider, Config, RExecutor};
+use reprod_core::{
+    AIProvider, AnthropicProvider, Config, OpenAIProvider, RExecutor, ToolExecutor, ToolManifest,
+    ToolRegistry,
+};
 use reprod_protocol::{ChatMessage, ExecutionRequest, ExecutionResult};
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -13,8 +16,11 @@ use tokio::sync::Mutex;
 #[derive(Clone)]
 pub struct AppState {
     pub r_executor: Arc<Mutex<RExecutor>>,
-    pub ai_provider: Arc<Mutex<AnthropicProvider>>,
+    pub anthropic_provider: Arc<Mutex<AnthropicProvider>>,
+    pub openai_provider: Arc<Mutex<OpenAIProvider>>,
     pub config: Arc<Mutex<Config>>,
+    pub tool_registry: Arc<ToolRegistry>,
+    pub tool_executor: Arc<ToolExecutor>,
 }
 
 pub async fn ws_handler(ws: WebSocketUpgrade, State(state): State<AppState>) -> Response {
@@ -60,6 +66,14 @@ enum WSRequest {
     Execute { request: ExecutionRequest },
     #[serde(rename = "ai_message")]
     AIMessage { messages: Vec<ChatMessage> },
+    #[serde(rename = "list_tools")]
+    ListTools,
+    #[serde(rename = "execute_tool")]
+    ExecuteTool {
+        tool_id: String,
+        capability_id: String,
+        parameters: std::collections::HashMap<String, serde_json::Value>,
+    },
 }
 
 #[derive(serde::Serialize)]
@@ -71,6 +85,18 @@ enum WSResponse {
     AIResponse { response: String },
     #[serde(rename = "error")]
     Error { message: String },
+    #[serde(rename = "tools")]
+    Tools { tools: Vec<ToolManifest> },
+    #[serde(rename = "tool_execution_result")]
+    ToolExecutionResult {
+        tool_id: String,
+        capability_id: String,
+        success: bool,
+        stdout: Option<String>,
+        stderr: Option<String>,
+        execution_time_ms: u64,
+        error: Option<String>,
+    },
 }
 
 async fn handle_ws_request(request: WSRequest, state: &AppState) -> WSResponse {
@@ -85,9 +111,57 @@ async fn handle_ws_request(request: WSRequest, state: &AppState) -> WSResponse {
             }
         }
         WSRequest::AIMessage { messages } => {
-            let ai_provider = state.ai_provider.lock().await;
-            match ai_provider.send_message(messages).await {
+            let config = state.config.lock().await;
+            let provider_name = config.default_ai_provider.clone();
+            drop(config);
+
+            let result = match provider_name.as_str() {
+                "openai" => {
+                    let provider = state.openai_provider.lock().await;
+                    provider.send_message(messages).await
+                }
+                "anthropic" => {
+                    let provider = state.anthropic_provider.lock().await;
+                    provider.send_message(messages).await
+                }
+                _ => {
+                    return WSResponse::Error {
+                        message: format!("Unknown AI provider: {}", provider_name),
+                    }
+                }
+            };
+
+            match result {
                 Ok(response) => WSResponse::AIResponse { response },
+                Err(e) => WSResponse::Error {
+                    message: e.to_string(),
+                },
+            }
+        }
+        WSRequest::ListTools => {
+            let tools = state.tool_registry.iter().cloned().collect();
+            WSResponse::Tools { tools }
+        }
+        WSRequest::ExecuteTool {
+            tool_id,
+            capability_id,
+            parameters,
+        } => {
+            let mut r_executor = state.r_executor.lock().await;
+            match state
+                .tool_executor
+                .execute(&tool_id, &capability_id, parameters, &mut r_executor)
+                .await
+            {
+                Ok(result) => WSResponse::ToolExecutionResult {
+                    tool_id: result.tool_id,
+                    capability_id: result.capability_id,
+                    success: result.success,
+                    stdout: result.stdout,
+                    stderr: result.stderr,
+                    execution_time_ms: result.execution_time_ms,
+                    error: result.error,
+                },
                 Err(e) => WSResponse::Error {
                     message: e.to_string(),
                 },
