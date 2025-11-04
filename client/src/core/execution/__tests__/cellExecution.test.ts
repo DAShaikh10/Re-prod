@@ -25,7 +25,9 @@ describe('cellExecution', () => {
     it('should prioritize text selection over cell', () => {
       const mockEditor = {
         getSelection: vi.fn().mockReturnValue({
-          isEmpty: () => false
+          isEmpty: () => false,
+          startLineNumber: 4,
+          endLineNumber: 5
         }),
         getModel: vi.fn().mockReturnValue({
           getValueInRange: vi.fn().mockReturnValue('selected text')
@@ -37,7 +39,11 @@ describe('cellExecution', () => {
       expect(result).toEqual({
         code: 'selected text',
         cellIndex: undefined,
-        source: 'selection'
+        source: 'selection',
+        range: {
+          startLine: 4,
+          endLine: 5
+        }
       });
     });
 
@@ -94,7 +100,9 @@ describe('cellExecution', () => {
     it('should ignore empty selection', () => {
       const mockEditor = {
         getSelection: vi.fn().mockReturnValue({
-          isEmpty: () => false
+          isEmpty: () => false,
+          startLineNumber: 3,
+          endLineNumber: 3
         }),
         getModel: vi.fn().mockReturnValue({
           getValueInRange: vi.fn().mockReturnValue('   ')
@@ -134,7 +142,9 @@ describe('cellExecution', () => {
     it('should not return next cell when executing selection', () => {
       const mockEditor = {
         getSelection: vi.fn().mockReturnValue({
-          isEmpty: () => false
+          isEmpty: () => false,
+          startLineNumber: 3,
+          endLineNumber: 3
         }),
         getModel: vi.fn().mockReturnValue({
           getValueInRange: vi.fn().mockReturnValue('selected text')
@@ -147,7 +157,11 @@ describe('cellExecution', () => {
         target: {
           code: 'selected text',
           cellIndex: undefined,
-          source: 'selection'
+          source: 'selection',
+          range: {
+            startLine: 3,
+            endLine: 3
+          }
         }
       });
     });

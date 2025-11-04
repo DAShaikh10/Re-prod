@@ -1,6 +1,6 @@
 use async_trait::async_trait;
-use reprod_protocol::ChatMessage;
 use reprod_common::ReprodError;
+use reprod_protocol::ChatMessage;
 
 /// Trait for AI provider implementations
 #[async_trait]

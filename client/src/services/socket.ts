@@ -1,19 +1,13 @@
+import type { ExecutionRequestPayload, ExecutionResultPayload } from '../../../shared/src/types';
+
 type WSRequest =
-  | { type: 'execute'; code: string }
+  | { type: 'execute'; request: ExecutionRequestPayload }
   | { type: 'ai_message'; messages: Array<{ role: string; content: string }> };
 
 export type WSResponse =
-  | { type: 'execution_result'; result: ExecutionResult }
+  | { type: 'execution_result'; result: ExecutionResultPayload }
   | { type: 'ai_response'; response: string }
   | { type: 'error'; message: string };
-
-interface ExecutionResult {
-  success: boolean;
-  output: string;
-  error: string | null;
-  plots: Array<{ filename: string; base64_data: string; index: number }>;
-  execution_time_ms: number;
-}
 
 type MessageHandler = (response: WSResponse) => void;
 

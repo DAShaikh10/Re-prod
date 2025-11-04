@@ -64,18 +64,11 @@ impl ToolRegistry {
                 continue;
             }
 
-            let contents = fs::read_to_string(&file_path).with_context(|| {
-                format!(
-                    "failed to read tool manifest {}",
-                    file_path.display()
-                )
-            })?;
+            let contents = fs::read_to_string(&file_path)
+                .with_context(|| format!("failed to read tool manifest {}", file_path.display()))?;
 
             let manifest: ToolManifest = toml::from_str(&contents).with_context(|| {
-                format!(
-                    "failed to parse tool manifest {}",
-                    file_path.display()
-                )
+                format!("failed to parse tool manifest {}", file_path.display())
             })?;
 
             registry.register(manifest);

@@ -1,17 +1,17 @@
 use axum::{
     extract::{
-        ws::{WebSocket, WebSocketUpgrade, Message},
+        ws::{Message, WebSocket, WebSocketUpgrade},
         State,
     },
     response::Response,
 };
-use std::sync::Arc;
-use tokio::sync::Mutex;
 use reprod_core::{
     AIProvider, AnthropicProvider, Config, OpenAIProvider, RExecutor, ToolExecutor, ToolManifest,
     ToolRegistry,
 };
-use reprod_protocol::{ChatMessage, ExecutionResult};
+use reprod_protocol::{ChatMessage, ExecutionRequest, ExecutionResult};
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -23,10 +23,7 @@ pub struct AppState {
     pub tool_executor: Arc<ToolExecutor>,
 }
 
-pub async fn ws_handler(
-    ws: WebSocketUpgrade,
-    State(state): State<AppState>,
-) -> Response {
+pub async fn ws_handler(ws: WebSocketUpgrade, State(state): State<AppState>) -> Response {
     ws.on_upgrade(|socket| handle_socket(socket, state))
 }
 
@@ -38,7 +35,6 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
             Ok(Message::Text(text)) => {
                 tracing::debug!("Received text message: {}", text);
 
-                // Parse and handle message
                 if let Ok(request) = serde_json::from_str::<WSRequest>(&text) {
                     let response = handle_ws_request(request, &state).await;
 
@@ -66,7 +62,7 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
 #[serde(tag = "type")]
 enum WSRequest {
     #[serde(rename = "execute")]
-    Execute { code: String },
+    Execute { request: ExecutionRequest },
     #[serde(rename = "ai_message")]
     AIMessage { messages: Vec<ChatMessage> },
     #[serde(rename = "list_tools")]
@@ -104,9 +100,9 @@ enum WSResponse {
 
 async fn handle_ws_request(request: WSRequest, state: &AppState) -> WSResponse {
     match request {
-        WSRequest::Execute { code } => {
+        WSRequest::Execute { request } => {
             let executor = state.r_executor.lock().await;
-            match executor.execute(code).await {
+            match executor.execute(request).await {
                 Ok(result) => WSResponse::ExecutionResult { result },
                 Err(e) => WSResponse::Error {
                     message: e.to_string(),
@@ -114,9 +110,10 @@ async fn handle_ws_request(request: WSRequest, state: &AppState) -> WSResponse {
             }
         }
         WSRequest::AIMessage { messages } => {
-            let config = state.config.lock().await;
-            let provider_name = config.default_ai_provider.clone();
-            drop(config);
+            let provider_name = {
+                let config = state.config.lock().await;
+                config.default_ai_provider.clone()
+            };
 
             let result = match provider_name.as_str() {
                 "openai" => {

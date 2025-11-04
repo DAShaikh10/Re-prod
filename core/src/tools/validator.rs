@@ -1,5 +1,7 @@
 use anyhow::{anyhow, Result};
+use reprod_protocol::{ExecutionActor, ExecutionContext, ExecutionRequest, ExecutionSource};
 use std::collections::HashMap;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use super::{ToolKind, ToolManifest};
 use crate::RExecutor;
@@ -44,7 +46,6 @@ impl ToolValidator {
 
         match manifest.kind {
             ToolKind::RPackage => {
-                // Validate R package availability
                 if let Some(executor) = r_executor {
                     if let Err(e) = Self::validate_r_package(manifest, executor).await {
                         errors.push(e.to_string());
@@ -54,7 +55,6 @@ impl ToolValidator {
                 }
             }
             ToolKind::Cli => {
-                // Validate CLI tool availability
                 if let Err(e) = Self::validate_cli_tool(manifest).await {
                     errors.push(e.to_string());
                 }
@@ -69,10 +69,7 @@ impl ToolValidator {
         }
     }
 
-    async fn validate_r_package(
-        manifest: &ToolManifest,
-        r_executor: &mut RExecutor,
-    ) -> Result<()> {
+    async fn validate_r_package(manifest: &ToolManifest, r_executor: &mut RExecutor) -> Result<()> {
         let validation = &manifest.validation;
 
         // Check required packages
@@ -82,7 +79,7 @@ impl ToolValidator {
                 package, package
             );
 
-            let result = r_executor.execute(check_code).await?;
+            let result = r_executor.execute(Self::wrap_request(check_code)).await?;
             if !result.success {
                 return Err(anyhow!("R package '{}' not available", package));
             }
@@ -90,7 +87,9 @@ impl ToolValidator {
 
         // Run preflight check if provided
         if let Some(preflight) = &validation.preflight_r {
-            let result = r_executor.execute(preflight.to_string()).await?;
+            let result = r_executor
+                .execute(Self::wrap_request(preflight.to_string()))
+                .await?;
             if !result.success {
                 return Err(anyhow!(
                     "Preflight check failed: {}",
@@ -105,14 +104,12 @@ impl ToolValidator {
     async fn validate_cli_tool(manifest: &ToolManifest) -> Result<()> {
         let validation = &manifest.validation;
 
-        // Check required CLI tools
         for cli_tool in &validation.requires_cli {
             if !Self::check_cli_available(cli_tool).await? {
                 return Err(anyhow!("CLI tool '{}' not found in PATH", cli_tool));
             }
         }
 
-        // Run preflight check if provided
         if let Some(preflight) = &validation.preflight_cli {
             let parts: Vec<&str> = preflight.split_whitespace().collect();
             if parts.is_empty() {
@@ -136,7 +133,6 @@ impl ToolValidator {
     }
 
     async fn check_cli_available(tool_name: &str) -> Result<bool> {
-        // Use 'which' on Unix-like systems, 'where' on Windows
         #[cfg(unix)]
         let check_command = "which";
         #[cfg(windows)]
@@ -148,6 +144,22 @@ impl ToolValidator {
             .await?;
 
         Ok(output.status.success())
+    }
+
+    fn wrap_request(code: String) -> ExecutionRequest {
+        ExecutionRequest {
+            code,
+            context: ExecutionContext {
+                source: ExecutionSource::WholeDocument,
+                actor: ExecutionActor::Ai,
+                triggered_at_ms: SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_millis() as u64,
+                ..ExecutionContext::default()
+            },
+            blocks: Vec::new(),
+        }
     }
 }
 
