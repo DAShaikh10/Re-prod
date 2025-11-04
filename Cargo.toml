@@ -57,6 +57,9 @@ base64 = "0.22"
 # Directory utilities
 dirs = "5"
 
+# Config parsing
+toml = "0.8"
+
 # Web framework (server only)
 axum = { version = "0.7", features = ["ws"] }
 tower = "0.4"
