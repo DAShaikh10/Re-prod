@@ -76,3 +76,6 @@ execution_history.Rmd
 docs/overview.md
 .serena
 docs
+
+# Git worktrees
+wt-*/

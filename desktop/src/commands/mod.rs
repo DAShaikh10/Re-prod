@@ -1,5 +1,7 @@
-use reprod_core::{AIProvider, AnthropicProvider, Config, RExecutor};
-use reprod_protocol::{ChatMessage, ExecutionRequest, ExecutionResult};
+use reprod_core::{
+    AIProvider, AnthropicProvider, ChatMessage, Config, ExecutionRequest, ExecutionResult,
+    RExecutor,
+};
 use std::sync::Arc;
 use tauri::State;
 use tokio::sync::Mutex;
