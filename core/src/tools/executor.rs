@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Context, Result};
-use reprod_protocol::{ExecutionActor, ExecutionContext, ExecutionRequest, ExecutionSource};
+use crate::{ExecutionActor, ExecutionContext, ExecutionRequest, ExecutionSource};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::time::{Instant, SystemTime, UNIX_EPOCH};

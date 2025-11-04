@@ -1,7 +1,6 @@
 use super::AIProvider;
 use async_trait::async_trait;
-use reprod_common::ReprodError;
-use reprod_protocol::ChatMessage;
+use crate::{ChatMessage, ReprodError};
 use reqwest::Client;
 use serde_json::json;
 

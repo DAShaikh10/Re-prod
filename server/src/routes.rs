@@ -4,9 +4,9 @@ use axum::{
     http::StatusCode,
     Json,
 };
-use reprod_core::{AIProvider, ToolManifest};
-use reprod_protocol::{
-    ChatMessage, ExecutionRequest, ExecutionResult, ToolExecutionRequest, ToolExecutionResult,
+use reprod_core::{
+    AIProvider, ArtifactInfo, ChatMessage, ExecutionRequest, ExecutionResult,
+    ToolExecutionRequest, ToolExecutionResult, ToolManifest,
 };
 
 pub async fn health() -> &'static str {
@@ -164,7 +164,7 @@ pub async fn execute_tool(
                 artifacts: result
                     .artifacts
                     .into_iter()
-                    .map(|a| reprod_protocol::ArtifactInfo {
+                    .map(|a| ArtifactInfo {
                         path: a.path,
                         artifact_type: a.artifact_type,
                         label: a.label,
