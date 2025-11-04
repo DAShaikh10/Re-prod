@@ -1,0 +1,165 @@
+id = "ggplot2"
+display_name = "ggplot2: Grammar of Graphics"
+kind = "r-package"
+description = "Declarative system for creating elegant data visualizations based on the grammar of graphics."
+version = "3.5.0"
+homepage = "https://ggplot2.tidyverse.org/"
+tags = ["visualization", "plotting", "tidyverse", "graphics"]
+
+[runtime]
+r_library = "ggplot2"
+imports = ["ggplot2"]
+cli_binary = ""
+args = []
+
+[validation]
+requires_packages = ["ggplot2"]
+requires_cli = []
+preflight_r = "if (!requireNamespace('ggplot2', quietly = TRUE)) stop('ggplot2 package is not installed')"
+preflight_cli = ""
+
+[[capabilities]]
+id = "ggplot2::scatter_plot"
+display_name = "Create scatter plot"
+kind = "r-snippet"
+entrypoint = "ggplot2::ggplot"
+description = "Generate a scatter plot with customizable aesthetics and save to PNG."
+input_spec = [
+  { name = "data", type = "string", format = "r-object" },
+  { name = "x", type = "string", format = "column-name" },
+  { name = "y", type = "string", format = "column-name" },
+  { name = "output", type = "file", format = "png", role = "generated" },
+  { name = "width", type = "integer", default = 800 },
+  { name = "height", type = "integer", default = 600 }
+]
+output_spec = [
+  { type = "file", path = "{{output}}", record_as = "artifact" }
+]
+template = """library(ggplot2)
+p <- ggplot({{data}}, aes(x = {{x}}, y = {{y}})) +
+  geom_point() +
+  theme_minimal()
+ggsave("{{output}}", plot = p, width = {{width}}/100, height = {{height}}/100, dpi = 100)"""
+post_validation = "if (!file.exists('{{output}}')) stop('Plot file not generated')"
+
+[[capabilities]]
+id = "ggplot2::line_plot"
+display_name = "Create line plot"
+kind = "r-snippet"
+entrypoint = "ggplot2::ggplot"
+description = "Generate a line plot for trend visualization and save to PNG."
+input_spec = [
+  { name = "data", type = "string", format = "r-object" },
+  { name = "x", type = "string", format = "column-name" },
+  { name = "y", type = "string", format = "column-name" },
+  { name = "output", type = "file", format = "png", role = "generated" },
+  { name = "width", type = "integer", default = 800 },
+  { name = "height", type = "integer", default = 600 }
+]
+output_spec = [
+  { type = "file", path = "{{output}}", record_as = "artifact" }
+]
+template = """library(ggplot2)
+p <- ggplot({{data}}, aes(x = {{x}}, y = {{y}})) +
+  geom_line() +
+  theme_minimal()
+ggsave("{{output}}", plot = p, width = {{width}}/100, height = {{height}}/100, dpi = 100)"""
+post_validation = "if (!file.exists('{{output}}')) stop('Plot file not generated')"
+
+[[capabilities]]
+id = "ggplot2::bar_plot"
+display_name = "Create bar plot"
+kind = "r-snippet"
+entrypoint = "ggplot2::ggplot"
+description = "Generate a bar plot for categorical data comparison and save to PNG."
+input_spec = [
+  { name = "data", type = "string", format = "r-object" },
+  { name = "x", type = "string", format = "column-name" },
+  { name = "y", type = "string", format = "column-name" },
+  { name = "output", type = "file", format = "png", role = "generated" },
+  { name = "width", type = "integer", default = 800 },
+  { name = "height", type = "integer", default = 600 }
+]
+output_spec = [
+  { type = "file", path = "{{output}}", record_as = "artifact" }
+]
+template = """library(ggplot2)
+p <- ggplot({{data}}, aes(x = {{x}}, y = {{y}})) +
+  geom_col() +
+  theme_minimal()
+ggsave("{{output}}", plot = p, width = {{width}}/100, height = {{height}}/100, dpi = 100)"""
+post_validation = "if (!file.exists('{{output}}')) stop('Plot file not generated')"
+
+[[capabilities]]
+id = "ggplot2::histogram"
+display_name = "Create histogram"
+kind = "r-snippet"
+entrypoint = "ggplot2::ggplot"
+description = "Generate a histogram for distribution visualization and save to PNG."
+input_spec = [
+  { name = "data", type = "string", format = "r-object" },
+  { name = "x", type = "string", format = "column-name" },
+  { name = "bins", type = "integer", default = 30, min = 5, max = 100 },
+  { name = "output", type = "file", format = "png", role = "generated" },
+  { name = "width", type = "integer", default = 800 },
+  { name = "height", type = "integer", default = 600 }
+]
+output_spec = [
+  { type = "file", path = "{{output}}", record_as = "artifact" }
+]
+template = """library(ggplot2)
+p <- ggplot({{data}}, aes(x = {{x}})) +
+  geom_histogram(bins = {{bins}}) +
+  theme_minimal()
+ggsave("{{output}}", plot = p, width = {{width}}/100, height = {{height}}/100, dpi = 100)"""
+post_validation = "if (!file.exists('{{output}}')) stop('Plot file not generated')"
+
+[[capabilities]]
+id = "ggplot2::boxplot"
+display_name = "Create box plot"
+kind = "r-snippet"
+entrypoint = "ggplot2::ggplot"
+description = "Generate a box plot for distribution comparison across groups and save to PNG."
+input_spec = [
+  { name = "data", type = "string", format = "r-object" },
+  { name = "x", type = "string", format = "column-name" },
+  { name = "y", type = "string", format = "column-name" },
+  { name = "output", type = "file", format = "png", role = "generated" },
+  { name = "width", type = "integer", default = 800 },
+  { name = "height", type = "integer", default = 600 }
+]
+output_spec = [
+  { type = "file", path = "{{output}}", record_as = "artifact" }
+]
+template = """library(ggplot2)
+p <- ggplot({{data}}, aes(x = {{x}}, y = {{y}})) +
+  geom_boxplot() +
+  theme_minimal()
+ggsave("{{output}}", plot = p, width = {{width}}/100, height = {{height}}/100, dpi = 100)"""
+post_validation = "if (!file.exists('{{output}}')) stop('Plot file not generated')"
+
+[[capabilities]]
+id = "ggplot2::heatmap"
+display_name = "Create heatmap"
+kind = "r-snippet"
+entrypoint = "ggplot2::ggplot"
+description = "Generate a heatmap for matrix visualization and save to PNG."
+input_spec = [
+  { name = "data", type = "string", format = "r-object" },
+  { name = "x", type = "string", format = "column-name" },
+  { name = "y", type = "string", format = "column-name" },
+  { name = "fill", type = "string", format = "column-name" },
+  { name = "output", type = "file", format = "png", role = "generated" },
+  { name = "width", type = "integer", default = 800 },
+  { name = "height", type = "integer", default = 600 }
+]
+output_spec = [
+  { type = "file", path = "{{output}}", record_as = "artifact" }
+]
+template = """library(ggplot2)
+p <- ggplot({{data}}, aes(x = {{x}}, y = {{y}}, fill = {{fill}})) +
+  geom_tile() +
+  scale_fill_gradient(low = "white", high = "steelblue") +
+  theme_minimal()
+ggsave("{{output}}", plot = p, width = {{width}}/100, height = {{height}}/100, dpi = 100)"""
+post_validation = "if (!file.exists('{{output}}')) stop('Plot file not generated')"

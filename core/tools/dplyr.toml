@@ -1,0 +1,156 @@
+id = "dplyr"
+display_name = "dplyr: Data Manipulation Grammar"
+kind = "r-package"
+description = "Fast and expressive tools for data manipulation: filtering, selecting, mutating, summarizing, and joining data frames."
+version = "1.1.4"
+homepage = "https://dplyr.tidyverse.org/"
+tags = ["data-manipulation", "tidyverse", "dataframe"]
+
+[runtime]
+r_library = "dplyr"
+imports = ["dplyr"]
+cli_binary = ""
+args = []
+
+[validation]
+requires_packages = ["dplyr"]
+requires_cli = []
+preflight_r = "if (!requireNamespace('dplyr', quietly = TRUE)) stop('dplyr package is not installed')"
+preflight_cli = ""
+
+[[capabilities]]
+id = "dplyr::read_csv"
+display_name = "Read CSV file into data frame"
+kind = "r-function"
+entrypoint = "read.csv"
+description = "Load CSV data into a data frame with automatic type inference."
+input_spec = [
+  { name = "path", type = "file", format = "csv" },
+  { name = "header", type = "enum", options = ["TRUE", "FALSE"], default = "TRUE" },
+  { name = "stringsAsFactors", type = "enum", options = ["TRUE", "FALSE"], default = "FALSE" }
+]
+output_spec = [
+  { type = "r-object", class = "data.frame", record_as = "artifact" }
+]
+template = """read.csv(file = "{{path}}", header = {{header}}, stringsAsFactors = {{stringsAsFactors}})"""
+post_validation = "stopifnot(is.data.frame(.last_value))"
+
+[[capabilities]]
+id = "dplyr::filter"
+display_name = "Filter rows by condition"
+kind = "r-snippet"
+entrypoint = "dplyr::filter"
+description = "Keep only rows that satisfy logical conditions."
+input_spec = [
+  { name = "data", type = "string", format = "r-object" },
+  { name = "condition", type = "string", format = "r-code" }
+]
+output_spec = [
+  { type = "r-object", class = "data.frame", record_as = "artifact" }
+]
+template = """library(dplyr)
+{{data}} %>% filter({{condition}})"""
+post_validation = "stopifnot(is.data.frame(.last_value))"
+
+[[capabilities]]
+id = "dplyr::select"
+display_name = "Select columns"
+kind = "r-snippet"
+entrypoint = "dplyr::select"
+description = "Choose specific columns from a data frame."
+input_spec = [
+  { name = "data", type = "string", format = "r-object" },
+  { name = "columns", type = "string", format = "r-code" }
+]
+output_spec = [
+  { type = "r-object", class = "data.frame", record_as = "artifact" }
+]
+template = """library(dplyr)
+{{data}} %>% select({{columns}})"""
+post_validation = "stopifnot(is.data.frame(.last_value))"
+
+[[capabilities]]
+id = "dplyr::mutate"
+display_name = "Create or modify columns"
+kind = "r-snippet"
+entrypoint = "dplyr::mutate"
+description = "Add new columns or transform existing ones based on expressions."
+input_spec = [
+  { name = "data", type = "string", format = "r-object" },
+  { name = "expressions", type = "string", format = "r-code" }
+]
+output_spec = [
+  { type = "r-object", class = "data.frame", record_as = "artifact" }
+]
+template = """library(dplyr)
+{{data}} %>% mutate({{expressions}})"""
+post_validation = "stopifnot(is.data.frame(.last_value))"
+
+[[capabilities]]
+id = "dplyr::summarize"
+display_name = "Summarize data"
+kind = "r-snippet"
+entrypoint = "dplyr::summarize"
+description = "Compute summary statistics, optionally by groups."
+input_spec = [
+  { name = "data", type = "string", format = "r-object" },
+  { name = "expressions", type = "string", format = "r-code" }
+]
+output_spec = [
+  { type = "r-object", class = "data.frame", record_as = "artifact" }
+]
+template = """library(dplyr)
+{{data}} %>% summarize({{expressions}})"""
+post_validation = "stopifnot(is.data.frame(.last_value))"
+
+[[capabilities]]
+id = "dplyr::group_by"
+display_name = "Group data by columns"
+kind = "r-snippet"
+entrypoint = "dplyr::group_by"
+description = "Group data by one or more columns for grouped operations."
+input_spec = [
+  { name = "data", type = "string", format = "r-object" },
+  { name = "columns", type = "string", format = "r-code" }
+]
+output_spec = [
+  { type = "r-object", class = "grouped_df", record_as = "artifact" }
+]
+template = """library(dplyr)
+{{data}} %>% group_by({{columns}})"""
+post_validation = "stopifnot(inherits(.last_value, 'grouped_df'))"
+
+[[capabilities]]
+id = "dplyr::arrange"
+display_name = "Sort rows"
+kind = "r-snippet"
+entrypoint = "dplyr::arrange"
+description = "Sort rows by one or more columns in ascending or descending order."
+input_spec = [
+  { name = "data", type = "string", format = "r-object" },
+  { name = "columns", type = "string", format = "r-code" }
+]
+output_spec = [
+  { type = "r-object", class = "data.frame", record_as = "artifact" }
+]
+template = """library(dplyr)
+{{data}} %>% arrange({{columns}})"""
+post_validation = "stopifnot(is.data.frame(.last_value))"
+
+[[capabilities]]
+id = "dplyr::join"
+display_name = "Join two data frames"
+kind = "r-snippet"
+entrypoint = "dplyr::left_join"
+description = "Join two data frames by common columns using left join strategy."
+input_spec = [
+  { name = "x", type = "string", format = "r-object" },
+  { name = "y", type = "string", format = "r-object" },
+  { name = "by", type = "string", format = "r-code" }
+]
+output_spec = [
+  { type = "r-object", class = "data.frame", record_as = "artifact" }
+]
+template = """library(dplyr)
+left_join({{x}}, {{y}}, by = {{by}})"""
+post_validation = "stopifnot(is.data.frame(.last_value))"
