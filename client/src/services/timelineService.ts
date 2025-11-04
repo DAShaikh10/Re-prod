@@ -12,6 +12,8 @@ import {
   generateMockTimeline,
   mockTimelineQuery,
   generateMockStats,
+  // Protocol-level types (namespaced to avoid collisions)
+  protocol,
 } from 'shared';
 
 // Generate mock events for development
@@ -53,7 +55,7 @@ export async function getTimelineStats(): Promise<TimelineStats> {
  * This will be used when backend sends 'timeline_event_added' messages.
  */
 export function subscribeToTimelineEvents(
-  _callback: (event: ExecutionEventPayload) => void
+  _callback: (event: protocol.ExecutionEvent) => void
 ): () => void {
   // Phase 2: Subscribe to WebSocket events
   // socketService.on('timeline_event_added', _callback);
