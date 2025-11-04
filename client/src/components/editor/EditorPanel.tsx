@@ -6,9 +6,11 @@ import {
   useStore,
   parseCells,
   type Cell,
+  type ExecutionTarget,
   getExecutionTarget,
   getExecutionTargetAndNext,
   getAllCode,
+  buildExecutionRequest,
 } from "@/core";
 import { socketService } from "@/services/socket";
 import type {
@@ -110,14 +112,21 @@ export function EditorPanel(): JSX.Element {
     }
   };
 
-  const executeCode = (code: string, cellIndex?: number): void => {
+  const executeCode = (target: ExecutionTarget): void => {
     setIsRunning(true);
 
-    if (cellIndex !== undefined) {
-      setExecutingCellIndex(cellIndex);
+    if (target.cellIndex !== undefined) {
+      setExecutingCellIndex(target.cellIndex);
     }
 
-    socketService.send({ type: 'execute', code }, (response) => {
+    const request = buildExecutionRequest({
+      target,
+      cells,
+      documentContent: editor.content,
+      filepath: editor.filepath ?? undefined
+    });
+
+    socketService.send({ type: 'execute', request }, (response) => {
       setExecutingCellIndex(null);
       setIsRunning(false);
 
@@ -156,7 +165,10 @@ export function EditorPanel(): JSX.Element {
   const handleRunAll = (): void => {
     const code = getAllCode(editorRef.current);
     if (code) {
-      executeCode(code);
+      executeCode({
+        code,
+        source: 'whole-document'
+      });
     }
   };
 
@@ -168,7 +180,7 @@ export function EditorPanel(): JSX.Element {
     );
 
     if (target) {
-      executeCode(target.code, target.cellIndex);
+      executeCode(target);
     }
   };
 
@@ -182,7 +194,7 @@ export function EditorPanel(): JSX.Element {
     if (!result) return;
 
     // Execute the target (selection, cell, or whole document)
-    executeCode(result.target.code, result.target.cellIndex);
+    executeCode(result.target);
 
     // Only move to next cell if we executed a cell and there's a next cell
     if (result.nextCell && editorRef.current) {

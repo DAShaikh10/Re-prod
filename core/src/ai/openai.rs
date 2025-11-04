@@ -1,7 +1,7 @@
 use super::AIProvider;
 use async_trait::async_trait;
-use reprod_protocol::ChatMessage;
 use reprod_common::ReprodError;
+use reprod_protocol::ChatMessage;
 use reqwest::Client;
 use serde_json::json;
 
@@ -36,10 +36,13 @@ impl OpenAIProvider {
 #[async_trait]
 impl AIProvider for OpenAIProvider {
     async fn send_message(&self, messages: Vec<ChatMessage>) -> Result<String, ReprodError> {
-        let api_key = self.api_key.as_ref()
+        let api_key = self
+            .api_key
+            .as_ref()
             .ok_or_else(|| ReprodError::AIError("OpenAI API key not configured".to_string()))?;
 
-        let response = self.client
+        let response = self
+            .client
             .post(&self.base_url)
             .header("Authorization", format!("Bearer {}", api_key))
             .header("Content-Type", "application/json")
@@ -56,16 +59,19 @@ impl AIProvider for OpenAIProvider {
 
         let status = response.status();
         if !status.is_success() {
-            let error_text = response.text().await
+            let error_text = response
+                .text()
+                .await
                 .unwrap_or_else(|_| "Unknown error".to_string());
             return Err(ReprodError::AIError(format!(
                 "OpenAI API error ({}): {}",
-                status,
-                error_text
+                status, error_text
             )));
         }
 
-        let data: serde_json::Value = response.json().await
+        let data: serde_json::Value = response
+            .json()
+            .await
             .map_err(|e| ReprodError::AIError(format!("Invalid response: {}", e)))?;
 
         data["choices"][0]["message"]["content"]
