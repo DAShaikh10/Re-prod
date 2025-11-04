@@ -24,5 +24,8 @@ dirs = { workspace = true }
 async-trait = { workspace = true }
 base64 = { workspace = true }
 toml = { workspace = true }
+tar = "0.4"
+flate2 = "1.0"
+chrono = { version = "0.4", features = ["serde"] }
 
 # NO Tauri dependencies - platform-agnostic!
