@@ -84,9 +84,29 @@ When working with this repository, AI agents have permission to execute the foll
 
 ### File Operations (Always Allowed)
 - Read any file in the project directory
-- Edit configuration files: `.tsx`, `.ts`, `.js`, `.json`, `.toml`, `.md`
-- Create/edit Rust files: `.rs`, `Cargo.toml`
-- Create/edit documentation: `.md` files
+- Edit most files freely: `.tsx`, `.ts`, `.js`, `.json`, `.toml`, `.rs`, `Cargo.toml`
+- Edit documentation: `.md` files (except restricted files below)
+
+### File Operations (Require User Permission)
+- **Root-level markdown files**: `README.md`, `CLAUDE.md`, `AGENTS.md`, `CHANGELOG.md`, etc.
+  - Ask permission before modifying these files
+- **`.gitignore`**: Always ask before modifying
+  - Changes can affect what gets committed across the repository
+
+### File Creation (Check First)
+Before creating any new file:
+1. **Search the repository** for similar existing files using Glob or Grep
+2. **Check for naming conventions** by looking at existing files in the same directory
+3. **Verify the file doesn't already exist** in a different location
+4. If unsure, ask the user before creating
+
+Example check process:
+```bash
+# Before creating "docs/api-reference.md"
+find docs -name "*api*" -o -name "*reference*"
+# or
+grep -r "API Reference" docs/
+```
 
 ### Configuration File Creation (Allowed)
 - `~/.reprod/auth.json` - Application configuration (API keys, R path)
