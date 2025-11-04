@@ -1,5 +1,5 @@
 import type { StateCreator } from 'zustand';
-import type { AppSettings } from '../../../../../shared/src/types';
+import type { AppSettings } from '@shared/types';
 
 export interface SettingsState {
   settings: AppSettings;

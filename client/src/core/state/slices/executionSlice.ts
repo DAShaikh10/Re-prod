@@ -1,15 +1,15 @@
 import type { StateCreator } from 'zustand';
-import type { ExecutionResult } from '../../../../../shared/src/types';
+import type { ExecutionLogEntry } from '@shared/types';
 
 export interface ExecutionState {
   execution: {
     isRunning: boolean;
-    results: ExecutionResult[];
-    history: ExecutionResult[];
+    results: ExecutionLogEntry[];
+    history: ExecutionLogEntry[];
     currentCell: number | undefined;
   };
   setIsRunning: (isRunning: boolean) => void;
-  addExecutionResult: (result: ExecutionResult) => void;
+  addExecutionResult: (result: ExecutionLogEntry) => void;
   clearExecutionResults: () => void;
   setCurrentCell: (cellIndex: number | undefined) => void;
 }
