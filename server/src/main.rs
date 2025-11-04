@@ -1,10 +1,10 @@
 mod handlers;
+mod conversions;
 mod routes;
 
 use axum::{routing::get, Router};
 use reprod_core::{
-    executor::timeline::SqliteTimeline, AnthropicProvider, Config, OpenAIProvider, RExecutor,
-    ToolExecutor, ToolRegistry,
+    executor::timeline::SqliteTimeline, Config, RExecutor, ToolExecutor, ToolRegistry,
 };
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -27,14 +27,6 @@ async fn main() {
     }
 
     let r_executor = Arc::new(Mutex::new(RExecutor::new(temp_dir, config.r_path.clone())));
-
-    let anthropic_provider = Arc::new(Mutex::new(AnthropicProvider::new(
-        config.anthropic_api_key.clone(),
-    )));
-
-    let openai_provider = Arc::new(Mutex::new(OpenAIProvider::new(
-        config.openai_api_key.clone(),
-    )));
 
     let config_state = Arc::new(Mutex::new(config));
 
@@ -98,8 +90,6 @@ async fn main() {
         .layer(TraceLayer::new_for_http())
         .with_state(handlers::AppState {
             r_executor,
-            anthropic_provider,
-            openai_provider,
             config: config_state,
             tool_registry: tool_registry.clone(),
             tool_executor: tool_executor.clone(),
