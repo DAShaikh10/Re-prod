@@ -23,40 +23,40 @@ This board tracks all Re-prod issues with their priorities and current status. U
 
 ## All Issues
 
-| Priority | Issue | Title | Status | Notes |
-|----------|-------|-------|--------|-------|
-| 🔴 **P0** | **005** | R execution capture | 🔶 **In Progress** | ExecutionRequest/Event implemented, Timeline integration pending |
-| 🔴 **P0** | **006** | Plot artifact capture | ✅ **Completed** | PNG plots display correctly |
-| 🔴 **P0** | **007** | Session timeline data model | ❌ **Not Started** | Persistent storage design needed (SQLite suggested, not required) ← **TOP PRIORITY** |
-| 🔴 **P0** | **008** | Session timeline UI | ❌ **Not Started** | Timeline UI components not implemented |
-| 🔴 **P0** | **013** | R tool integration framework | ✅ **Completed** | ToolRegistry, Executor, Validator implemented and merged |
-| 🔴 **P0** | **014** | R tool starter pack | ✅ **Completed** | 10 tool manifests implemented (dplyr, ggplot2, readr, base-stats, biostrings, seqinr, phangorn, ggtree, blast, samtools) with tests and example workflows |
-| 🔴 **P0** | **015** | Reproduction export | ❌ **Not Started** | Requires timeline implementation |
-| 🔴 **P0** | **016** | Shell execution service | ✅ **Completed** | Shell execution service implemented and merged via PR #9 |
-| 🔴 **P0** | **017** | Demo assets | ✅ **Completed** | Demo assets prepared and merged via PR #8 |
-| 🟡 **P1** | **003** | Provider registry/config | ❓ **Unknown** | Status needs verification |
-| 🟡 **P1** | **009** | Edit history logging | ❌ **Not Started** | Track AI vs Human edits |
-| 🟡 **P1** | **010** | R-aware AI context builder | ❌ **Not Started** | Pass workspace state to AI |
-| 🟡 **P1** | **012** | Local model support | ❓ **Unknown** | Status needs verification |
-| 🟢 **P2** | **001** | Provider authentication strategy | ❌ **Not Started** | Non-API-key authentication research |
-| 🟢 **P2** | **002** | Auth JSON desktop flow | ❓ **Unknown** | Status needs verification |
-| 🟢 **P2** | **004** | Provider selection UI | ❓ **Unknown** | Status needs verification |
-| 🟢 **P2** | **011** | ACP external agent integration | ❌ **Not Started** | Zed-compatible Agent Client Protocol |
-| 📚 **Ref** | **000** | Demo analysis scenario | 📖 **Reference** | Demo scenario documentation |
-| 📚 **Ref** | **000** | Demo feature matrix | 📖 **Reference** | Feature matrix documentation |
-| 📚 **Ref** | **000** | Demo workstreams | 📖 **Reference** | Work stream documentation |
-| 📚 **Ref** | **018** | AI context awareness | 📋 **Planning** | AI Context implementation planning |
+| Priority   | Issue   | Title                            | Status             | Notes                                                                                                                                                     |
+| ---------- | ------- | -------------------------------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 🔴 **P0**  | **005** | R execution capture              | ✅ **Completed**    | ExecutionRequest/Event, block segmentation, TimelineSink interface, and InMemoryTimeline implemented. Merged via PR #5                                   |
+| 🔴 **P0**  | **006** | Plot artifact capture            | ✅ **Completed**    | PNG plots display correctly                                                                                                                               |
+| 🔴 **P0**  | **007** | Session timeline data model      | ❌ **Not Started**  | Persistent storage design needed (SQLite suggested, not required) ← **TOP PRIORITY**                                                                      |
+| 🔴 **P0**  | **008** | Session timeline UI              | ❌ **Not Started**  | Timeline UI components not implemented                                                                                                                    |
+| 🔴 **P0**  | **013** | R tool integration framework     | ✅ **Completed**    | ToolRegistry, Executor, Validator implemented and merged                                                                                                  |
+| 🔴 **P0**  | **014** | R tool starter pack              | ✅ **Completed**    | 10 tool manifests implemented (dplyr, ggplot2, readr, base-stats, biostrings, seqinr, phangorn, ggtree, blast, samtools) with tests and example workflows |
+| 🔴 **P0**  | **015** | Reproduction export              | ❌ **Not Started**  | Requires timeline implementation                                                                                                                          |
+| 🔴 **P0**  | **016** | Shell execution service          | ✅ **Completed**    | Shell execution service implemented and merged via PR #9                                                                                                  |
+| 🔴 **P0**  | **017** | Demo assets                      | ✅ **Completed**    | Demo assets prepared and merged via PR #8                                                                                                                 |
+| 🟡 **P1**  | **003** | Provider registry/config         | ❓ **Unknown**      | Status needs verification                                                                                                                                 |
+| 🟡 **P1**  | **009** | Edit history logging             | ❌ **Not Started**  | Track AI vs Human edits                                                                                                                                   |
+| 🟡 **P1**  | **010** | R-aware AI context builder       | ❌ **Not Started**  | Pass workspace state to AI                                                                                                                                |
+| 🟡 **P1**  | **012** | Local model support              | ❓ **Unknown**      | Status needs verification                                                                                                                                 |
+| 🟢 **P2**  | **001** | Provider authentication strategy | ❌ **Not Started**  | Non-API-key authentication research                                                                                                                       |
+| 🟢 **P2**  | **002** | Auth JSON desktop flow           | ❓ **Unknown**      | Status needs verification                                                                                                                                 |
+| 🟢 **P2**  | **004** | Provider selection UI            | ❓ **Unknown**      | Status needs verification                                                                                                                                 |
+| 🟢 **P2**  | **011** | ACP external agent integration   | ❌ **Not Started**  | Zed-compatible Agent Client Protocol                                                                                                                      |
+| 📚 **Ref** | **000** | Demo analysis scenario           | 📖 **Reference**   | Demo scenario documentation                                                                                                                               |
+| 📚 **Ref** | **000** | Demo feature matrix              | 📖 **Reference**   | Feature matrix documentation                                                                                                                              |
+| 📚 **Ref** | **000** | Demo workstreams                 | 📖 **Reference**   | Work stream documentation                                                                                                                                 |
+| 📚 **Ref** | **018** | AI context awareness             | 📋 **Planning**    | AI Context implementation planning                                                                                                                        |
 
 ---
 
 ## Implementation Summary
 
 ### P0 Issues (9 total)
-- ✅ **Completed**: 5 issues (006, 013, 014, 016, 017)
-- 🔶 **In Progress**: 1 issue (005)
+- ✅ **Completed**: 6 issues (005, 006, 013, 014, 016, 017)
+- 🔶 **In Progress**: 0 issues
 - ❌ **Not Started**: 3 issues (007, 008, 015)
 
-**Completion Rate**: 56% (5/9 completed)
+**Completion Rate**: 67% (6/9 completed)
 
 ### P1 Issues (4 total)
 - ❌ **Not Started**: 2 issues (009, 010)
@@ -70,20 +70,21 @@ This board tracks all Re-prod issues with their priorities and current status. U
 
 ## Recommended Implementation Order
 
-### Phase 1: Timeline Foundation (Top Priority)
-1. **Issue 007**: Timeline data model design
+### Phase 1: Timeline Foundation (In Progress - 1/3 Complete)
+1. **Issue 005**: ✅ R execution capture (COMPLETED)
+   - ✅ Implemented ExecutionRequest/Event schema
+   - ✅ Created TimelineSink interface with NoopTimeline and InMemoryTimeline
+   - ✅ Integrated block segmentation for R code
+
+2. **Issue 007**: Timeline data model design ← **NEXT PRIORITY**
    - Design persistent storage (SQLite, JSON, or other)
    - Define event schema for code blocks, plots, shell commands
    - Plan data retention and pruning strategy
 
-2. **Issue 008**: Timeline UI implementation
+3. **Issue 008**: Timeline UI implementation
    - Build timeline visualization components
    - Implement navigation and filtering
    - Add event detail views
-
-3. **Issue 005**: Complete timeline integration
-   - Integrate ExecutionRequest/Event with timeline storage
-   - Connect R execution to timeline UI
 
 ### Phase 2: Tool Integration ✅ COMPLETED
 4. **Issue 016**: ✅ Shell execution service (COMPLETED)
@@ -127,7 +128,8 @@ git commit -m "Update issue board: Mark Issue 007 as in progress"
 
 ## Notes
 
-- **Issue 007**: SQLite is suggested but not required. Alternative storage methods (JSON, in-memory with export) are acceptable.
+- **Issue 005**: R execution capture completed with ExecutionRequest/Event, TimelineSink, and InMemoryTimeline. Merged via PR #5.
+- **Issue 007**: SQLite is suggested but not required. Alternative storage methods (JSON, in-memory with export) are acceptable. This is the current TOP PRIORITY.
 - **Issue 013**: Successfully completed and merged to develop branch.
 - **Issue 014**: 10 comprehensive tool manifests completed with tests and workflows.
 - **Issue 016**: Shell execution service completed and merged via PR #9.
