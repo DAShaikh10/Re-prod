@@ -5,13 +5,9 @@ use axum::{
     Json,
 };
 use reprod_core::{ai, ChatMessage, ExecutionRequest, ExecutionResult, ToolExecutionRequest, ToolExecutionResult, ToolManifest};
+use crate::http::{Resp, HttpError, err_400, err_404, err_500};
 
-type HttpError = (StatusCode, String);
-type Resp<T> = Result<Json<T>, HttpError>;
-
-fn err_400(msg: impl Into<String>) -> HttpError { (StatusCode::BAD_REQUEST, msg.into()) }
-fn err_404(msg: impl Into<String>) -> HttpError { (StatusCode::NOT_FOUND, msg.into()) }
-fn err_500(e: impl std::fmt::Display) -> HttpError { (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()) }
+ 
 
 pub async fn health() -> &'static str {
     "OK"
@@ -51,8 +47,8 @@ pub async fn get_api_key(
     let config = state.config.lock().await;
 
     let api_key = match provider.as_str() {
-        "anthropic" => config.anthropic_api_key.clone(),
-        "openai" => config.openai_api_key.clone(),
+        ai::PROVIDER_ANTHROPIC => config.anthropic_api_key.clone(),
+        ai::PROVIDER_OPENAI => config.openai_api_key.clone(),
         _ => return Err(err_400(format!("Unknown provider: {}", provider))),
     };
 
@@ -69,8 +65,8 @@ pub async fn set_api_key(
     let mut config = state.config.lock().await;
 
     match provider.as_str() {
-        "anthropic" => config.anthropic_api_key = Some(payload.api_key),
-        "openai" => config.openai_api_key = Some(payload.api_key),
+        ai::PROVIDER_ANTHROPIC => config.anthropic_api_key = Some(payload.api_key),
+        ai::PROVIDER_OPENAI => config.openai_api_key = Some(payload.api_key),
         _ => return Err(err_400(format!("Unknown provider: {}", provider))),
     }
 
@@ -98,7 +94,7 @@ pub async fn set_provider(
     State(state): State<AppState>,
     Json(payload): Json<SetProviderRequest>,
 ) -> Result<StatusCode, HttpError> {
-    if payload.provider != "openai" && payload.provider != "anthropic" {
+    if payload.provider != ai::PROVIDER_OPENAI && payload.provider != ai::PROVIDER_ANTHROPIC {
         return Err(err_400(format!(
             "Invalid provider: {}. Must be 'openai' or 'anthropic'",
             payload.provider
