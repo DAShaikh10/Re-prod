@@ -1,0 +1,103 @@
+id = "samtools"
+display_name = "SAMtools - Sequence Alignment/Map Tools"
+kind = "cli"
+description = "Tools for manipulating next-generation sequencing data in SAM/BAM/CRAM formats."
+version = "1.18"
+homepage = "http://www.htslib.org/"
+tags = ["ngs", "alignment", "sam", "bam"]
+
+[runtime]
+r_library = ""
+imports = []
+cli_binary = "samtools"
+args = []
+
+[validation]
+requires_packages = []
+requires_cli = ["samtools"]
+preflight_r = ""
+preflight_cli = "samtools --version"
+
+[[capabilities]]
+id = "samtools::view"
+display_name = "View/convert SAM/BAM files"
+kind = "cli-command"
+entrypoint = "samtools view"
+description = "Convert between SAM and BAM formats or filter alignments."
+input_spec = [
+  { name = "input", type = "file", format = "bam" },
+  { name = "output", type = "file", format = "bam", role = "generated" },
+  { name = "region", type = "string", default = "" }
+]
+output_spec = [
+  { type = "file", path = "{{output}}", record_as = "artifact" },
+  { type = "stdout" }
+]
+template = """samtools view -b {{input}} {{region}} > {{output}}"""
+post_validation = "if (!file.exists('{{output}}')) stop('SAMtools view output not generated')"
+
+[[capabilities]]
+id = "samtools::sort"
+display_name = "Sort BAM file"
+kind = "cli-command"
+entrypoint = "samtools sort"
+description = "Sort alignments by leftmost coordinates or read name."
+input_spec = [
+  { name = "input", type = "file", format = "bam" },
+  { name = "output", type = "file", format = "bam", role = "generated" },
+  { name = "threads", type = "integer", min = 1, max = 32, default = 4 }
+]
+output_spec = [
+  { type = "file", path = "{{output}}", record_as = "artifact" }
+]
+template = """samtools sort -@ {{threads}} -o {{output}} {{input}}"""
+post_validation = "if (!file.exists('{{output}}')) stop('Sorted BAM file not generated')"
+
+[[capabilities]]
+id = "samtools::index"
+display_name = "Index BAM file"
+kind = "cli-command"
+entrypoint = "samtools index"
+description = "Create an index for a sorted BAM file."
+input_spec = [
+  { name = "input", type = "file", format = "bam" },
+  { name = "threads", type = "integer", min = 1, max = 32, default = 4 }
+]
+output_spec = [
+  { type = "stdout" }
+]
+template = """samtools index -@ {{threads}} {{input}}"""
+post_validation = "if (!file.exists('{{input}}.bai')) stop('BAM index not generated')"
+
+[[capabilities]]
+id = "samtools::flagstat"
+display_name = "Alignment statistics"
+kind = "cli-command"
+entrypoint = "samtools flagstat"
+description = "Count alignments for each FLAG type."
+input_spec = [
+  { name = "input", type = "file", format = "bam" },
+  { name = "output", type = "file", format = "txt", role = "generated" }
+]
+output_spec = [
+  { type = "file", path = "{{output}}", record_as = "artifact" },
+  { type = "stdout" }
+]
+template = """samtools flagstat {{input}} > {{output}}"""
+post_validation = "if (!file.exists('{{output}}')) stop('Flagstat output not generated')"
+
+[[capabilities]]
+id = "samtools::depth"
+display_name = "Compute coverage depth"
+kind = "cli-command"
+entrypoint = "samtools depth"
+description = "Compute the depth of coverage for each position."
+input_spec = [
+  { name = "input", type = "file", format = "bam" },
+  { name = "output", type = "file", format = "txt", role = "generated" }
+]
+output_spec = [
+  { type = "file", path = "{{output}}", record_as = "artifact" }
+]
+template = """samtools depth {{input}} > {{output}}"""
+post_validation = "if (!file.exists('{{output}}')) stop('Depth output not generated')"
