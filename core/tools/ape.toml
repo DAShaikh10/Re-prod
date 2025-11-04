@@ -1,0 +1,50 @@
+id = "ape"
+display_name = "Analyses of Phylogenetics and Evolution"
+kind = "r-package"
+description = "Tree manipulation, distance matrices, and phylogenetic analysis helpers."
+version = "5.7-1"
+homepage = "https://cran.r-project.org/package=ape"
+tags = ["phylogenetics", "tree"]
+
+[runtime]
+r_library = "ape"
+imports = ["ape"]
+cli_binary = ""
+args = []
+
+[validation]
+requires_packages = ["ape"]
+requires_cli = []
+preflight_r = "if (!requireNamespace('ape', quietly = TRUE)) stop('ape package is not installed')"
+preflight_cli = ""
+
+[[capabilities]]
+id = "ape::read_alignment"
+display_name = "Load DNA alignment"
+kind = "r-function"
+entrypoint = "ape::read.dna"
+description = "Load aligned DNA sequences from FASTA."
+input_spec = [
+  { name = "path", type = "file", format = "fasta" },
+  { name = "as.character", type = "enum", options = ["TRUE", "FALSE"], default = "FALSE" }
+]
+output_spec = [
+  { type = "r-object", class = "DNAbin", record_as = "artifact" }
+]
+template = """ape::read.dna(file = "{{path}}", format = "fasta", as.character = {{as.character}})"""
+post_validation = "stopifnot(inherits(.last_value, 'DNAbin'))"
+
+[[capabilities]]
+id = "ape::nj_tree"
+display_name = "Build neighbour-joining tree"
+kind = "r-snippet"
+entrypoint = "ape::nj"
+description = "Compute neighbour-joining tree from a distance matrix."
+input_spec = [
+  { name = "distance_matrix", type = "string", format = "r-object" }
+]
+output_spec = [
+  { type = "r-object", class = "phylo", record_as = "artifact" }
+]
+template = """ape::nj({{distance_matrix}})"""
+post_validation = "stopifnot(inherits(.last_value, 'phylo'))"
