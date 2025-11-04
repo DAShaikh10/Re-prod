@@ -72,7 +72,10 @@ When working with this repository, AI agents have permission to execute the foll
 - `git push` - Push to remote (NEVER use --force)
 
 ### System Commands (Always Allowed)
-- `ls`, `pwd`, `cat` - File system navigation and reading
+- `ls`, `pwd` - File system navigation
+- `cat <file>` - Read file contents
+- `find <path> [options]` - Search for files
+- `grep [options] <pattern> <file>` - Search file contents
 - `which <command>` - Check command availability
 - `lsof -i :<port>` - Check port usage
 - `mkdir -p <path>` - Create directories
