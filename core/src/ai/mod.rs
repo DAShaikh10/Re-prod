@@ -1,5 +1,5 @@
-mod provider;
 mod anthropic;
+mod provider;
 
-pub use provider::AIProvider;
 pub use anthropic::AnthropicProvider;
+pub use provider::AIProvider;

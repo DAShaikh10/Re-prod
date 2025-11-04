@@ -38,8 +38,8 @@ impl Config {
 
     /// Get config path: ~/.reprod/auth.json
     fn config_path() -> Result<PathBuf> {
-        let home = dirs::home_dir()
-            .ok_or_else(|| anyhow::anyhow!("Could not find home directory"))?;
+        let home =
+            dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not find home directory"))?;
         Ok(home.join(".reprod").join("auth.json"))
     }
 }

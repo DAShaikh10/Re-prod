@@ -1,11 +1,11 @@
+use crate::handlers::AppState;
 use axum::{
     extract::{Path, State},
     http::StatusCode,
     Json,
 };
-use reprod_protocol::{ExecutionResult, ChatMessage};
 use reprod_core::AIProvider;
-use crate::handlers::AppState;
+use reprod_protocol::{ChatMessage, ExecutionRequest, ExecutionResult};
 
 pub async fn health() -> &'static str {
     "OK"
@@ -13,12 +13,12 @@ pub async fn health() -> &'static str {
 
 pub async fn execute_r_code(
     State(state): State<AppState>,
-    Json(payload): Json<ExecuteRequest>,
+    Json(payload): Json<ExecutionRequest>,
 ) -> Result<Json<ExecutionResult>, (StatusCode, String)> {
     let executor = state.r_executor.lock().await;
 
     executor
-        .execute(payload.code)
+        .execute(payload)
         .await
         .map(Json)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))
@@ -45,7 +45,12 @@ pub async fn get_api_key(
 
     let api_key = match provider.as_str() {
         "anthropic" => config.anthropic_api_key.clone(),
-        _ => return Err((StatusCode::BAD_REQUEST, format!("Unknown provider: {}", provider))),
+        _ => {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                format!("Unknown provider: {}", provider),
+            ))
+        }
     };
 
     api_key
@@ -62,7 +67,12 @@ pub async fn set_api_key(
 
     match provider.as_str() {
         "anthropic" => config.anthropic_api_key = Some(payload.api_key),
-        _ => return Err((StatusCode::BAD_REQUEST, format!("Unknown provider: {}", provider))),
+        _ => {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                format!("Unknown provider: {}", provider),
+            ))
+        }
     }
 
     config
@@ -72,11 +82,6 @@ pub async fn set_api_key(
 }
 
 // Request/Response types
-#[derive(serde::Deserialize)]
-pub struct ExecuteRequest {
-    pub code: String,
-}
-
 #[derive(serde::Deserialize)]
 pub struct AIMessageRequest {
     pub messages: Vec<ChatMessage>,

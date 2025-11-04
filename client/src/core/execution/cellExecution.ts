@@ -9,6 +9,10 @@ export interface ExecutionTarget {
   code: string;
   cellIndex?: number; // undefined for selection/whole document
   source: 'selection' | 'cell' | 'whole-document';
+  range?: {
+    startLine: number;
+    endLine: number;
+  };
 }
 
 /**
@@ -47,7 +51,11 @@ export function getExecutionTarget(
         return {
           code: selectedText,
           cellIndex: undefined,
-          source: 'selection'
+          source: 'selection',
+          range: {
+            startLine: selection.startLineNumber,
+            endLine: selection.endLineNumber
+          }
         };
       }
     }
