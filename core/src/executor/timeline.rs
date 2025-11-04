@@ -45,7 +45,7 @@ impl TimelineSink for InMemoryTimeline {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use reprod_protocol::{
+    use crate::protocol::{
         CodeBlockKind, CodeBlockMetadata, EnvironmentSnapshot, ExecutionActor, ExecutionContext,
         ExecutionEvent, ExecutionResult, ExecutionSource, PlotInfo,
     };
