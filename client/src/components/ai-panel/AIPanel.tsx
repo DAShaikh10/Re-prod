@@ -2,13 +2,12 @@ import { useState, useRef, useEffect } from 'react';
 import { IconRobot, IconSend, IconSquare } from '@/components/shared';
 import { useStore } from '@/core';
 import { socketService } from '@/services/socket';
+import type { WSResponse } from '@/services/socket';
 import { CodeBlockWithApply } from './CodeBlockWithApply';
 import type { CodeBlock } from '../../../../shared/src/types';
 
 export function AIPanel(): JSX.Element {
   const ai = useStore((state) => state.ai);
-  const editor = useStore((state) => state.editor);
-  const execution = useStore((state) => state.execution);
   const addAIMessage = useStore((state) => state.addAIMessage);
   const setAILoading = useStore((state) => state.setAILoading);
   const applyCodeChange = useStore((state) => state.applyCodeChange);
@@ -30,6 +29,14 @@ export function AIPanel(): JSX.Element {
       timestamp: Date.now()
     };
 
+    const messages = [
+      ...ai.messages.map((message) => ({
+        role: message.role,
+        content: message.content
+      })),
+      { role: 'user' as const, content: input }
+    ];
+
     addAIMessage(userMessage);
     setAILoading(true);
 
@@ -48,39 +55,36 @@ export function AIPanel(): JSX.Element {
     // Store timeout ID for stop functionality
     timeoutIdRef.current = timeoutId;
 
-    const socket = socketService.getSocket();
+    socketService.send(
+      {
+        type: 'ai_message',
+        messages
+      },
+      (response: WSResponse) => {
+        if (timeoutIdRef.current) {
+          clearTimeout(timeoutIdRef.current);
+          timeoutIdRef.current = null;
+        }
 
-    // Get last error from execution history
-    const lastError = execution.history.length > 0
-      ? execution.history[execution.history.length - 1].stderr
-      : undefined;
+        if (response.type === 'ai_response') {
+          addAIMessage({
+            id: Date.now().toString(),
+            role: 'assistant',
+            content: response.response,
+            timestamp: Date.now()
+          });
+        } else if (response.type === 'error') {
+          addAIMessage({
+            id: Date.now().toString(),
+            role: 'assistant',
+            content: `AI request failed: ${response.message}`,
+            timestamp: Date.now()
+          });
+        }
 
-    socket.emit('ai-request', {
-      code: editor.content,
-      prompt: input,
-      context: {
-        cursorPosition: editor.cursorPosition,
-        executionHistory: execution.history.slice(-3), // Last 3 executions
-        lastError: lastError && lastError.trim().length > 0 ? lastError : undefined
+        setAILoading(false);
       }
-    }, (response) => {
-      // Clear timeout
-      if (timeoutIdRef.current) {
-        clearTimeout(timeoutIdRef.current);
-        timeoutIdRef.current = null;
-      }
-
-      // Add AI response (including errors)
-      addAIMessage({
-        id: Date.now().toString(),
-        role: 'assistant',
-        content: response.message,
-        code: response.suggestedCode,
-        codeBlocks: response.codeBlocks,
-        timestamp: response.timestamp
-      });
-      setAILoading(false);
-    });
+    );
 
     setInput('');
   };

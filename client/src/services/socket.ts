@@ -2,7 +2,7 @@ type WSRequest =
   | { type: 'execute'; code: string }
   | { type: 'ai_message'; messages: Array<{ role: string; content: string }> };
 
-type WSResponse =
+export type WSResponse =
   | { type: 'execution_result'; result: ExecutionResult }
   | { type: 'ai_response'; response: string }
   | { type: 'error'; message: string };

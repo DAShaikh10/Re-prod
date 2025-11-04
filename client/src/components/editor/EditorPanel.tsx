@@ -13,7 +13,6 @@ import {
 import { socketService } from "@/services/socket";
 import type {
   CodeBlock,
-  ExecutionError,
   ExecutionResult,
 } from "../../../../shared/src/types";
 
@@ -124,13 +123,13 @@ export function EditorPanel(): JSX.Element {
 
       if (response.type === 'execution_result') {
         const result = response.result;
-        // Convert Rust format to client format
         const normalized: ExecutionResult = {
           stdout: result.output,
           stderr: result.error || "",
-          plots: result.plots.map(p => ({
-            data: `data:image/png;base64,${p.base64_data}`,
-            format: 'png',
+          plots: result.plots.map((plot) => ({
+            id: plot.filename || `plot-${plot.index}`,
+            path: plot.filename,
+            data: `data:image/png;base64,${plot.base64_data}`,
             timestamp: Date.now(),
           })),
           timestamp: Date.now(),
