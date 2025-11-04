@@ -75,5 +75,4 @@ execution_history.Rmd
 .issues/
 docs/overview.md
 .serena
-docs/*
-!docs/.obsidian/
+docs
