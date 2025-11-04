@@ -4,6 +4,7 @@ pub mod ai;
 pub mod config;
 pub mod executor;
 pub mod tools;
+pub mod export;
 
 // Re-export protocol types (for API boundaries)
 pub use protocol::*;
