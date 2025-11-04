@@ -6,6 +6,7 @@ import { EditorPanel } from '@/components/editor';
 import { AIPanel } from '@/components/ai-panel';
 import { PlotsPanel } from '@/components/plots';
 import { ConsolePanel } from '@/components/console';
+import { TimelinePanel } from '@/components/timeline';
 import { socketService } from './services/socket';
 import { useStore } from '@/core';
 
@@ -43,11 +44,14 @@ function App(): JSX.Element {
           </Allotment.Pane>
           <Allotment.Pane minSize={150} preferredSize="30%">
             <Allotment>
-              <Allotment.Pane minSize={300} preferredSize="60%">
+              <Allotment.Pane minSize={250} preferredSize="33%">
                 <ConsolePanel />
               </Allotment.Pane>
-              <Allotment.Pane minSize={300} preferredSize="40%">
+              <Allotment.Pane minSize={250} preferredSize="33%">
                 <PlotsPanel />
+              </Allotment.Pane>
+              <Allotment.Pane minSize={250} preferredSize="34%">
+                <TimelinePanel />
               </Allotment.Pane>
             </Allotment>
           </Allotment.Pane>
