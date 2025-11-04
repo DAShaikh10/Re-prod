@@ -3,7 +3,8 @@ mod routes;
 
 use axum::{routing::get, Router};
 use reprod_core::{
-    AnthropicProvider, Config, OpenAIProvider, RExecutor, ToolExecutor, ToolRegistry,
+    executor::timeline::SqliteTimeline, AnthropicProvider, Config, OpenAIProvider, RExecutor,
+    ToolExecutor, ToolRegistry,
 };
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -55,6 +56,15 @@ async fn main() {
 
     let tool_executor = Arc::new(ToolExecutor::new(tool_registry.clone()));
 
+    // Initialize timeline storage
+    let timeline_db_path = std::env::temp_dir().join("reprod").join("timeline.db");
+    let timeline = SqliteTimeline::new(timeline_db_path).unwrap_or_else(|error| {
+        tracing::warn!("Failed to initialize timeline storage: {}. Using in-memory timeline.", error);
+        SqliteTimeline::new_in_memory().expect("Failed to create in-memory timeline")
+    });
+    let timeline = Arc::new(timeline);
+    tracing::info!("Timeline storage initialized");
+
     // Build application
     let app = Router::new()
         .route("/health", get(routes::health))
@@ -93,6 +103,7 @@ async fn main() {
             config: config_state,
             tool_registry: tool_registry.clone(),
             tool_executor: tool_executor.clone(),
+            timeline: timeline.clone(),
         });
 
     let addr = "127.0.0.1:3001";
