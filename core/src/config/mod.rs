@@ -6,6 +6,13 @@ use std::path::PathBuf;
 pub struct Config {
     pub r_path: String,
     pub anthropic_api_key: Option<String>,
+    pub openai_api_key: Option<String>,
+    #[serde(default = "default_ai_provider")]
+    pub default_ai_provider: String,
+}
+
+fn default_ai_provider() -> String {
+    "openai".to_string()
 }
 
 impl Config {
@@ -49,6 +56,8 @@ impl Default for Config {
         Self {
             r_path: "/usr/local/bin/R".to_string(),
             anthropic_api_key: std::env::var("ANTHROPIC_API_KEY").ok(),
+            openai_api_key: std::env::var("OPENAI_API_KEY").ok(),
+            default_ai_provider: default_ai_provider(),
         }
     }
 }
