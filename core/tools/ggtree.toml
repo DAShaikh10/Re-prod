@@ -1,0 +1,84 @@
+id = "ggtree"
+display_name = "ggtree - Tree Visualization"
+kind = "r-package"
+description = "Grammar of graphics for phylogenetic tree visualization using ggplot2."
+version = "3.10.0"
+homepage = "https://bioconductor.org/packages/ggtree"
+tags = ["visualization", "phylogenetics", "tree", "ggplot2"]
+
+[runtime]
+r_library = "ggtree"
+imports = ["ggtree", "ggplot2"]
+cli_binary = ""
+args = []
+
+[validation]
+requires_packages = ["ggtree", "ggplot2"]
+requires_cli = []
+preflight_r = "if (!requireNamespace('ggtree', quietly = TRUE)) stop('ggtree package is not installed')"
+preflight_cli = ""
+
+[[capabilities]]
+id = "ggtree::plot_tree"
+display_name = "Plot phylogenetic tree"
+kind = "r-snippet"
+entrypoint = "ggtree::ggtree"
+description = "Create a basic phylogenetic tree plot."
+input_spec = [
+  { name = "tree", type = "string", format = "r-object" },
+  { name = "layout", type = "enum", options = ["rectangular", "slanted", "circular", "fan", "radial"], default = "rectangular" }
+]
+output_spec = [
+  { type = "r-object", class = "ggtree", record_as = "artifact" }
+]
+template = """ggtree::ggtree({{tree}}, layout = "{{layout}}")"""
+post_validation = "stopifnot(inherits(.last_value, 'ggtree'))"
+
+[[capabilities]]
+id = "ggtree::plot_with_tips"
+display_name = "Plot tree with tip labels"
+kind = "r-snippet"
+entrypoint = "ggtree::ggtree"
+description = "Create a tree plot with tip labels displayed."
+input_spec = [
+  { name = "tree", type = "string", format = "r-object" },
+  { name = "layout", type = "enum", options = ["rectangular", "slanted", "circular", "fan"], default = "rectangular" }
+]
+output_spec = [
+  { type = "r-object", class = "ggtree", record_as = "artifact" }
+]
+template = """ggtree::ggtree({{tree}}, layout = "{{layout}}") + ggtree::geom_tiplab()"""
+post_validation = "stopifnot(inherits(.last_value, 'ggtree'))"
+
+[[capabilities]]
+id = "ggtree::plot_with_bootstrap"
+display_name = "Plot tree with bootstrap values"
+kind = "r-snippet"
+entrypoint = "ggtree::ggtree"
+description = "Create a tree plot showing bootstrap support values."
+input_spec = [
+  { name = "tree", type = "string", format = "r-object" }
+]
+output_spec = [
+  { type = "r-object", class = "ggtree", record_as = "artifact" }
+]
+template = """ggtree::ggtree({{tree}}) + ggtree::geom_tiplab() + ggtree::geom_nodelab()"""
+post_validation = "stopifnot(inherits(.last_value, 'ggtree'))"
+
+[[capabilities]]
+id = "ggtree::save_plot"
+display_name = "Save tree plot to file"
+kind = "r-snippet"
+entrypoint = "ggplot2::ggsave"
+description = "Save a ggtree plot to a file."
+input_spec = [
+  { name = "plot", type = "string", format = "r-object" },
+  { name = "filename", type = "file", format = "png", role = "generated" },
+  { name = "width", type = "integer", min = 1, max = 50, default = 10 },
+  { name = "height", type = "integer", min = 1, max = 50, default = 8 }
+]
+output_spec = [
+  { type = "file", path = "{{filename}}", record_as = "artifact" }
+]
+template = """ggplot2::ggsave("{{filename}}", {{plot}}, width = {{width}}, height = {{height}})"""
+post_validation = "stopifnot(file.exists('{{filename}}'))"

@@ -1,0 +1,76 @@
+id = "blast"
+display_name = "BLAST - Basic Local Alignment Search Tool"
+kind = "cli"
+description = "NCBI's sequence similarity search tool for nucleotide and protein sequences."
+version = "2.14.0"
+homepage = "https://blast.ncbi.nlm.nih.gov/"
+tags = ["alignment", "similarity-search", "ncbi"]
+
+[runtime]
+r_library = ""
+imports = []
+cli_binary = "blastn"
+args = []
+
+[validation]
+requires_packages = []
+requires_cli = ["blastn"]
+preflight_r = ""
+preflight_cli = "blastn -version"
+
+[[capabilities]]
+id = "blast::blastn"
+display_name = "BLASTN nucleotide search"
+kind = "cli-command"
+entrypoint = "blastn -query {{query}} -db {{database}}"
+description = "Search nucleotide database using nucleotide query."
+input_spec = [
+  { name = "query", type = "file", format = "fasta" },
+  { name = "database", type = "string" },
+  { name = "evalue", type = "float", min = 0.0, max = 1000.0, default = 10.0 },
+  { name = "outfmt", type = "integer", min = 0, max = 18, default = 6 },
+  { name = "output", type = "file", format = "txt", role = "generated" }
+]
+output_spec = [
+  { type = "file", path = "{{output}}", record_as = "artifact" },
+  { type = "stdout" }
+]
+template = """blastn -query {{query}} -db {{database}} -evalue {{evalue}} -outfmt {{outfmt}} -out {{output}}"""
+post_validation = "if (!file.exists('{{output}}')) stop('BLAST output not generated')"
+
+[[capabilities]]
+id = "blast::blastp"
+display_name = "BLASTP protein search"
+kind = "cli-command"
+entrypoint = "blastp -query {{query}} -db {{database}}"
+description = "Search protein database using protein query."
+input_spec = [
+  { name = "query", type = "file", format = "fasta" },
+  { name = "database", type = "string" },
+  { name = "evalue", type = "float", min = 0.0, max = 1000.0, default = 10.0 },
+  { name = "outfmt", type = "integer", min = 0, max = 18, default = 6 },
+  { name = "output", type = "file", format = "txt", role = "generated" }
+]
+output_spec = [
+  { type = "file", path = "{{output}}", record_as = "artifact" },
+  { type = "stdout" }
+]
+template = """blastp -query {{query}} -db {{database}} -evalue {{evalue}} -outfmt {{outfmt}} -out {{output}}"""
+post_validation = "if (!file.exists('{{output}}')) stop('BLAST output not generated')"
+
+[[capabilities]]
+id = "blast::makeblastdb"
+display_name = "Create BLAST database"
+kind = "cli-command"
+entrypoint = "makeblastdb -in {{input}}"
+description = "Create a BLAST database from a FASTA file."
+input_spec = [
+  { name = "input", type = "file", format = "fasta" },
+  { name = "dbtype", type = "enum", options = ["nucl", "prot"], default = "nucl" },
+  { name = "out", type = "string" }
+]
+output_spec = [
+  { type = "stdout" }
+]
+template = """makeblastdb -in {{input}} -dbtype {{dbtype}} -out {{out}}"""
+post_validation = ""
