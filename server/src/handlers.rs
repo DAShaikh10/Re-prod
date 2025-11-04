@@ -8,14 +8,16 @@ use axum::{
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use reprod_core::{
-    AIProvider, AnthropicProvider, Config, RExecutor, ToolExecutor, ToolManifest, ToolRegistry,
+    AIProvider, AnthropicProvider, Config, OpenAIProvider, RExecutor, ToolExecutor, ToolManifest,
+    ToolRegistry,
 };
 use reprod_protocol::{ChatMessage, ExecutionResult};
 
 #[derive(Clone)]
 pub struct AppState {
     pub r_executor: Arc<Mutex<RExecutor>>,
-    pub ai_provider: Arc<Mutex<AnthropicProvider>>,
+    pub anthropic_provider: Arc<Mutex<AnthropicProvider>>,
+    pub openai_provider: Arc<Mutex<OpenAIProvider>>,
     pub config: Arc<Mutex<Config>>,
     pub tool_registry: Arc<ToolRegistry>,
     pub tool_executor: Arc<ToolExecutor>,
@@ -112,8 +114,27 @@ async fn handle_ws_request(request: WSRequest, state: &AppState) -> WSResponse {
             }
         }
         WSRequest::AIMessage { messages } => {
-            let ai_provider = state.ai_provider.lock().await;
-            match ai_provider.send_message(messages).await {
+            let config = state.config.lock().await;
+            let provider_name = config.default_ai_provider.clone();
+            drop(config);
+
+            let result = match provider_name.as_str() {
+                "openai" => {
+                    let provider = state.openai_provider.lock().await;
+                    provider.send_message(messages).await
+                }
+                "anthropic" => {
+                    let provider = state.anthropic_provider.lock().await;
+                    provider.send_message(messages).await
+                }
+                _ => {
+                    return WSResponse::Error {
+                        message: format!("Unknown AI provider: {}", provider_name),
+                    }
+                }
+            };
+
+            match result {
                 Ok(response) => WSResponse::AIResponse { response },
                 Err(e) => WSResponse::Error {
                     message: e.to_string(),
