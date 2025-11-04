@@ -32,13 +32,9 @@ pub async fn ws_handler(ws: WebSocketUpgrade, State(state): State<AppState>) -> 
 }
 
 async fn handle_socket(mut socket: WebSocket, state: AppState) {
-    tracing::info!("WebSocket connection established");
-
     while let Some(msg) = socket.recv().await {
         match msg {
             Ok(Message::Text(text)) => {
-                tracing::debug!("Received text message: {}", text);
-
                 if let Ok(request) = serde_json::from_str::<WSRequest>(&text) {
                     let response = handle_ws_request(request, &state).await;
 
@@ -47,16 +43,12 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
                             break;
                         }
                     }
+                } else {
+                    tracing::warn!("Failed to parse WebSocket request: {}", text);
                 }
             }
-            Ok(Message::Close(_)) => {
-                tracing::info!("WebSocket connection closed");
-                break;
-            }
-            Err(e) => {
-                tracing::error!("WebSocket error: {}", e);
-                break;
-            }
+            Ok(Message::Close(_)) => break,
+            Err(_) => break,
             _ => {}
         }
     }

@@ -18,15 +18,17 @@ class SocketService {
   private url: string = '';
 
   connect(url: string = 'ws://localhost:3001/ws'): void {
-    if (this.ws?.readyState === WebSocket.OPEN) {
-      return;
+    // Prevent duplicate connections
+    if (this.ws) {
+      if (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING) {
+        return;
+      }
     }
 
     this.url = url;
     this.ws = new WebSocket(url);
 
     this.ws.onopen = () => {
-      console.log('WebSocket connected');
       if (this.reconnectTimer) {
         clearTimeout(this.reconnectTimer);
         this.reconnectTimer = null;
@@ -49,10 +51,8 @@ class SocketService {
     };
 
     this.ws.onclose = () => {
-      console.log('WebSocket disconnected');
       // Auto-reconnect after 2 seconds
       this.reconnectTimer = setTimeout(() => {
-        console.log('Attempting to reconnect...');
         this.connect(this.url);
       }, 2000);
     };
@@ -89,7 +89,9 @@ class SocketService {
       this.reconnectTimer = null;
     }
     if (this.ws) {
-      this.ws.close();
+      if (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING) {
+        this.ws.close(1000, 'Client disconnecting');
+      }
       this.ws = null;
     }
     this.messageHandlers.clear();
