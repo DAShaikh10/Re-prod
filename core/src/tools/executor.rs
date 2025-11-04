@@ -49,13 +49,11 @@ impl ToolExecutor {
     ) -> Result<ToolExecutionResult> {
         let start_time = Instant::now();
 
-        // Look up the capability
         let (manifest, capability) = self
             .registry
             .capability(capability_id)
             .ok_or_else(|| anyhow!("Capability {} not found", capability_id))?;
 
-        // Verify tool_id matches
         if manifest.id != tool_id {
             return Err(anyhow!(
                 "Tool ID mismatch: expected {}, got {}",
@@ -64,8 +62,7 @@ impl ToolExecutor {
             ));
         }
 
-        // Execute based on capability kind
-        let result = match capability.kind {
+        let mut result = match capability.kind {
             CapabilityKind::RFunction | CapabilityKind::RSnippet => {
                 self.execute_r_capability(manifest, capability, parameters, r_executor)
                     .await?
@@ -76,14 +73,11 @@ impl ToolExecutor {
             }
         };
 
-        let execution_time_ms = start_time.elapsed().as_millis() as u64;
+        result.tool_id = tool_id.to_string();
+        result.capability_id = capability_id.to_string();
+        result.execution_time_ms = start_time.elapsed().as_millis() as u64;
 
-        Ok(ToolExecutionResult {
-            tool_id: tool_id.to_string(),
-            capability_id: capability_id.to_string(),
-            execution_time_ms,
-            ..result
-        })
+        Ok(result)
     }
 
     async fn execute_r_capability(
@@ -93,7 +87,6 @@ impl ToolExecutor {
         parameters: HashMap<String, Value>,
         r_executor: &mut RExecutor,
     ) -> Result<ToolExecutionResult> {
-        // Generate R code from template
         let code = self.render_template(&capability.template, &parameters)?;
 
         let request = ExecutionRequest {
@@ -110,20 +103,18 @@ impl ToolExecutor {
             blocks: Vec::new(),
         };
 
-        // Execute via RExecutor
         let exec_result = r_executor
             .execute(request)
             .await
             .context("R execution failed")?;
 
-        // TODO: Extract artifacts from R execution result
         let artifacts = Vec::new();
 
         Ok(ToolExecutionResult {
             tool_id: String::new(),
             capability_id: String::new(),
             success: exec_result.success,
-            stdout: Some(exec_result.output),
+            stdout: Some(exec_result.output.clone()),
             stderr: exec_result.error.clone(),
             artifacts,
             execution_time_ms: exec_result.execution_time_ms,
@@ -137,15 +128,12 @@ impl ToolExecutor {
         capability: &CapabilityDescriptor,
         parameters: HashMap<String, Value>,
     ) -> Result<ToolExecutionResult> {
-        // Generate command from template
         let command = self.render_template(&capability.template, &parameters)?;
 
         if command.is_empty() {
             return Err(anyhow!("Empty command"));
         }
 
-        // Execute CLI command via shell to support redirects and pipes
-        // Use sh on Unix, cmd on Windows
         #[cfg(unix)]
         let output = tokio::process::Command::new("sh")
             .arg("-c")
@@ -165,7 +153,6 @@ impl ToolExecutor {
         let stdout = String::from_utf8_lossy(&output.stdout).to_string();
         let stderr = String::from_utf8_lossy(&output.stderr).to_string();
 
-        // TODO: Extract artifacts based on output_spec
         let artifacts = Vec::new();
 
         Ok(ToolExecutionResult {
@@ -202,7 +189,6 @@ impl ToolExecutor {
 
         let mut result = template_str.clone();
 
-        // Simple template substitution: {{param_name}} -> value
         for (key, value) in parameters {
             let placeholder = format!("{{{{{}}}}}", key);
             let value_str = match value {
@@ -214,7 +200,6 @@ impl ToolExecutor {
             result = result.replace(&placeholder, &value_str);
         }
 
-        // Check for unresolved placeholders
         if result.contains("{{") {
             return Err(anyhow!("Unresolved template parameters in: {}", result));
         }

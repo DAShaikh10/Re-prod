@@ -35,7 +35,6 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
             Ok(Message::Text(text)) => {
                 tracing::debug!("Received text message: {}", text);
 
-                // Parse and handle message
                 if let Ok(request) = serde_json::from_str::<WSRequest>(&text) {
                     let response = handle_ws_request(request, &state).await;
 
@@ -111,9 +110,10 @@ async fn handle_ws_request(request: WSRequest, state: &AppState) -> WSResponse {
             }
         }
         WSRequest::AIMessage { messages } => {
-            let config = state.config.lock().await;
-            let provider_name = config.default_ai_provider.clone();
-            drop(config);
+            let provider_name = {
+                let config = state.config.lock().await;
+                config.default_ai_provider.clone()
+            };
 
             let result = match provider_name.as_str() {
                 "openai" => {
