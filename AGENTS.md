@@ -52,13 +52,13 @@ When working with this repository, AI agents have permission to execute the foll
 
 ### Development Commands (Always Allowed)
 - `cargo check --workspace` - Check Rust compilation
+- `cargo test --workspace` - Run all Rust tests
 - `cargo build --workspace` - Build all Rust crates
 - `cargo run -p <package>` - Run specific Rust package
 - `cargo tauri dev` - Run Tauri desktop app in dev mode
-- `npm run dev` - Run development server
-- `npm run build` - Build production bundle
-- `npm test` - Run tests
 - `npm install` - Install dependencies
+- `npm run <script>` - Run any npm script (dev, build, test, lint, build:client, etc.)
+- `npm test` - Run tests
 
 ### Git Commands (Read-Only Always Allowed)
 - `git status` - Check repository status
