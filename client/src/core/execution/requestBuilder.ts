@@ -1,4 +1,10 @@
-import type { ExecutionRequestPayload, ExecutionContextPayload, CodeBlockMetadataPayload, ExecutionSource, ExecutionActor } from '../../../../shared/src/types';
+import type {
+  ExecutionRequestPayload,
+  ExecutionContextPayload,
+  CodeBlockMetadataPayload,
+  ExecutionSource,
+  ExecutionActor,
+} from '@shared/types';
 import type { ExecutionTarget } from './cellExecution';
 import type { Cell } from './cellParser';
 

@@ -1,5 +1,5 @@
 import type { StateCreator } from 'zustand';
-import type { AIMessage } from '../../../../../shared/src/types';
+import type { AIMessage } from '@shared/types';
 
 export interface AIState {
   ai: {

@@ -25,12 +25,18 @@ export function TimelinePanel(): JSX.Element {
     setError,
     loadMore,
   } = useStore();
+  const isConnected = useStore((state) => state.isConnected);
 
   const [stats, setStats] = useState<TimelineStatsType | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
 
   // Fetch events when filters, sort, or offset changes
   useEffect(() => {
+    if (!isConnected) {
+      setLoading(false);
+      return;
+    }
+
     const fetchEvents = async () => {
       setLoading(true);
       setError(null);
@@ -50,11 +56,11 @@ export function TimelinePanel(): JSX.Element {
     };
 
     fetchEvents();
-  }, [filters, sort]); // Only trigger on filter/sort changes
+  }, [filters, sort, isConnected]); // Only trigger on filter/sort changes when connected
 
   // Fetch more events when offset changes (for "Load More")
   useEffect(() => {
-    if (offset === 0) return; // Skip initial load
+    if (!isConnected || offset === 0) return; // Skip until connection established
 
     const fetchMoreEvents = async () => {
       setLoading(true);
@@ -76,10 +82,12 @@ export function TimelinePanel(): JSX.Element {
     };
 
     fetchMoreEvents();
-  }, [offset]); // Only trigger on offset changes
+  }, [offset, isConnected]); // Only trigger on offset changes once connected
 
   // Fetch stats on mount
   useEffect(() => {
+    if (!isConnected) return;
+
     const fetchStats = async () => {
       setStatsLoading(true);
       try {
@@ -93,7 +101,7 @@ export function TimelinePanel(): JSX.Element {
     };
 
     fetchStats();
-  }, []);
+  }, [isConnected]);
 
   const handleNavigate = (event: ExecutionEventPayload) => {
     // TODO: Implement navigation to code location
