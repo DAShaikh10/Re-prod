@@ -20,6 +20,12 @@
 - Do NOT include any AI co-author attribution in git commits
 - Follow the imperative, lower-case commit style shown in `AGENTS.md`
 
+### Git Staging Rules
+- **NEVER** use `git add -A` or `git add .`
+- **ALWAYS** stage files explicitly: `git add <file1> <file2> <file3>`
+- **Reason**: The `docs/` directory may contain temporary files that should not be committed
+- **Example**: `git add core/src/lib.rs core/Cargo.toml` ✅ | `git add .` ❌
+
 ### Path Handling
 - **NEVER** commit files containing absolute paths (e.g., `/Users/username/...`)
 - Always use relative paths in configuration files

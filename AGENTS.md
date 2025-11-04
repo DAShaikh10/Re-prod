@@ -67,7 +67,8 @@ When working with this repository, AI agents have permission to execute the foll
 - `git branch` - List branches
 
 ### Git Commands (Write Operations - Allowed but NO force options)
-- `git add <files>` - Stage files for commit
+- `git add <files>` - Stage **specific files** for commit (REQUIRED: list files explicitly)
+- **NEVER** use `git add -A` or `git add .` - These may stage unintended files in `docs/` directory
 - `git commit -m "message"` - Create commits (simple messages only, no Co-Authored-By required)
 - `git push` - Push to remote (NEVER use --force)
 
