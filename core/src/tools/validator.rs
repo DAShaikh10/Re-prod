@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use reprod_protocol::{ExecutionActor, ExecutionContext, ExecutionRequest, ExecutionSource};
+use crate::{ExecutionActor, ExecutionContext, ExecutionRequest, ExecutionSource};
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 

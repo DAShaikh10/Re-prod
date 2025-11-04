@@ -6,10 +6,9 @@ use axum::{
     response::Response,
 };
 use reprod_core::{
-    AIProvider, AnthropicProvider, Config, OpenAIProvider, RExecutor, ToolExecutor, ToolManifest,
-    ToolRegistry,
+    AIProvider, AnthropicProvider, ChatMessage, Config, ExecutionRequest, ExecutionResult,
+    OpenAIProvider, RExecutor, ToolExecutor, ToolManifest, ToolRegistry,
 };
-use reprod_protocol::{ChatMessage, ExecutionRequest, ExecutionResult};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 

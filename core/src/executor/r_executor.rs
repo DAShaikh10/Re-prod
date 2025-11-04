@@ -7,7 +7,7 @@ use std::{
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use base64::Engine;
-use reprod_protocol::{
+use crate::{
     CodeBlockKind, CodeBlockMetadata, EnvironmentSnapshot, ExecutionContext, ExecutionEvent,
     ExecutionRequest, ExecutionResult, ExecutionSource, PlotInfo,
 };
@@ -304,7 +304,7 @@ mod tests {
     use super::*;
     use crate::executor::InMemoryTimeline;
     use anyhow::Result;
-    use reprod_protocol::{ExecutionActor, ExecutionContext};
+    use crate::{ExecutionActor, ExecutionContext};
     use tokio::sync::Mutex;
 
     struct MockRunner {

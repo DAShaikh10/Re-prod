@@ -11,9 +11,6 @@ path = "src/lib.rs"
 workspace = true
 
 [dependencies]
-reprod-protocol = { workspace = true }
-reprod-common = { workspace = true }
-
 tokio = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

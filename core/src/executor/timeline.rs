@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use reprod_protocol::ExecutionEvent;
+use crate::ExecutionEvent;
 
 #[async_trait::async_trait]
 pub trait TimelineSink: Send + Sync {
