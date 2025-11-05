@@ -30,3 +30,8 @@
   white-space: nowrap;
   border-width: 0;
 }
+
+/* Visibility */
+.hidden {
+  display: none !important;
+}

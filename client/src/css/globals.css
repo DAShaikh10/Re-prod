@@ -15,12 +15,16 @@ body,
   overflow: hidden;
 }
 
+html {
+  font-size: calc(var(--font-size-base) * var(--app-zoom));
+}
+
 body {
   margin: 0;
   background: linear-gradient(135deg, #edf2ff 0%, #e7ecf6 45%, #eef3ff 100%);
   color: var(--text-primary);
   font-family: var(--font-family-base);
-  font-size: var(--font-size-base);
+  font-size: inherit;
   line-height: var(--line-height-base);
   font-weight: var(--font-weight-base);
   letter-spacing: var(--letter-spacing-base);

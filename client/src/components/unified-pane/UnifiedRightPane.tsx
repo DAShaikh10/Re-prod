@@ -7,15 +7,21 @@ type TabType = 'plots' | 'timeline' | 'help';
 
 export function UnifiedRightPane(): JSX.Element {
   const execution = useStore((state) => state.execution);
+  const panes = useStore((state) => state.view.panes);
   const [activeTab, setActiveTab] = useState<TabType>('plots');
   const [selectedPlotIndex, setSelectedPlotIndex] = useState(0);
 
   const allPlots = execution.results.flatMap(result => result.plots);
   const currentPlot = allPlots[selectedPlotIndex];
+  const plotsVisible = panes.plots;
+  const timelineVisible = panes.timeline;
 
   // Listen for plot focus events from ConsolePanel
   useEffect(() => {
     const handleFocusPlot = (event: CustomEvent) => {
+      if (!plotsVisible) {
+        return;
+      }
       const { plotIndex } = event.detail;
       setActiveTab('plots');
       setSelectedPlotIndex(plotIndex);
@@ -26,16 +32,28 @@ export function UnifiedRightPane(): JSX.Element {
     return () => {
       window.removeEventListener('focusPlot', handleFocusPlot as EventListener);
     };
-  }, []);
+  }, [plotsVisible]);
 
   // Auto-switch to Plots tab when a new plot is created
   useEffect(() => {
+    if (!plotsVisible) {
+      return;
+    }
     if (allPlots.length > 0 && activeTab !== 'plots') {
       setActiveTab('plots');
       // Set to the latest plot
       setSelectedPlotIndex(allPlots.length - 1);
     }
-  }, [allPlots.length]);
+  }, [allPlots.length, plotsVisible, activeTab]);
+
+  // Ensure active tab is valid when panes are hidden
+  useEffect(() => {
+    if (activeTab === 'plots' && !plotsVisible) {
+      setActiveTab(timelineVisible ? 'timeline' : 'help');
+    } else if (activeTab === 'timeline' && !timelineVisible) {
+      setActiveTab(plotsVisible ? 'plots' : 'help');
+    }
+  }, [activeTab, plotsVisible, timelineVisible]);
 
   const handlePrevious = (): void => {
     if (selectedPlotIndex > 0) {
@@ -53,18 +71,22 @@ export function UnifiedRightPane(): JSX.Element {
     <div className="panel unified-right-pane">
       <div className="panel-header">
         <div className="tabs">
-          <div
-            className={`tab ${activeTab === 'plots' ? 'active' : ''}`}
-            onClick={() => setActiveTab('plots')}
-          >
-            Plots
-          </div>
-          <div
-            className={`tab ${activeTab === 'timeline' ? 'active' : ''}`}
-            onClick={() => setActiveTab('timeline')}
-          >
-            Timeline
-          </div>
+          {plotsVisible && (
+            <div
+              className={`tab ${activeTab === 'plots' ? 'active' : ''}`}
+              onClick={() => setActiveTab('plots')}
+            >
+              Plots
+            </div>
+          )}
+          {timelineVisible && (
+            <div
+              className={`tab ${activeTab === 'timeline' ? 'active' : ''}`}
+              onClick={() => setActiveTab('timeline')}
+            >
+              Timeline
+            </div>
+          )}
           <div
             className={`tab ${activeTab === 'help' ? 'active' : ''}`}
             onClick={() => setActiveTab('help')}
@@ -97,7 +119,7 @@ export function UnifiedRightPane(): JSX.Element {
         )}
       </div>
       <div className="panel-content">
-        {activeTab === 'plots' && (
+        {activeTab === 'plots' && plotsVisible && (
           <div className="plots-container">
             {allPlots.length === 0 ? (
               <div className="empty-state">
@@ -120,7 +142,7 @@ export function UnifiedRightPane(): JSX.Element {
             )}
           </div>
         )}
-        {activeTab === 'timeline' && (
+        {activeTab === 'timeline' && timelineVisible && (
           <TimelinePanel />
         )}
         {activeTab === 'help' && (
