@@ -180,16 +180,10 @@ fn parse_rmd_chunk_start(line: &str) -> Option<String> {
         return None;
     }
 
-    let mut tail = trimmed[4..].trim_start(); // remove ```
-    if !tail.starts_with('{') {
-        return None;
-    }
-    tail = tail[1..].trim_start(); // remove {
-    if tail.is_empty() {
-        return Some(String::new());
-    }
+    // "```{r" is 5 characters
+    let tail = trimmed[5..].trim_start();
 
-    if tail.starts_with('}') {
+    if tail.is_empty() || tail.starts_with('}') {
         return Some(String::new());
     }
 
