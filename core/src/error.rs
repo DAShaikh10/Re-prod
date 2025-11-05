@@ -13,6 +13,9 @@ pub enum ReprodError {
 
     #[error("AI provider error: {0}")]
     AIError(String),
+
+    #[error("Protocol error: {0}")]
+    ProtocolError(String),
 }
 
 impl From<std::io::Error> for ReprodError {
