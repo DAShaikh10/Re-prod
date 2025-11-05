@@ -1,5 +1,6 @@
 pub mod protocol;
 pub mod error;
+pub mod api;
 pub mod ai;
 pub mod config;
 pub mod executor;
