@@ -1,16 +1,20 @@
 import { useEffect } from 'react';
 import { Allotment } from 'allotment';
 import 'allotment/dist/style.css';
-import { MenuBar, StatusBar } from '@/components/menu';
+import { NewMenuBar, StatusBar } from '@/components/menu';
 import { EditorPanel } from '@/components/editor';
 import { AIPanel } from '@/components/ai-panel';
 import { ConsolePanel } from '@/components/console';
 import { UnifiedRightPane } from '@/components/unified-pane';
 import { socketService } from './services/socket';
 import { useStore } from '@/core';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 
 function App(): JSX.Element {
   const setConnected = useStore((state) => state.setConnected);
+
+  // Enable global keyboard shortcuts
+  useKeyboardShortcuts();
 
   useEffect(() => {
     socketService.connect();
@@ -28,7 +32,7 @@ function App(): JSX.Element {
 
   return (
     <div className="app">
-      <MenuBar />
+      <NewMenuBar />
       <div className="workspace-shell">
         <Allotment vertical>
           <Allotment.Pane minSize={300} preferredSize="70%">
