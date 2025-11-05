@@ -33,4 +33,8 @@ jobs:
             libayatana-appindicator3-dev
 
       - run: pnpm -r lint
+
+      - name: Build frontend
+        run: pnpm --filter client build
+
       - run: cargo check --workspace
