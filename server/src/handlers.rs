@@ -127,12 +127,15 @@ async fn handle_ws_request(request: WSRequest, state: &AppState) -> WSResponse {
                 let mut tools = get_filesystem_tools();
                 tools.extend(get_r_context_tools());
 
-                let result = provider.send_message_with_tools(messages, tools).await;
+                // First API call to get tool calls
+                let result = provider.send_message_with_tools(messages.clone(), tools.clone()).await;
 
                 match result {
                     Ok(response) => {
                         // Execute tool calls if present
                         if let Some(ref tool_calls) = response.tool_calls {
+                            let mut tool_results = Vec::new();
+
                             for tool_call in tool_calls {
                                 let tool_result = execute_ai_tool_call(
                                     tool_call,
@@ -145,10 +148,50 @@ async fn handle_ws_request(request: WSRequest, state: &AppState) -> WSResponse {
                                     tool_call.name,
                                     tool_result
                                 );
-                            }
-                        }
 
-                        WSResponse::AIResponseWithTools { response }
+                                // Collect tool results
+                                let result_content = match tool_result {
+                                    Ok(content) => content,
+                                    Err(e) => format!("Error: {}", e),
+                                };
+                                tool_results.push((tool_call.id.clone(), result_content));
+                            }
+
+                            // Build follow-up messages with tool results
+                            let mut follow_up_messages = messages.clone();
+
+                            // Add assistant's message (simplified for now)
+                            follow_up_messages.push(ChatMessage {
+                                role: "assistant".to_string(),
+                                content: response.content.clone(),
+                            });
+
+                            // Add tool results as user messages
+                            for (tool_id, result) in tool_results {
+                                follow_up_messages.push(ChatMessage {
+                                    role: "user".to_string(),
+                                    content: format!("Tool '{}' result: {}", tool_id, result),
+                                });
+                            }
+
+                            // Get final response from AI with tool results
+                            tracing::info!("Sending tool results back to AI for final response");
+                            match provider.send_message(follow_up_messages).await {
+                                Ok(final_response) => {
+                                    tracing::info!("Received final response from AI");
+                                    WSResponse::AIResponse { response: final_response }
+                                },
+                                Err(e) => {
+                                    tracing::error!("Failed to get final response: {}", e);
+                                    WSResponse::Error {
+                                        message: format!("Failed to get final response: {}", e),
+                                    }
+                                },
+                            }
+                        } else {
+                            // No tool calls, return original response
+                            WSResponse::AIResponseWithTools { response }
+                        }
                     }
                     Err(e) => WSResponse::Error {
                         message: e.to_string(),

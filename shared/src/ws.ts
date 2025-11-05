@@ -19,7 +19,7 @@ type ToolExecutionResponse = {
 
 export type ClientMessage =
   | { type: 'execute'; request: ExecutionRequestPayload }
-  | { type: 'ai_message'; messages: ChatMessagePayload[] }
+  | { type: 'ai_message'; messages: ChatMessagePayload[]; enable_tools?: boolean }
   | { type: 'list_tools' }
   | ({ type: 'execute_tool' } & ToolExecutionRequestPayload)
   | { type: 'timeline_query'; query: TimelineQuery }
@@ -30,6 +30,7 @@ type TimelineEventPush = Extract<TimelineMessage, { type: 'timeline_event_added'
 export type ServerMessage =
   | { type: 'execution_result'; result: ExecutionResultPayload }
   | { type: 'ai_response'; response: string }
+  | { type: 'ai_response_with_tools'; response: { content: string; tool_calls?: Array<{ name: string; input: Record<string, any> }> } }
   | { type: 'error'; message: string }
   | { type: 'tools'; tools: ToolManifest[] }
   | ({ type: 'tool_execution_result' } & ToolExecutionResponse)
