@@ -11,3 +11,6 @@
 @import './components/menu.css';
 @import './components/status-bar.css';
 @import './components/layout.css';
+
+/* Design themes */
+@import './design-phylo-rstudio.css';
