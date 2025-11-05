@@ -80,10 +80,9 @@ cargo test <module>::tests
 
 ### Frontend Tests (TypeScript)
 ```bash
-cd client
-npm test
-npm test -- <ComponentName>
-npm run test:integration
+pnpm --filter client test
+pnpm --filter client test -- <ComponentName>
+pnpm --filter client run test:integration
 ```
 
 ## 🔄 Git Workflow
