@@ -7,8 +7,7 @@ use axum::{
 };
 use reprod_core::{
     executor::timeline::{
-        SortOrder, SqliteTimeline, TimelineFilters, TimelineQuery, TimelineResponse,
-        TimelineStats,
+        JsonTimeline, SortOrder, TimelineFilters, TimelineQuery, TimelineResponse, TimelineStats,
     },
     ai, ChatMessage, Config, ExecutionRequest, ExecutionResult, RExecutor, ToolExecutor,
     ToolManifest, ToolRegistry,
@@ -22,7 +21,7 @@ pub struct AppState {
     pub config: Arc<Mutex<Config>>,
     pub tool_registry: Arc<ToolRegistry>,
     pub tool_executor: Arc<ToolExecutor>,
-    pub timeline: Arc<SqliteTimeline>,
+    pub timeline: Arc<JsonTimeline>,
 }
 
 pub async fn ws_handler(ws: WebSocketUpgrade, State(state): State<AppState>) -> Response {
