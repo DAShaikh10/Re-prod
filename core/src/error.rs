@@ -14,6 +14,12 @@ pub enum ReprodError {
     #[error("AI provider error: {0}")]
     AIError(String),
 
+    #[error("Security error: {0}")]
+    SecurityError(String),
+
+    #[error("IO error: {0}")]
+    IOError(String),
+
     #[error("Protocol error: {0}")]
     ProtocolError(String),
 }
@@ -21,5 +27,11 @@ pub enum ReprodError {
 impl From<std::io::Error> for ReprodError {
     fn from(err: std::io::Error) -> Self {
         ReprodError::IoError(err.to_string())
+    }
+}
+
+impl From<anyhow::Error> for ReprodError {
+    fn from(err: anyhow::Error) -> Self {
+        ReprodError::ExecutionError(err.to_string())
     }
 }

@@ -26,6 +26,30 @@ pub struct ChatMessage {
     pub content: String,
 }
 
+/// Tool call from AI
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ToolCall {
+    pub id: String,
+    pub name: String,
+    pub input: serde_json::Value,
+}
+
+/// AI response with optional tool calls
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct AIResponse {
+    pub content: String,
+    pub tool_calls: Option<Vec<ToolCall>>,
+    pub stop_reason: String,
+}
+
+/// Tool result to send back to AI
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ToolResult {
+    pub tool_use_id: String,
+    pub content: String,
+    pub is_error: bool,
+}
+
 /// File change event
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct FileChangeEvent {
