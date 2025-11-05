@@ -6,15 +6,33 @@ import type { WSResponse } from '@/services/socket';
 import { CodeBlockWithApply } from './CodeBlockWithApply';
 import type { CodeBlock } from '@shared/types';
 
+// Extract code blocks from markdown text
+function extractCodeBlocks(text: string): CodeBlock[] {
+  const codeBlocks: CodeBlock[] = [];
+  const codeBlockRegex = /```(?:r|R)?\n([\s\S]*?)\n```/g;
+  let match;
+  let index = 0;
+
+  while ((match = codeBlockRegex.exec(text)) !== null) {
+    const code = match[1];
+    codeBlocks.push({
+      id: `code-${Date.now()}-${index}`,
+      code,
+      language: 'r',
+      action: 'replace-all', // Default action
+    });
+    index++;
+  }
+
+  return codeBlocks;
+}
+
 export function AIPanel(): JSX.Element {
   const ai = useStore((state) => state.ai);
   const addAIMessage = useStore((state) => state.addAIMessage);
   const setAILoading = useStore((state) => state.setAILoading);
   const applyCodeChange = useStore((state) => state.applyCodeChange);
-  const editor = useStore((state) => state.editor);
-  const editorContent = editor.content;
-  const editorFilepath = editor.filepath;
-  const setEditorContent = useStore((state) => state.setEditorContent);
+  const editorContent = useStore((state) => state.editor.content);
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const timeoutIdRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -82,10 +100,14 @@ export function AIPanel(): JSX.Element {
         }
 
         if (response.type === 'ai_response') {
+          console.log('AI Response received:', response.response);
+          const codeBlocks = extractCodeBlocks(response.response);
+          console.log('Extracted code blocks:', codeBlocks);
           addAIMessage({
             id: Date.now().toString(),
             role: 'assistant',
             content: response.response,
+            codeBlocks: codeBlocks.length > 0 ? codeBlocks : undefined,
             timestamp: Date.now()
           });
         } else if (response.type === 'ai_response_with_tools') {
@@ -102,40 +124,19 @@ export function AIPanel(): JSX.Element {
               .map((tc, idx) => `${idx + 1}. **${tc.name}**\n   Input: \`${JSON.stringify(tc.input)}\``)
               .join('\n\n');
             content = `🔧 Executing tools:\n\n${toolCallsFormatted}`;
-
-            // Check if write_file was executed on the currently open file
-            const writeFileCall = response.response.tool_calls.find(
-              (tc) => {
-                if (tc.name !== 'write_file') return false;
-                const writePath = (tc.input as any).path;
-                if (!writePath) return false;
-
-                // Match if the write path matches the current editor file
-                // Handle both relative paths and filenames
-                const currentFile = editorFilepath || 'Untitled.R';
-                const currentFileName = currentFile.split('/').pop() || currentFile;
-                const writeFileName = writePath.split('/').pop() || writePath;
-
-                return writeFileName.toLowerCase() === currentFileName.toLowerCase();
-              }
-            );
-
-            if (writeFileCall) {
-              // Update editor with the new file content
-              const newContent = (writeFileCall.input as any).content;
-              if (newContent && typeof newContent === 'string') {
-                console.log(`Updating editor with new content from write_file: ${(writeFileCall.input as any).path}`);
-                setEditorContent(newContent);
-              }
-            }
           } else {
             content = 'AI response received (no content)';
           }
+
+          console.log('AI Response with tools content:', content);
+          const codeBlocks = extractCodeBlocks(content);
+          console.log('Extracted code blocks from tools response:', codeBlocks);
 
           addAIMessage({
             id: Date.now().toString(),
             role: 'assistant',
             content,
+            codeBlocks: codeBlocks.length > 0 ? codeBlocks : undefined,
             timestamp: Date.now()
           });
         } else if (response.type === 'error') {
@@ -243,13 +244,16 @@ export function AIPanel(): JSX.Element {
                     </div>
                   )}
                   {/* New code blocks with Apply buttons */}
-                  {message.codeBlocks?.map((codeBlock: CodeBlock) => (
-                    <CodeBlockWithApply
-                      key={codeBlock.id}
-                      codeBlock={codeBlock}
-                      onApply={handleApplyCode}
-                    />
-                  ))}
+                  {message.codeBlocks && message.codeBlocks.length > 0 && (
+                    console.log(`Rendering ${message.codeBlocks.length} code blocks for message ${message.id}`),
+                    message.codeBlocks.map((codeBlock: CodeBlock) => (
+                      <CodeBlockWithApply
+                        key={codeBlock.id}
+                        codeBlock={codeBlock}
+                        onApply={handleApplyCode}
+                      />
+                    ))
+                  )}
                 </div>
               ))}
               {ai.isLoading && (
