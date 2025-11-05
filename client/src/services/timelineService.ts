@@ -3,7 +3,6 @@ import {
   type TimelineResponse,
   type TimelineStats,
   type ServerMessage,
-  protocol,
 } from 'shared';
 import { socketService } from './socket';
 
@@ -58,16 +57,6 @@ export async function getTimelineStats(): Promise<TimelineStats> {
 
     if (!didSend) {
       reject(new Error('Timeline stats request failed: WebSocket is not connected.'));
-    }
-  });
-}
-
-export function subscribeToTimelineEvents(
-  callback: (event: protocol.ExecutionEvent) => void
-): () => void {
-  return socketService.on('timeline_event_added', (message) => {
-    if (message.type === 'timeline_event_added') {
-      callback(message.event);
     }
   });
 }
