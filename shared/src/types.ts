@@ -41,14 +41,6 @@ export interface ExecutionLogPlot {
   timestamp: number;
 }
 
-export interface ExecutionErrorLog {
-  message: string;
-  type: 'syntax' | 'runtime' | 'system';
-  line?: number;
-  timestamp: number;
-  success: false;
-}
-
 export interface ExecutionLogEntry {
   stdout: string;
   stderr: string;
@@ -56,12 +48,6 @@ export interface ExecutionLogEntry {
   timestamp: number;
   duration: number;
   success: boolean;
-}
-
-export interface FileChangeData {
-  filepath: string;
-  content: string;
-  timestamp: number;
 }
 
 export interface CodeBlock {
@@ -76,34 +62,12 @@ export interface CodeBlock {
   explanation?: string;
 }
 
-export interface AIRequest {
-  code: string;
-  prompt: string;
-  context?: {
-    executionHistory?: ExecutionLogEntry[];
-    cursorPosition?: { line: number; column: number };
-    lastError?: string;
-    selectedText?: string;
-  };
-}
-
 export interface AIResponse {
   message: string;
   suggestedCode?: string; // Deprecated: use codeBlocks instead
   codeBlocks?: CodeBlock[];
   explanation?: string;
   timestamp: number;
-}
-
-export interface StatusUpdate {
-  type: 'info' | 'warning' | 'error';
-  message: string;
-  timestamp: number;
-}
-
-export interface SaveFileData {
-  filepath: string;
-  content: string;
 }
 
 // UI State Types
