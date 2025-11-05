@@ -217,8 +217,16 @@ export const menuActions = {
 
       socketService.send({
         type: 'execute',
-        code,
-      } as any);
+        request: {
+          code,
+          context: {
+            source: 'selection',
+            triggered_at_ms: Date.now(),
+            actor: 'user' as const,
+          },
+          blocks: [],
+        },
+      });
 
       console.log('Code executing...');
     },
@@ -237,8 +245,16 @@ export const menuActions = {
 
       socketService.send({
         type: 'execute',
-        code,
-      } as any);
+        request: {
+          code,
+          context: {
+            source: 'whole_document',
+            triggered_at_ms: Date.now(),
+            actor: 'user' as const,
+          },
+          blocks: [],
+        },
+      });
 
       console.log('Running all code...');
     },
@@ -257,8 +273,16 @@ export const menuActions = {
 
       socketService.send({
         type: 'execute',
-        code,
-      } as any);
+        request: {
+          code,
+          context: {
+            source: 'whole_document',
+            triggered_at_ms: Date.now(),
+            actor: 'user' as const,
+          },
+          blocks: [],
+        },
+      });
 
       console.log('Sourcing file...');
     },
