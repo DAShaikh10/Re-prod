@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Allotment } from 'allotment';
 import 'allotment/dist/style.css';
-import { NewMenuBar, StatusBar } from '@/components/menu';
+import { MenuBar, StatusBar } from '@/components/menu';
 import { EditorPanel } from '@/components/editor';
 import { AIPanel } from '@/components/ai-panel';
 import { ConsolePanel } from '@/components/console';
@@ -32,7 +32,7 @@ function App(): JSX.Element {
 
   return (
     <div className="app">
-      <NewMenuBar />
+      <MenuBar />
       <div className="workspace-shell">
         <Allotment vertical>
           <Allotment.Pane minSize={300} preferredSize="70%">
