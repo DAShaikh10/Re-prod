@@ -1,6 +1,6 @@
 // Protocol types (source-of-truth: core/src/protocol.rs)
 // NOTE: Keep this file structurally aligned with Rust definitions.
-// When updating, verify with `cargo check --workspace` and `npm run lint`.
+// When updating, verify with `cargo check --workspace` and `pnpm -r lint`.
 
 // Execution metadata shared between frontend and backend (protocol layer)
 export type ExecutionSource = 'selection' | 'cell' | 'whole_document' | 'unknown';
@@ -94,4 +94,3 @@ export interface ToolExecutionResult {
   execution_time_ms: number;
   error?: string | null;
 }
-

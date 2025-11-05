@@ -43,7 +43,8 @@ Furthermore unlike traditional IDEs, Re-prod **will ensure perfect reproducibili
 ## Prerequisites
 
 - **Rust** (latest stable) - Install from [rustup.rs](https://rustup.rs/)
-- **Node.js** 18+ and npm
+- **Node.js** 18+
+- **pnpm** 9+ (installs via `corepack enable pnpm` or `npm install -g pnpm`)
 - **R** (4.0+) with `Rscript` in PATH
 - **Anthropic API key** (optional, for AI features)
 
@@ -61,10 +62,10 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 cargo install tauri-cli --version "^2.0"
 ```
 
-### 3. Install Node.js dependencies
+### 3. Install JavaScript dependencies (pnpm)
 
 ```bash
-npm install
+pnpm install
 ```
 
 ### 4. Configure Application (Optional)
@@ -99,7 +100,7 @@ This launches the Tauri desktop application with:
 
 ```bash
 # Start both Rust server and React client
-npm run dev
+pnpm dev
 ```
 
 This starts:
@@ -107,6 +108,14 @@ This starts:
 - **React client**: `http://localhost:5173`
 
 Access at: http://localhost:5173
+
+### Option 3: Frontend Only
+
+```bash
+pnpm --filter client dev
+```
+
+Runs the Vite dev server on `http://localhost:5173` without launching the Rust backend.
 
 ## Project Structure
 
@@ -209,13 +218,13 @@ If `Rscript` is not in your PATH, set the full path in `~/.reprod/auth.json`:
 ### Type Checking
 
 ```bash
-npm run lint
+pnpm -r lint
 ```
 
 ### Building for Production
 
 ```bash
-npm run build
+pnpm -r build
 ```
 
 ### Clean Temporary Files
