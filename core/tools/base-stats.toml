@@ -13,13 +13,13 @@ cli_binary = ""
 args = []
 
 [validation]
-requires_packages = []
+requires_packages = ["stats"]
 requires_cli = []
 preflight_r = "stopifnot(requireNamespace('stats', quietly = TRUE))"
 preflight_cli = ""
 
 [[capabilities]]
-id = "stats::summary"
+id = "base-stats::summary"
 display_name = "Compute summary statistics"
 kind = "r-function"
 entrypoint = "summary"
@@ -28,13 +28,13 @@ input_spec = [
   { name = "data", type = "string", format = "r-object" }
 ]
 output_spec = [
-  { type = "r-object", record_as = "artifact" }
+  { type = "r-object", class = "table", record_as = "artifact" }
 ]
 template = """summary({{data}})"""
 post_validation = ""
 
 [[capabilities]]
-id = "stats::mean"
+id = "base-stats::mean"
 display_name = "Calculate mean"
 kind = "r-function"
 entrypoint = "mean"
@@ -50,7 +50,7 @@ template = """mean({{x}}, na.rm = {{na.rm}})"""
 post_validation = "stopifnot(is.numeric(.last_value))"
 
 [[capabilities]]
-id = "stats::sd"
+id = "base-stats::sd"
 display_name = "Calculate standard deviation"
 kind = "r-function"
 entrypoint = "sd"
@@ -66,7 +66,7 @@ template = """sd({{x}}, na.rm = {{na.rm}})"""
 post_validation = "stopifnot(is.numeric(.last_value))"
 
 [[capabilities]]
-id = "stats::cor"
+id = "base-stats::cor"
 display_name = "Calculate correlation"
 kind = "r-function"
 entrypoint = "cor"
@@ -83,7 +83,7 @@ template = """cor({{x}}, {{y}}, method = "{{method}}", use = "complete.obs")"""
 post_validation = "stopifnot(is.numeric(.last_value))"
 
 [[capabilities]]
-id = "stats::t_test"
+id = "base-stats::t_test"
 display_name = "Student's t-test"
 kind = "r-function"
 entrypoint = "t.test"
@@ -101,7 +101,7 @@ template = """t.test({{x}}, {{y}}, paired = {{paired}}, alternative = "{{alterna
 post_validation = "stopifnot(inherits(.last_value, 'htest'))"
 
 [[capabilities]]
-id = "stats::wilcox_test"
+id = "base-stats::wilcox_test"
 display_name = "Wilcoxon rank-sum test"
 kind = "r-function"
 entrypoint = "wilcox.test"
@@ -119,7 +119,7 @@ template = """wilcox.test({{x}}, {{y}}, paired = {{paired}}, alternative = "{{al
 post_validation = "stopifnot(inherits(.last_value, 'htest'))"
 
 [[capabilities]]
-id = "stats::chisq_test"
+id = "base-stats::chisq_test"
 display_name = "Chi-squared test"
 kind = "r-function"
 entrypoint = "chisq.test"
@@ -134,7 +134,7 @@ template = """chisq.test({{x}})"""
 post_validation = "stopifnot(inherits(.last_value, 'htest'))"
 
 [[capabilities]]
-id = "stats::lm"
+id = "base-stats::lm"
 display_name = "Linear regression"
 kind = "r-snippet"
 entrypoint = "lm"
@@ -150,7 +150,7 @@ template = """lm({{formula}}, data = {{data}})"""
 post_validation = "stopifnot(inherits(.last_value, 'lm'))"
 
 [[capabilities]]
-id = "stats::glm"
+id = "base-stats::glm"
 display_name = "Generalized linear model"
 kind = "r-snippet"
 entrypoint = "glm"
@@ -167,7 +167,7 @@ template = """glm({{formula}}, data = {{data}}, family = {{family}})"""
 post_validation = "stopifnot(inherits(.last_value, 'glm'))"
 
 [[capabilities]]
-id = "stats::anova"
+id = "base-stats::anova"
 display_name = "Analysis of variance"
 kind = "r-function"
 entrypoint = "anova"
@@ -182,7 +182,7 @@ template = """anova({{model}})"""
 post_validation = "stopifnot(inherits(.last_value, 'anova'))"
 
 [[capabilities]]
-id = "stats::predict"
+id = "base-stats::predict"
 display_name = "Model prediction"
 kind = "r-function"
 entrypoint = "predict"
@@ -192,13 +192,13 @@ input_spec = [
   { name = "newdata", type = "string", format = "r-object" }
 ]
 output_spec = [
-  { type = "r-object", record_as = "artifact" }
+  { type = "r-object", class = "numeric", record_as = "artifact" }
 ]
 template = """predict({{model}}, newdata = {{newdata}})"""
 post_validation = ""
 
 [[capabilities]]
-id = "stats::quantile"
+id = "base-stats::quantile"
 display_name = "Calculate quantiles"
 kind = "r-function"
 entrypoint = "quantile"
