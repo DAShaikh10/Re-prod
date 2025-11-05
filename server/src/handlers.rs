@@ -10,8 +10,9 @@ use reprod_core::{
         SortOrder, SqliteTimeline, TimelineFilters, TimelineQuery, TimelineResponse,
         TimelineStats,
     },
-    ai, ChatMessage, Config, ExecutionRequest, ExecutionResult, RExecutor, ToolExecutor,
-    ToolManifest, ToolRegistry,
+    ai::{self, tools::{FileSystemTool, RContextTool, get_filesystem_tools, get_r_context_tools}},
+    ChatMessage, Config, ExecutionRequest, ExecutionResult, RExecutor, ToolExecutor,
+    ToolManifest, ToolRegistry, AIResponse,
 };
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -23,6 +24,8 @@ pub struct AppState {
     pub tool_registry: Arc<ToolRegistry>,
     pub tool_executor: Arc<ToolExecutor>,
     pub timeline: Arc<SqliteTimeline>,
+    pub filesystem_tool: Arc<FileSystemTool>,
+    pub r_context_tool: Arc<RContextTool>,
 }
 
 pub async fn ws_handler(ws: WebSocketUpgrade, State(state): State<AppState>) -> Response {
@@ -58,7 +61,11 @@ enum WSRequest {
     #[serde(rename = "execute")]
     Execute { request: ExecutionRequest },
     #[serde(rename = "ai_message")]
-    AIMessage { messages: Vec<ChatMessage> },
+    AIMessage {
+        messages: Vec<ChatMessage>,
+        #[serde(default)]
+        enable_tools: bool,
+    },
     #[serde(rename = "list_tools")]
     ListTools,
     #[serde(rename = "execute_tool")]
@@ -104,6 +111,8 @@ enum WSResponse {
     ExecutionResult { result: ExecutionResult },
     #[serde(rename = "ai_response")]
     AIResponse { response: String },
+    #[serde(rename = "ai_response_with_tools")]
+    AIResponseWithTools { response: AIResponse },
     #[serde(rename = "error")]
     Error { message: String },
     #[serde(rename = "tools")]
@@ -188,16 +197,52 @@ async fn handle_ws_request(request: WSRequest, state: &AppState) -> WSResponse {
                 },
             }
         }
-        WSRequest::AIMessage { messages } => {
+        WSRequest::AIMessage { messages, enable_tools } => {
             let cfg = state.config.lock().await.clone();
             let provider = ai::from_config(&cfg);
-            let result = provider.send_message(messages).await;
 
-            match result {
-                Ok(response) => WSResponse::AIResponse { response },
-                Err(e) => WSResponse::Error {
-                    message: e.to_string(),
-                },
+            if enable_tools {
+                // Combine all AI tools
+                let mut tools = get_filesystem_tools();
+                tools.extend(get_r_context_tools());
+
+                let result = provider.send_message_with_tools(messages, tools).await;
+
+                match result {
+                    Ok(response) => {
+                        // Execute tool calls if present
+                        if let Some(ref tool_calls) = response.tool_calls {
+                            for tool_call in tool_calls {
+                                let tool_result = execute_ai_tool_call(
+                                    tool_call,
+                                    &state,
+                                ).await;
+
+                                // Log tool execution result
+                                tracing::info!(
+                                    "Tool {} executed: {:?}",
+                                    tool_call.name,
+                                    tool_result
+                                );
+                            }
+                        }
+
+                        WSResponse::AIResponseWithTools { response }
+                    }
+                    Err(e) => WSResponse::Error {
+                        message: e.to_string(),
+                    },
+                }
+            } else {
+                // Legacy mode without tools
+                let result = provider.send_message(messages).await;
+
+                match result {
+                    Ok(response) => WSResponse::AIResponse { response },
+                    Err(e) => WSResponse::Error {
+                        message: e.to_string(),
+                    },
+                }
             }
         }
         WSRequest::ListTools => {
@@ -351,5 +396,93 @@ fn convert_timeline_stats(stats: TimelineStats) -> TimelineStatsPayload {
         session_start_time: stats.session_start_time,
         session_end_time: stats.session_end_time,
         session_duration: stats.session_duration,
+    }
+}
+
+async fn execute_ai_tool_call(
+    tool_call: &reprod_core::ToolCall,
+    state: &AppState,
+) -> Result<String, String> {
+    use reprod_core::ai::tools::*;
+
+    match tool_call.name.as_str() {
+        "read_file" => {
+            let request: ReadFileRequest = serde_json::from_value(tool_call.input.clone())
+                .map_err(|e| format!("Invalid request: {}", e))?;
+
+            state
+                .filesystem_tool
+                .read_file(request)
+                .await
+                .map_err(|e| e.to_string())
+        }
+        "write_file" => {
+            let request: WriteFileRequest = serde_json::from_value(tool_call.input.clone())
+                .map_err(|e| format!("Invalid request: {}", e))?;
+
+            state
+                .filesystem_tool
+                .write_file(request)
+                .await
+                .map(|_| "File written successfully".to_string())
+                .map_err(|e| e.to_string())
+        }
+        "list_files" => {
+            let request: ListFilesRequest = serde_json::from_value(tool_call.input.clone())
+                .map_err(|e| format!("Invalid request: {}", e))?;
+
+            state
+                .filesystem_tool
+                .list_files(request)
+                .await
+                .and_then(|files| {
+                    serde_json::to_string(&files)
+                        .map_err(|e| reprod_core::ReprodError::IOError(e.to_string()))
+                })
+                .map_err(|e| e.to_string())
+        }
+        "get_r_variables" => {
+            let request: GetVariablesRequest = serde_json::from_value(tool_call.input.clone())
+                .map_err(|e| format!("Invalid request: {}", e))?;
+
+            let mut executor = state.r_executor.lock().await;
+            state
+                .r_context_tool
+                .get_variables(request, &mut executor)
+                .await
+                .and_then(|vars| {
+                    serde_json::to_string(&vars)
+                        .map_err(|e| reprod_core::ReprodError::IOError(e.to_string()))
+                })
+                .map_err(|e| e.to_string())
+        }
+        "get_working_directory" => {
+            let request: GetWorkingDirRequest = serde_json::from_value(tool_call.input.clone())
+                .map_err(|e| format!("Invalid request: {}", e))?;
+
+            let mut executor = state.r_executor.lock().await;
+            state
+                .r_context_tool
+                .get_working_dir(request, &mut executor)
+                .await
+                .map_err(|e| e.to_string())
+        }
+        "get_installed_packages" => {
+            let request: GetInstalledPackagesRequest =
+                serde_json::from_value(tool_call.input.clone())
+                    .map_err(|e| format!("Invalid request: {}", e))?;
+
+            let mut executor = state.r_executor.lock().await;
+            state
+                .r_context_tool
+                .get_installed_packages(request, &mut executor)
+                .await
+                .and_then(|pkgs| {
+                    serde_json::to_string(&pkgs)
+                        .map_err(|e| reprod_core::ReprodError::IOError(e.to_string()))
+                })
+                .map_err(|e| e.to_string())
+        }
+        _ => Err(format!("Unknown tool: {}", tool_call.name)),
     }
 }
