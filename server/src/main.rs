@@ -6,6 +6,7 @@ mod routes;
 use axum::{routing::get, Router};
 use reprod_core::{
     executor::timeline::SqliteTimeline, Config, RExecutor, ToolExecutor, ToolRegistry,
+    ai::tools::{FileSystemTool, RContextTool},
 };
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -58,6 +59,12 @@ async fn main() {
     let timeline = Arc::new(timeline);
     tracing::info!("Timeline storage initialized");
 
+    // Initialize AI tools
+    let workspace_root = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+    let filesystem_tool = Arc::new(FileSystemTool::new(workspace_root.clone()));
+    let r_context_tool = Arc::new(RContextTool::new());
+    tracing::info!("AI tools initialized with workspace: {}", workspace_root.display());
+
     // Build application
     let app = Router::new()
         .route("/health", get(routes::health))
@@ -95,6 +102,8 @@ async fn main() {
             tool_registry: tool_registry.clone(),
             tool_executor: tool_executor.clone(),
             timeline: timeline.clone(),
+            filesystem_tool: filesystem_tool.clone(),
+            r_context_tool: r_context_tool.clone(),
         });
 
     let addr = "127.0.0.1:3001";
