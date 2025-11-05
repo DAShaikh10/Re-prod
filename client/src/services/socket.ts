@@ -1,22 +1,20 @@
-import type { ExecutionRequestPayload, ExecutionResultPayload } from '../../../shared/src/types';
+import type { ClientMessage, ServerMessage, ServerMessageType } from 'shared';
 
-type WSRequest =
-  | { type: 'execute'; request: ExecutionRequestPayload }
-  | { type: 'ai_message'; messages: Array<{ role: string; content: string }> };
+export type WSRequest = ClientMessage;
+export type WSResponse = ServerMessage;
 
-export type WSResponse =
-  | { type: 'execution_result'; result: ExecutionResultPayload }
-  | { type: 'ai_response'; response: string }
-  | { type: 'error'; message: string };
-
-type MessageHandler = (response: WSResponse) => void;
+type MessageHandler = (response: ServerMessage) => void;
+type OneShotHandler = {
+  handler: MessageHandler;
+  matcher?: (message: ServerMessage) => boolean;
+};
 
 class SocketService {
   private ws: WebSocket | null = null;
   // Event handlers keyed by response.type (e.g., 'ai_response').
-  private messageHandlers: Map<string, MessageHandler> = new Map();
-  // One-shot handlers for request/response style calls. FIFO dispatch.
-  private oneShotHandlers: MessageHandler[] = [];
+  private messageHandlers: Map<string, Set<MessageHandler>> = new Map();
+  // One-shot handlers for request/response style calls with optional matchers.
+  private oneShotHandlers: OneShotHandler[] = [];
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private url: string = '';
 
@@ -41,15 +39,12 @@ class SocketService {
     this.ws.onmessage = (event) => {
       try {
         const response: WSResponse = JSON.parse(event.data);
-        // Deliver to one-shot handler if queued
-        const next = this.oneShotHandlers.shift();
-        if (next) next(response);
         // Deliver to type-specific handler
-        const specific = this.messageHandlers.get((response as any).type);
-        if (specific) specific(response);
+        this.dispatch(response.type, response);
         // Wildcard handler (optional)
-        const anyHandler = this.messageHandlers.get('*');
-        if (anyHandler) anyHandler(response);
+        this.dispatch('*', response);
+        // Deliver to one-shot handler matching this message
+        this.consumeOneShot(response);
       } catch (e) {
         console.error('Failed to parse WebSocket message:', e);
       }
@@ -67,23 +62,44 @@ class SocketService {
     };
   }
 
-  send(request: WSRequest, handler?: MessageHandler): void {
+  send(
+    request: WSRequest,
+    handler?: MessageHandler,
+    matcher?: (message: ServerMessage) => boolean
+  ): boolean {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
       console.error('WebSocket is not connected');
+      return false;
+    }
+
+    if (handler) {
+      this.oneShotHandlers.push({ handler, matcher });
+    }
+
+    this.ws.send(JSON.stringify(request));
+    return true;
+  }
+
+  on(event: ServerMessageType | '*', handler: MessageHandler): () => void {
+    const existing = this.messageHandlers.get(event) ?? new Set<MessageHandler>();
+    existing.add(handler);
+    this.messageHandlers.set(event, existing);
+    return () => this.off(event, handler);
+  }
+
+  off(event: ServerMessageType | '*', handler?: MessageHandler): void {
+    if (!handler) {
+      this.messageHandlers.delete(event);
       return;
     }
 
-    if (handler) this.oneShotHandlers.push(handler);
+    const existing = this.messageHandlers.get(event);
+    if (!existing) return;
 
-    this.ws.send(JSON.stringify(request));
-  }
-
-  on(event: string, handler: MessageHandler): void {
-    this.messageHandlers.set(event, handler);
-  }
-
-  off(event: string): void {
-    this.messageHandlers.delete(event);
+    existing.delete(handler);
+    if (existing.size === 0) {
+      this.messageHandlers.delete(event);
+    }
   }
 
   disconnect(): void {
@@ -103,6 +119,36 @@ class SocketService {
 
   isConnected(): boolean {
     return this.ws?.readyState === WebSocket.OPEN;
+  }
+
+  private dispatch(type: string, message: ServerMessage): void {
+    const handlers = this.messageHandlers.get(type);
+    handlers?.forEach((handler) => {
+      try {
+        handler(message);
+      } catch (error) {
+        console.error('WebSocket handler threw an error', error);
+      }
+    });
+  }
+
+  private consumeOneShot(message: ServerMessage): void {
+    if (this.oneShotHandlers.length === 0) return;
+
+    const index = this.oneShotHandlers.findIndex(({ matcher }) =>
+      matcher ? matcher(message) : true
+    );
+
+    if (index === -1) {
+      return;
+    }
+
+    const [{ handler }] = this.oneShotHandlers.splice(index, 1);
+    try {
+      handler(message);
+    } catch (error) {
+      console.error('WebSocket one-shot handler threw an error', error);
+    }
   }
 }
 

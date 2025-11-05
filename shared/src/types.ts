@@ -1,97 +1,47 @@
-// Execution metadata shared between frontend and backend
-export type ExecutionSource = 'selection' | 'cell' | 'whole_document' | 'unknown';
-export type ExecutionActor = 'user' | 'ai';
-export type CodeBlockKind = 'section' | 'chunk' | 'document' | 'selection';
+import type {
+  ExecutionSource as ProtocolExecutionSource,
+  ExecutionActor as ProtocolExecutionActor,
+  CodeBlockKind as ProtocolCodeBlockKind,
+  CodeBlockMetadata as ProtocolCodeBlockMetadata,
+  ExecutionContext as ProtocolExecutionContext,
+  ExecutionRequest as ProtocolExecutionRequest,
+  ExecutionEvent as ProtocolExecutionEvent,
+  ExecutionResult as ProtocolExecutionResult,
+  PlotInfo as ProtocolPlotInfo,
+  EnvironmentSnapshot as ProtocolEnvironmentSnapshot,
+  ChatMessage as ProtocolChatMessage,
+  FileChangeEvent as ProtocolFileChangeEvent,
+  ArtifactInfo as ProtocolArtifactInfo,
+  ToolExecutionRequest as ProtocolToolExecutionRequest,
+  ToolExecutionResult as ProtocolToolExecutionResult,
+} from './protocol-types';
 
-export interface ExecutionContextPayload {
-  source: ExecutionSource;
-  document_path?: string | null;
-  cell_index?: number | null;
-  triggered_at_ms: number;
-  actor: ExecutionActor;
-}
+// Protocol aliases to keep existing payload naming conventions in the client.
+export type ExecutionSource = ProtocolExecutionSource;
+export type ExecutionActor = ProtocolExecutionActor;
+export type CodeBlockKind = ProtocolCodeBlockKind;
+export type ExecutionContextPayload = ProtocolExecutionContext;
+export type CodeBlockMetadataPayload = ProtocolCodeBlockMetadata;
+export type ExecutionRequestPayload = ProtocolExecutionRequest;
+export type ExecutionEventPayload = ProtocolExecutionEvent;
+export type ExecutionResultPayload = ProtocolExecutionResult;
+export type PlotInfoPayload = ProtocolPlotInfo;
+export type EnvironmentSnapshotPayload = ProtocolEnvironmentSnapshot;
+export type ChatMessagePayload = ProtocolChatMessage;
+export type FileChangeEventPayload = ProtocolFileChangeEvent;
+export type ArtifactInfoPayload = ProtocolArtifactInfo;
+export type ToolExecutionRequestPayload = ProtocolToolExecutionRequest;
+export type ToolExecutionResultPayload = ProtocolToolExecutionResult;
 
-export interface CodeBlockMetadataPayload {
-  id: string;
-  index: number;
-  kind: CodeBlockKind;
-  label?: string | null;
-  start_line: number;
-  end_line: number;
-  code: string;
-}
-
-export interface ExecutionRequestPayload {
-  code: string;
-  context: ExecutionContextPayload;
-  blocks: CodeBlockMetadataPayload[];
-}
-
-export interface EnvironmentSnapshotPayload {
-  r_path: string;
-  working_dir: string;
-  temp_dir: string;
-}
-
-export interface ExecutionEventPayload {
-  event_id: string;
-  context: ExecutionContextPayload;
-  blocks: CodeBlockMetadataPayload[];
-  result: ExecutionResultPayload;
-  environment: EnvironmentSnapshotPayload;
-  created_at_ms: number;
-}
-
-export interface ExecutionResultPayload {
-  success: boolean;
-  output: string;
-  error?: string | null;
-  plots: PlotInfoPayload[];
-  execution_time_ms: number;
-}
-
-export interface PlotInfoPayload {
-  filename: string;
-  base64_data: string;
-  index: number;
-}
-
-// WebSocket Event Types
-export interface ServerToClientEvents {
-  'execution-result': (result: ExecutionResult) => void;
-  'execution-error': (error: ExecutionError) => void;
-  'file-changed': (data: FileChangeData) => void;
-  'ai-response': (response: AIResponse) => void;
-  'status-update': (status: StatusUpdate) => void;
-}
-
-export interface ClientToServerEvents {
-  execute: (code: string, callback: (result: ExecutionResult | ExecutionError) => void) => void;
-  'watch-file': (filepath: string) => void;
-  'unwatch-file': (filepath: string) => void;
-  'ai-request': (request: AIRequest, callback: (response: AIResponse) => void) => void;
-  'save-file': (data: SaveFileData, callback: (success: boolean) => void) => void;
-  'load-file': (filepath: string, callback: (data: FileChangeData | null) => void) => void;
-}
-
-// Data Types
-export interface ExecutionResult {
-  stdout: string;
-  stderr: string;
-  plots: PlotInfo[];
-  timestamp: number;
-  duration: number;
-  success: boolean;
-}
-
-export interface PlotInfo {
+// UI-facing execution log structures
+export interface ExecutionLogPlot {
   id: string;
   path: string;
   data: string; // base64 encoded image
   timestamp: number;
 }
 
-export interface ExecutionError {
+export interface ExecutionErrorLog {
   message: string;
   type: 'syntax' | 'runtime' | 'system';
   line?: number;
@@ -99,21 +49,19 @@ export interface ExecutionError {
   success: false;
 }
 
+export interface ExecutionLogEntry {
+  stdout: string;
+  stderr: string;
+  plots: ExecutionLogPlot[];
+  timestamp: number;
+  duration: number;
+  success: boolean;
+}
+
 export interface FileChangeData {
   filepath: string;
   content: string;
   timestamp: number;
-}
-
-export interface AIRequest {
-  code: string;
-  prompt: string;
-  context?: {
-    executionHistory?: ExecutionResult[];
-    cursorPosition?: { line: number; column: number };
-    lastError?: string;
-    selectedText?: string;
-  };
 }
 
 export interface CodeBlock {
@@ -126,6 +74,17 @@ export interface CodeBlock {
     end: number;
   };
   explanation?: string;
+}
+
+export interface AIRequest {
+  code: string;
+  prompt: string;
+  context?: {
+    executionHistory?: ExecutionLogEntry[];
+    cursorPosition?: { line: number; column: number };
+    lastError?: string;
+    selectedText?: string;
+  };
 }
 
 export interface AIResponse {
@@ -165,8 +124,8 @@ export interface EditorState {
 export interface ExecutionState {
   isRunning: boolean;
   currentCell?: number;
-  results: ExecutionResult[];
-  history: ExecutionResult[];
+  results: ExecutionLogEntry[];
+  history: ExecutionLogEntry[];
 }
 
 export interface AIState {
