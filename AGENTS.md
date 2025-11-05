@@ -65,6 +65,9 @@ When working with this repository, AI agents have permission to execute the foll
 - `git log` - View commit history
 - `git diff` - View changes
 - `git branch` - List branches
+- `git worktree list` - List all worktrees
+- `git restore <file>` - Discard changes in working directory
+- `git merge <branch>` - Merge branches (no fast-forward conflicts)
 
 ### Git Commands (Write Operations - Allowed but NO force options)
 - `git add <files>` - Stage **specific files** for commit (REQUIRED: list files explicitly)
@@ -74,7 +77,8 @@ When working with this repository, AI agents have permission to execute the foll
 
 ### System Commands (Always Allowed)
 - `ls`, `pwd` - File system navigation
-- `cat <file>` - Read file contents
+- `cat <file>` - Read file contents (prefer Read tool when possible)
+- `echo <text>` - Output text or write to files
 - `find <path> [options]` - Search for files
 - `grep [options] <pattern> <file>` - Search file contents
 - `which <command>` - Check command availability
@@ -175,6 +179,8 @@ cd /path/to/wt-feature-a
 ```
 
 **Parallel Execution** (3 worktrees simultaneously):
+
+#### Method 1: Multiple Terminals
 ```bash
 # Terminal 1
 cd /path/to/wt-feature-a
@@ -189,7 +195,33 @@ cd /path/to/wt-refactor-c
 <ai-agent-command> --add-dir core/ --allow-file-operations
 ```
 
-**Background Execution with Logs**:
+#### Method 2: Claude Code Task Tool (Recommended)
+
+Claude Code can launch multiple subagents in parallel using **a single message with multiple Task tool invocations**.
+
+**Key principle**: All Task tools must be called in ONE message for true parallelism.
+
+**Example structure**:
+```
+Single message contains:
+  - Task 1 invocation (worktree A)
+  - Task 2 invocation (worktree B)
+  - Task 3 invocation (worktree C)
+
+Result: All 3 tasks execute simultaneously
+```
+
+**Important notes**:
+- Each Task gets its own independent context and working directory
+- Tasks run truly in parallel (not sequentially)
+- Each Task should include navigation to its worktree directory
+- Specify `subagent_type` as "general-purpose" for most tasks
+- Include verification requirements in each Task's prompt
+
+**Real-world example from this project**:
+Three UI implementation approaches were executed in parallel across three worktrees (wt-ui-phase1, wt-ui-phase2, wt-ui-phase3), each implementing different design philosophies simultaneously. All three completed with passing tests.
+
+#### Method 3: Background Execution with Logs
 ```bash
 # Start all worktrees in background
 <ai-agent> -p "implement feature A" > logs/feature-a.log 2>&1 &

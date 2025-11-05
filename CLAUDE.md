@@ -99,6 +99,45 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 
 **Note**: NEVER use `--amend`, `--force`, or skip hooks unless explicitly requested.
 
+## 🔧 Allowed Commands (No Permission Required)
+
+### Package Management
+```bash
+pnpm install
+pnpm --filter client test
+pnpm --filter client run type-check
+pnpm --filter client run build
+pnpm run dev
+```
+
+### Rust/Cargo
+```bash
+cargo check
+cargo build
+cargo test
+cargo test <module>::tests
+```
+
+### Git Operations
+```bash
+git status
+git log
+git branch
+git worktree list
+git restore <file>
+git merge <branch>
+```
+
+### System Commands
+```bash
+echo <text>
+ls
+pwd
+cat <file>  # Prefer Read tool when possible
+```
+
+**Note**: Use `pnpm` for all package management (NOT `npm`).
+
 ## 🎓 Claude Code Best Practices
 
 ### 1. Start with Documentation
