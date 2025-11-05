@@ -54,9 +54,9 @@ const menuSections: MenuSection[] = [
   {
     label: 'Code',
     items: [
-      { id: 'code:run-selection', label: 'Run Current Line/Selection', shortcut: '⌘↵', action: (ed) => menuActions.code.runSelection(ed) },
-      { id: 'code:run-all', label: 'Run All', shortcut: '⌘⇧↵', action: (ed) => menuActions.code.runAll(ed) },
-      { id: 'code:source-file', label: 'Source File', shortcut: '⌘⇧S', action: (ed) => menuActions.code.sourceFile(ed) },
+      { id: 'code:run-selection', label: 'Run Current Line/Selection', shortcut: '⌘↵', action: (ed) => menuActions.code.runSelection(ed), description: 'Handled by Editor shortcuts' },
+      { id: 'code:run-all', label: 'Run All', shortcut: '⌘⇧↵', action: (ed) => menuActions.code.runAll(ed), description: 'Handled by Editor shortcuts' },
+      { id: 'code:source-file', label: 'Source File', action: (ed) => menuActions.code.sourceFile(ed) },
       { type: 'separator' },
       {
         id: 'code:interrupt',

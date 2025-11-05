@@ -3,6 +3,13 @@
  *
  * This hook provides access to the Monaco editor instance
  * for menu actions that need to interact with the editor.
+ *
+ * NOTE: This is a workaround. A better approach would be to:
+ * 1. Store editor instance in Zustand store (EditorPanel already has editorRef)
+ * 2. Access it from menuActions via useStore
+ * 3. Avoid DOM manipulation and non-public API (_monacoEditor)
+ *
+ * Current implementation is fragile but functional.
  */
 
 import { useRef, useEffect } from 'react';
@@ -12,6 +19,8 @@ import { useRef, useEffect } from 'react';
  *
  * Strategy: Look for monaco-editor DOM element and retrieve
  * the editor instance stored on it by @monaco-editor/react
+ *
+ * WARNING: Uses non-public API (_monacoEditor property)
  */
 export function useMonacoEditor() {
   const editorRef = useRef<any>(null);

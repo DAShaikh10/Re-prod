@@ -6,6 +6,9 @@
  *
  * Design principle: Keep it simple. Direct function calls to existing
  * socketService and useStore methods.
+ *
+ * NOTE: Code execution actions are simplified. For full functionality
+ * with cell metadata, use EditorPanel's buttons or shortcuts.
  */
 
 import { socketService } from './socket';

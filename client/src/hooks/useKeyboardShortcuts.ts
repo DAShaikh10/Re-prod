@@ -66,8 +66,8 @@ export function useKeyboardShortcuts() {
       'Mod+K': () => menuActions.edit.aiAssist(),
 
       // Code menu
-      'Mod+Enter': (ed) => menuActions.code.runSelection(ed),
-      'Mod+Shift+Enter': (ed) => menuActions.code.runAll(ed),
+      // NOTE: Cmd+Enter, Cmd+Shift+Enter handled by EditorPanel's Monaco shortcuts
+      // to avoid conflicts and ensure proper cell execution with metadata
       'Esc': () => menuActions.code.interrupt(),
       'Mod+Shift+0': () => menuActions.code.restartSession(),
       'Mod+/': (ed) => menuActions.code.comment(ed),
