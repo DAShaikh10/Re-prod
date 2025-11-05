@@ -10,7 +10,6 @@ import { Menu, Transition } from '@headlessui/react';
 import { useStore } from '@/core/state/store';
 import { menuActions } from '@/services/menuActions';
 import { type MenuSection, type MenuItem } from '@/types/menu';
-import { useMonacoEditor } from '@/hooks/useMonacoEditor';
 
 // Menu sections definition
 const menuSections: MenuSection[] = [
@@ -38,15 +37,15 @@ const menuSections: MenuSection[] = [
   {
     label: 'Edit',
     items: [
-      { id: 'edit:undo', label: 'Undo', shortcut: '⌘Z', action: (ed) => menuActions.edit.undo(ed) },
-      { id: 'edit:redo', label: 'Redo', shortcut: '⌘⇧Z', action: (ed) => menuActions.edit.redo(ed) },
+      { id: 'edit:undo', label: 'Undo', shortcut: '⌘Z', action: () => menuActions.edit.undo() },
+      { id: 'edit:redo', label: 'Redo', shortcut: '⌘⇧Z', action: () => menuActions.edit.redo() },
       { type: 'separator' },
-      { id: 'edit:cut', label: 'Cut', shortcut: '⌘X', action: (ed) => menuActions.edit.cut(ed) },
-      { id: 'edit:copy', label: 'Copy', shortcut: '⌘C', action: (ed) => menuActions.edit.copy(ed) },
-      { id: 'edit:paste', label: 'Paste', shortcut: '⌘V', action: (ed) => menuActions.edit.paste(ed) },
+      { id: 'edit:cut', label: 'Cut', shortcut: '⌘X', action: () => menuActions.edit.cut() },
+      { id: 'edit:copy', label: 'Copy', shortcut: '⌘C', action: () => menuActions.edit.copy() },
+      { id: 'edit:paste', label: 'Paste', shortcut: '⌘V', action: () => menuActions.edit.paste() },
       { type: 'separator' },
-      { id: 'edit:find', label: 'Find...', shortcut: '⌘F', action: (ed) => menuActions.edit.find(ed) },
-      { id: 'edit:replace', label: 'Replace...', shortcut: '⌘H', action: (ed) => menuActions.edit.replace(ed) },
+      { id: 'edit:find', label: 'Find...', shortcut: '⌘F', action: () => menuActions.edit.find() },
+      { id: 'edit:replace', label: 'Replace...', shortcut: '⌘H', action: () => menuActions.edit.replace() },
       { type: 'separator' },
       { id: 'edit:ai-assist', label: '💡 Ask AI Assistant...', shortcut: '⌘K', action: () => menuActions.edit.aiAssist(), prominent: true },
     ],
@@ -54,9 +53,9 @@ const menuSections: MenuSection[] = [
   {
     label: 'Code',
     items: [
-      { id: 'code:run-selection', label: 'Run Current Line/Selection', shortcut: '⌘↵', action: (ed) => menuActions.code.runSelection(ed), description: 'Handled by Editor shortcuts' },
-      { id: 'code:run-all', label: 'Run All', shortcut: '⌘⇧↵', action: (ed) => menuActions.code.runAll(ed), description: 'Handled by Editor shortcuts' },
-      { id: 'code:source-file', label: 'Source File', action: (ed) => menuActions.code.sourceFile(ed) },
+      { id: 'code:run-selection', label: 'Run Current Line/Selection', shortcut: '⌘↵', action: () => menuActions.code.runSelection(), description: 'Uses Editor execution with metadata' },
+      { id: 'code:run-all', label: 'Run All', shortcut: '⌘⇧↵', action: () => menuActions.code.runAll(), description: 'Uses Editor execution with metadata' },
+      { id: 'code:source-file', label: 'Source File', action: () => menuActions.code.sourceFile() },
       { type: 'separator' },
       {
         id: 'code:interrupt',
@@ -67,7 +66,7 @@ const menuSections: MenuSection[] = [
       },
       { id: 'code:restart-session', label: 'Restart R Session', shortcut: '⌘⇧0', action: () => menuActions.code.restartSession() },
       { type: 'separator' },
-      { id: 'code:comment', label: 'Comment/Uncomment Lines', shortcut: '⌘/', action: (ed) => menuActions.code.comment(ed) },
+      { id: 'code:comment', label: 'Comment/Uncomment Lines', shortcut: '⌘/', action: () => menuActions.code.comment() },
     ],
   },
   {
@@ -131,7 +130,6 @@ const menuSections: MenuSection[] = [
 
 export function MenuBar(): JSX.Element {
   const isConnected = useStore((state) => state.isConnected);
-  const editor = useMonacoEditor();
 
   return (
     <div className="menubar">
@@ -139,7 +137,7 @@ export function MenuBar(): JSX.Element {
         <span className="menubar-brand">Re-prod</span>
         <div className="menubar-menu">
           {menuSections.map((section) => (
-            <MenuSectionComponent key={section.label} section={section} editor={editor} />
+            <MenuSectionComponent key={section.label} section={section} />
           ))}
         </div>
       </div>
@@ -151,7 +149,7 @@ export function MenuBar(): JSX.Element {
 }
 
 // Individual menu section component
-function MenuSectionComponent({ section, editor }: { section: MenuSection; editor: any }) {
+function MenuSectionComponent({ section }: { section: MenuSection }) {
   return (
     <div className="menu-section">
       <Menu>
@@ -185,7 +183,7 @@ function MenuSectionComponent({ section, editor }: { section: MenuSection; edito
                         data-id={menuItem.id}
                         data-disabled={!isEnabled}
                         data-checked={isChecked}
-                        onClick={() => menuItem.action(editor)}
+                        onClick={() => menuItem.action()}
                       >
                         <span className="menu-item-label">
                           {menuItem.checked && <span className="menu-item-check">{isChecked ? '✓' : ''}</span>}

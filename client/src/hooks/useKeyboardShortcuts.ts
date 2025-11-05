@@ -6,7 +6,6 @@
  */
 
 import { useEffect } from 'react';
-import { useMonacoEditor } from './useMonacoEditor';
 import { menuActions } from '@/services/menuActions';
 
 /**
@@ -52,10 +51,8 @@ function isMonacoHandled(e: KeyboardEvent): boolean {
  * Hook to enable global keyboard shortcuts
  */
 export function useKeyboardShortcuts() {
-  const editor = useMonacoEditor();
-
   useEffect(() => {
-    const shortcuts: Record<string, (editor: any) => void> = {
+    const shortcuts: Record<string, () => void> = {
       // File menu
       'Mod+N': () => menuActions.file.new(),
       'Mod+O': () => menuActions.file.open(),
@@ -70,7 +67,7 @@ export function useKeyboardShortcuts() {
       // to avoid conflicts and ensure proper cell execution with metadata
       'Esc': () => menuActions.code.interrupt(),
       'Mod+Shift+0': () => menuActions.code.restartSession(),
-      'Mod+/': (ed) => menuActions.code.comment(ed),
+      'Mod+/': () => menuActions.code.comment(),
 
       // Session menu
       'Mod+T': () => menuActions.session.showTimeline(),
@@ -119,7 +116,7 @@ export function useKeyboardShortcuts() {
       if (action) {
         e.preventDefault();
         e.stopPropagation();
-        action(editor);
+        action();
       }
     };
 
@@ -128,5 +125,5 @@ export function useKeyboardShortcuts() {
     return () => {
       document.removeEventListener('keydown', handleKeyDown, { capture: true });
     };
-  }, [editor]);
+  }, []);
 }

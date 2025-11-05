@@ -11,7 +11,6 @@
  * with cell metadata, use EditorPanel's buttons or shortcuts.
  */
 
-import { socketService } from './socket';
 import { useStore } from '@/core/state/store';
 
 /**
@@ -136,43 +135,50 @@ export const menuActions = {
   // ===== EDIT MENU =====
   edit: {
     // These delegate to Monaco editor
-    undo: (editor: any) => {
+    undo: () => {
+      const editor = useStore.getState().monacoEditor;
       if (editor?.trigger) {
         editor.trigger('menu', 'undo', null);
       }
     },
 
-    redo: (editor: any) => {
+    redo: () => {
+      const editor = useStore.getState().monacoEditor;
       if (editor?.trigger) {
         editor.trigger('menu', 'redo', null);
       }
     },
 
-    cut: (editor: any) => {
+    cut: () => {
+      const editor = useStore.getState().monacoEditor;
       if (editor?.trigger) {
         editor.trigger('menu', 'editor.action.clipboardCutAction', null);
       }
     },
 
-    copy: (editor: any) => {
+    copy: () => {
+      const editor = useStore.getState().monacoEditor;
       if (editor?.trigger) {
         editor.trigger('menu', 'editor.action.clipboardCopyAction', null);
       }
     },
 
-    paste: (editor: any) => {
+    paste: () => {
+      const editor = useStore.getState().monacoEditor;
       if (editor?.trigger) {
         editor.trigger('menu', 'editor.action.clipboardPasteAction', null);
       }
     },
 
-    find: (editor: any) => {
+    find: () => {
+      const editor = useStore.getState().monacoEditor;
       if (editor?.trigger) {
         editor.trigger('menu', 'actions.find', null);
       }
     },
 
-    replace: (editor: any) => {
+    replace: () => {
+      const editor = useStore.getState().monacoEditor;
       if (editor?.trigger) {
         editor.trigger('menu', 'editor.action.startFindReplaceAction', null);
       }
@@ -197,97 +203,41 @@ export const menuActions = {
   code: {
     /**
      * Run selected code or current line
+     * Delegates to EditorPanel's handleRunCurrentCell for full functionality
      */
-    runSelection: (editor: any) => {
-      if (!editor) return;
-
-      const selection = editor.getSelection();
-      let code: string;
-
-      if (selection && !selection.isEmpty()) {
-        // Run selected code
-        code = editor.getModel().getValueInRange(selection);
+    runSelection: () => {
+      const runCurrentCell = useStore.getState().runCurrentCell;
+      if (runCurrentCell) {
+        runCurrentCell();
       } else {
-        // Run current line
-        const position = editor.getPosition();
-        code = editor.getModel().getLineContent(position.lineNumber);
+        console.error('Code execution not available: EditorPanel not mounted');
       }
-
-      if (!code.trim()) {
-        console.error('No code to execute');
-        return;
-      }
-
-      socketService.send({
-        type: 'execute',
-        request: {
-          code,
-          context: {
-            source: 'selection',
-            triggered_at_ms: Date.now(),
-            actor: 'user' as const,
-          },
-          blocks: [],
-        },
-      });
-
-      console.log('Code executing...');
     },
 
     /**
      * Run all code in editor
+     * Delegates to EditorPanel's handleRunAll for full functionality
      */
-    runAll: (editor: any) => {
-      if (!editor) return;
-
-      const code = editor.getValue();
-      if (!code.trim()) {
-        console.error('No code to execute');
-        return;
+    runAll: () => {
+      const runAll = useStore.getState().runAll;
+      if (runAll) {
+        runAll();
+      } else {
+        console.error('Code execution not available: EditorPanel not mounted');
       }
-
-      socketService.send({
-        type: 'execute',
-        request: {
-          code,
-          context: {
-            source: 'whole_document',
-            triggered_at_ms: Date.now(),
-            actor: 'user' as const,
-          },
-          blocks: [],
-        },
-      });
-
-      console.log('Running all code...');
     },
 
     /**
      * Source file in clean environment
+     * Same as runAll (executes whole document)
      */
-    sourceFile: (editor: any) => {
-      if (!editor) return;
-
-      const code = editor.getValue();
-      if (!code.trim()) {
-        console.error('No code to source');
-        return;
+    sourceFile: () => {
+      const runAll = useStore.getState().runAll;
+      if (runAll) {
+        runAll();
+      } else {
+        console.error('Code execution not available: EditorPanel not mounted');
       }
-
-      socketService.send({
-        type: 'execute',
-        request: {
-          code,
-          context: {
-            source: 'whole_document',
-            triggered_at_ms: Date.now(),
-            actor: 'user' as const,
-          },
-          blocks: [],
-        },
-      });
-
-      console.log('Sourcing file...');
     },
 
     /**
@@ -314,7 +264,8 @@ export const menuActions = {
     /**
      * Comment/uncomment selected lines
      */
-    comment: (editor: any) => {
+    comment: () => {
+      const editor = useStore.getState().monacoEditor;
       if (editor?.trigger) {
         editor.trigger('menu', 'editor.action.commentLine', null);
       }
