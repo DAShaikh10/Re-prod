@@ -37,4 +37,7 @@
   --line-height-base: 1.55;
   --font-weight-base: 400;
   --letter-spacing-base: -0.01em;
+
+  /* Application layout */
+  --app-zoom: 1;
 }
