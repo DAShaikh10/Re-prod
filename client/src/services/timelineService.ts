@@ -1,64 +1,62 @@
-/**
- * Timeline query service for fetching execution events.
- * Phase 1: Uses mock data for development
- * Phase 2: Will use WebSocket for real backend integration
- */
-
 import {
   type TimelineQuery,
   type TimelineResponse,
   type TimelineStats,
-  type ExecutionEventPayload,
-  generateMockTimeline,
-  mockTimelineQuery,
-  generateMockStats,
+  type ServerMessage,
 } from 'shared';
+import { socketService } from './socket';
 
-// Generate mock events for development
-// TODO: Remove this when backend is ready (Issue 007)
-const mockEvents: ExecutionEventPayload[] = generateMockTimeline(100);
+const timelineMatcher = (message: ServerMessage): boolean =>
+  message.type === 'timeline_response' || message.type === 'error';
 
-/**
- * Query timeline with filters, sorting, and pagination.
- * Currently uses mock data. Will be replaced with WebSocket in Phase 2.
- */
 export async function queryTimeline(query: TimelineQuery): Promise<TimelineResponse> {
-  // Simulate network delay for realistic testing
-  await new Promise((resolve) => setTimeout(resolve, 150));
+  return new Promise((resolve, reject) => {
+    const didSend = socketService.send(
+      { type: 'timeline_query', query },
+      (message) => {
+        if (message.type === 'timeline_response') {
+          resolve(message.data);
+          return;
+        }
 
-  // Phase 1: Use mock data
-  return mockTimelineQuery(query, mockEvents);
+        if (message.type === 'error') {
+          reject(new Error(message.message));
+          return;
+        }
 
-  // Phase 2: Use real WebSocket (after Issue 007 is complete)
-  // return socketService.send({ type: 'timeline_query', query });
+        reject(new Error(`Unexpected timeline response: ${message.type}`));
+      },
+      timelineMatcher
+    );
+
+    if (!didSend) {
+      reject(new Error('Timeline request failed: WebSocket is not connected.'));
+    }
+  });
 }
 
-/**
- * Get timeline statistics.
- * Currently uses mock data. Will be replaced with WebSocket in Phase 2.
- */
 export async function getTimelineStats(): Promise<TimelineStats> {
-  // Simulate network delay
-  await new Promise((resolve) => setTimeout(resolve, 100));
+  return new Promise((resolve, reject) => {
+    const didSend = socketService.send(
+      { type: 'timeline_stats_query' },
+      (message) => {
+        if (message.type === 'timeline_stats_response') {
+          resolve(message.stats);
+          return;
+        }
 
-  // Phase 1: Use mock data
-  return generateMockStats(mockEvents);
+        if (message.type === 'error') {
+          reject(new Error(message.message));
+          return;
+        }
 
-  // Phase 2: Use real WebSocket (after Issue 007 is complete)
-  // return socketService.send({ type: 'timeline_stats_query' });
-}
+        reject(new Error(`Unexpected timeline stats response: ${message.type}`));
+      },
+      (message) => message.type === 'timeline_stats_response' || message.type === 'error'
+    );
 
-/**
- * Add a new event to the timeline in real-time.
- * This will be used when backend sends 'timeline_event_added' messages.
- */
-export function subscribeToTimelineEvents(
-  _callback: (event: ExecutionEventPayload) => void
-): () => void {
-  // Phase 2: Subscribe to WebSocket events
-  // socketService.on('timeline_event_added', _callback);
-  // return () => socketService.off('timeline_event_added', _callback);
-
-  // Phase 1: No real-time updates yet
-  return () => {};
+    if (!didSend) {
+      reject(new Error('Timeline stats request failed: WebSocket is not connected.'));
+    }
+  });
 }

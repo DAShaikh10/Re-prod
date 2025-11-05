@@ -4,7 +4,7 @@ import { useStore } from '@/core';
 import { socketService } from '@/services/socket';
 import type { WSResponse } from '@/services/socket';
 import { CodeBlockWithApply } from './CodeBlockWithApply';
-import type { CodeBlock } from '../../../../shared/src/types';
+import type { CodeBlock } from '@shared/types';
 
 export function AIPanel(): JSX.Element {
   const ai = useStore((state) => state.ai);
@@ -55,7 +55,10 @@ export function AIPanel(): JSX.Element {
     // Store timeout ID for stop functionality
     timeoutIdRef.current = timeoutId;
 
-    socketService.send(
+    const matcher = (message: WSResponse) =>
+      message.type === 'ai_response' || message.type === 'error';
+
+    const sent = socketService.send(
       {
         type: 'ai_message',
         messages
@@ -83,8 +86,24 @@ export function AIPanel(): JSX.Element {
         }
 
         setAILoading(false);
-      }
+      },
+      matcher
     );
+
+    if (!sent) {
+      if (timeoutIdRef.current) {
+        clearTimeout(timeoutIdRef.current);
+        timeoutIdRef.current = null;
+      }
+
+      setAILoading(false);
+      addAIMessage({
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: 'AI request failed: not connected to backend service.',
+        timestamp: Date.now()
+      });
+    }
 
     setInput('');
   };
