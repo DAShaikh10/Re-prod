@@ -6,11 +6,10 @@ use axum::{
     response::Response,
 };
 use reprod_core::{
-    executor::timeline::{
-        SortOrder, SqliteTimeline, TimelineFilters, TimelineQuery, TimelineResponse,
-        TimelineStats,
-    },
-    ai, ChatMessage, Config, ExecutionRequest, ExecutionResult, RExecutor, ToolExecutor,
+    ai,
+    api::timeline::{TimelineQueryPayload, TimelineResponsePayload, TimelineStatsPayload},
+    executor::timeline::SqliteTimeline,
+    ChatMessage, Config, ExecutionRequest, ExecutionResult, RExecutor, ToolExecutor,
     ToolManifest, ToolRegistry,
 };
 use std::sync::Arc;
@@ -73,30 +72,6 @@ enum WSRequest {
     TimelineStatsQuery,
 }
 
-#[derive(serde::Deserialize)]
-struct TimelineQueryPayload {
-    filters: Option<TimelineFiltersPayload>,
-    sort: Option<String>,
-    limit: Option<u32>,
-    offset: Option<u32>,
-}
-
-#[derive(serde::Deserialize)]
-struct TimelineFiltersPayload {
-    actor: Option<String>,
-    source: Option<String>,
-    #[serde(rename = "startTime")]
-    start_time: Option<u64>,
-    #[serde(rename = "endTime")]
-    end_time: Option<u64>,
-    #[serde(rename = "hasPlots")]
-    has_plots: Option<bool>,
-    #[serde(rename = "hasErrors")]
-    has_errors: Option<bool>,
-    #[serde(rename = "codeContains")]
-    code_contains: Option<String>,
-}
-
 #[derive(serde::Serialize)]
 #[serde(tag = "type")]
 enum WSResponse {
@@ -124,59 +99,6 @@ enum WSResponse {
     TimelineStatsResponse { stats: TimelineStatsPayload },
 }
 
-#[derive(serde::Serialize)]
-struct TimelineResponsePayload {
-    events: Vec<reprod_core::ExecutionEvent>,
-    total: u32,
-    #[serde(rename = "hasMore")]
-    has_more: bool,
-    query: TimelineQueryEcho,
-}
-
-#[derive(serde::Serialize)]
-struct TimelineQueryEcho {
-    filters: Option<TimelineFiltersEcho>,
-    sort: Option<String>,
-    limit: Option<u32>,
-    offset: Option<u32>,
-}
-
-#[derive(serde::Serialize)]
-struct TimelineFiltersEcho {
-    actor: Option<String>,
-    source: Option<String>,
-    #[serde(rename = "startTime")]
-    start_time: Option<u64>,
-    #[serde(rename = "endTime")]
-    end_time: Option<u64>,
-    #[serde(rename = "hasPlots")]
-    has_plots: Option<bool>,
-    #[serde(rename = "hasErrors")]
-    has_errors: Option<bool>,
-    #[serde(rename = "codeContains")]
-    code_contains: Option<String>,
-}
-
-#[derive(serde::Serialize)]
-struct TimelineStatsPayload {
-    #[serde(rename = "totalEvents")]
-    total_events: u32,
-    #[serde(rename = "totalPlots")]
-    total_plots: u32,
-    #[serde(rename = "totalErrors")]
-    total_errors: u32,
-    #[serde(rename = "userActions")]
-    user_actions: u32,
-    #[serde(rename = "aiActions")]
-    ai_actions: u32,
-    #[serde(rename = "sessionStartTime")]
-    session_start_time: u64,
-    #[serde(rename = "sessionEndTime")]
-    session_end_time: u64,
-    #[serde(rename = "sessionDuration")]
-    session_duration: u64,
-}
-
 async fn handle_ws_request(request: WSRequest, state: &AppState) -> WSResponse {
     match request {
         WSRequest::Execute { request } => {
@@ -190,8 +112,7 @@ async fn handle_ws_request(request: WSRequest, state: &AppState) -> WSResponse {
         }
         WSRequest::AIMessage { messages } => {
             let cfg = state.config.lock().await.clone();
-            let provider = ai::from_config(&cfg);
-            let result = provider.send_message(messages).await;
+            let result = ai::send_message_with_config(&cfg, messages).await;
 
             match result {
                 Ok(response) => WSResponse::AIResponse { response },
@@ -229,127 +150,26 @@ async fn handle_ws_request(request: WSRequest, state: &AppState) -> WSResponse {
                 },
             }
         }
-        WSRequest::TimelineQuery { query } => {
-            match convert_timeline_query(query) {
-                Ok(timeline_query) => match state.timeline.query(timeline_query) {
-                    Ok(response) => WSResponse::TimelineResponse {
-                        data: convert_timeline_response(response),
-                    },
-                    Err(e) => WSResponse::Error {
-                        message: format!("Timeline query failed: {}", e),
-                    },
+        WSRequest::TimelineQuery { query } => match query.into_domain() {
+            Ok(timeline_query) => match state.timeline.query(timeline_query) {
+                Ok(response) => WSResponse::TimelineResponse {
+                    data: TimelineResponsePayload::from(response),
                 },
                 Err(e) => WSResponse::Error {
-                    message: format!("Invalid timeline query: {}", e),
+                    message: format!("Timeline query failed: {}", e),
                 },
-            }
-        }
+            },
+            Err(e) => WSResponse::Error {
+                message: format!("Invalid timeline query: {}", e),
+            },
+        },
         WSRequest::TimelineStatsQuery => match state.timeline.stats() {
             Ok(stats) => WSResponse::TimelineStatsResponse {
-                stats: convert_timeline_stats(stats),
+                stats: TimelineStatsPayload::from(stats),
             },
             Err(e) => WSResponse::Error {
                 message: format!("Timeline stats query failed: {}", e),
             },
         },
-    }
-}
-
-fn convert_timeline_query(payload: TimelineQueryPayload) -> Result<TimelineQuery, String> {
-    use reprod_core::protocol::{ExecutionActor, ExecutionSource};
-
-    let filters = if let Some(f) = payload.filters {
-        Some(TimelineFilters {
-            actor: f
-                .actor
-                .map(|s| match s.as_str() {
-                    "user" => Ok(ExecutionActor::User),
-                    "ai" => Ok(ExecutionActor::Ai),
-                    _ => Err(format!("Invalid actor: {}", s)),
-                })
-                .transpose()?,
-            source: f
-                .source
-                .map(|s| match s.as_str() {
-                    "selection" => Ok(ExecutionSource::Selection),
-                    "cell" => Ok(ExecutionSource::Cell),
-                    "whole_document" => Ok(ExecutionSource::WholeDocument),
-                    _ => Err(format!("Invalid source: {}", s)),
-                })
-                .transpose()?,
-            start_time: f.start_time,
-            end_time: f.end_time,
-            has_plots: f.has_plots,
-            has_errors: f.has_errors,
-            code_contains: f.code_contains,
-        })
-    } else {
-        None
-    };
-
-    let sort = payload
-        .sort
-        .map(|s| match s.as_str() {
-            "asc" => Ok(SortOrder::Asc),
-            "desc" => Ok(SortOrder::Desc),
-            _ => Err(format!("Invalid sort order: {}", s)),
-        })
-        .transpose()?;
-
-    Ok(TimelineQuery {
-        filters,
-        sort,
-        limit: payload.limit,
-        offset: payload.offset,
-    })
-}
-
-fn convert_timeline_response(response: TimelineResponse) -> TimelineResponsePayload {
-    use reprod_core::protocol::{ExecutionActor, ExecutionSource};
-
-    let query_echo = TimelineQueryEcho {
-        filters: response.query.filters.map(|f| TimelineFiltersEcho {
-            actor: f.actor.map(|a| match a {
-                ExecutionActor::User => "user".to_string(),
-                ExecutionActor::Ai => "ai".to_string(),
-            }),
-            source: f.source.map(|s| match s {
-                ExecutionSource::Selection => "selection".to_string(),
-                ExecutionSource::Cell => "cell".to_string(),
-                ExecutionSource::WholeDocument => "whole_document".to_string(),
-                ExecutionSource::Unknown => "unknown".to_string(),
-            }),
-            start_time: f.start_time,
-            end_time: f.end_time,
-            has_plots: f.has_plots,
-            has_errors: f.has_errors,
-            code_contains: f.code_contains,
-        }),
-        sort: response.query.sort.map(|s| match s {
-            SortOrder::Asc => "asc".to_string(),
-            SortOrder::Desc => "desc".to_string(),
-        }),
-        limit: response.query.limit,
-        offset: response.query.offset,
-    };
-
-    TimelineResponsePayload {
-        events: response.events,
-        total: response.total,
-        has_more: response.has_more,
-        query: query_echo,
-    }
-}
-
-fn convert_timeline_stats(stats: TimelineStats) -> TimelineStatsPayload {
-    TimelineStatsPayload {
-        total_events: stats.total_events,
-        total_plots: stats.total_plots,
-        total_errors: stats.total_errors,
-        user_actions: stats.user_actions,
-        ai_actions: stats.ai_actions,
-        session_start_time: stats.session_start_time,
-        session_end_time: stats.session_end_time,
-        session_duration: stats.session_duration,
     }
 }
