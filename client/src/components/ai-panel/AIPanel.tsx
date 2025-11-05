@@ -11,7 +11,10 @@ export function AIPanel(): JSX.Element {
   const addAIMessage = useStore((state) => state.addAIMessage);
   const setAILoading = useStore((state) => state.setAILoading);
   const applyCodeChange = useStore((state) => state.applyCodeChange);
-  const editorContent = useStore((state) => state.editor.content);
+  const editor = useStore((state) => state.editor);
+  const editorContent = editor.content;
+  const editorFilepath = editor.filepath;
+  const setEditorContent = useStore((state) => state.setEditorContent);
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const timeoutIdRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -30,19 +33,17 @@ export function AIPanel(): JSX.Element {
       timestamp: Date.now()
     };
 
-    // Include editor content as context
-    const systemMessage = {
-      role: 'system' as const,
-      content: `Current R code in editor:\n\`\`\`r\n${editorContent}\n\`\`\``
-    };
+    // Include editor content as context in the first message
+    const userMessageWithContext = ai.messages.length === 0
+      ? `Current R code in editor:\n\`\`\`r\n${editorContent}\n\`\`\`\n\n${input}`
+      : input;
 
     const messages = [
-      systemMessage,
       ...ai.messages.map((message) => ({
         role: message.role,
         content: message.content
       })),
-      { role: 'user' as const, content: input }
+      { role: 'user' as const, content: userMessageWithContext }
     ];
 
     addAIMessage(userMessage);
@@ -101,6 +102,32 @@ export function AIPanel(): JSX.Element {
               .map((tc, idx) => `${idx + 1}. **${tc.name}**\n   Input: \`${JSON.stringify(tc.input)}\``)
               .join('\n\n');
             content = `🔧 Executing tools:\n\n${toolCallsFormatted}`;
+
+            // Check if write_file was executed on the currently open file
+            const writeFileCall = response.response.tool_calls.find(
+              (tc) => {
+                if (tc.name !== 'write_file') return false;
+                const writePath = (tc.input as any).path;
+                if (!writePath) return false;
+
+                // Match if the write path matches the current editor file
+                // Handle both relative paths and filenames
+                const currentFile = editorFilepath || 'Untitled.R';
+                const currentFileName = currentFile.split('/').pop() || currentFile;
+                const writeFileName = writePath.split('/').pop() || writePath;
+
+                return writeFileName.toLowerCase() === currentFileName.toLowerCase();
+              }
+            );
+
+            if (writeFileCall) {
+              // Update editor with the new file content
+              const newContent = (writeFileCall.input as any).content;
+              if (newContent && typeof newContent === 'string') {
+                console.log(`Updating editor with new content from write_file: ${(writeFileCall.input as any).path}`);
+                setEditorContent(newContent);
+              }
+            }
           } else {
             content = 'AI response received (no content)';
           }
