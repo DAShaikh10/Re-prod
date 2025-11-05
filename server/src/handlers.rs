@@ -195,12 +195,17 @@ async fn handle_ws_request(request: WSRequest, state: &AppState) -> WSResponse {
                 },
             }
         }
-        WSRequest::TimelineQuery { query } => match state.timeline.query(query.into()) {
-            Ok(response) => WSResponse::TimelineResponse {
-                data: TimelineResponsePayload::from(response),
+        WSRequest::TimelineQuery { query } => match query.into_domain() {
+            Ok(timeline_query) => match state.timeline.query(timeline_query) {
+                Ok(response) => WSResponse::TimelineResponse {
+                    data: TimelineResponsePayload::from(response),
+                },
+                Err(e) => WSResponse::Error {
+                    message: format!("Timeline query failed: {}", e),
+                },
             },
             Err(e) => WSResponse::Error {
-                message: format!("Timeline query failed: {}", e),
+                message: format!("Invalid timeline query: {}", e),
             },
         },
         WSRequest::TimelineStatsQuery => match state.timeline.stats() {
