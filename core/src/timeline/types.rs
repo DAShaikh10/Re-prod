@@ -29,7 +29,7 @@ pub struct TimelineFilters {
 }
 
 /// Sort order for timeline queries
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SortOrder {
     Asc,
     Desc,
