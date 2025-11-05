@@ -122,3 +122,158 @@ grep -r "API Reference" docs/
 - System-wide installations (use project-local only)
 - Modifying system files outside project directory
 - Destructive operations without confirmation
+
+## Parallel Development with Git Worktrees
+
+### Overview
+
+This project uses **git worktrees** for parallel development of independent features. Worktrees allow multiple branches to be checked out simultaneously in separate directories, enabling:
+
+- Parallel implementation of unrelated features
+- Isolation of changes without branch switching
+- Independent testing and development environments
+- Reduced risk of conflicts between concurrent work
+
+### Worktree Strategy
+
+**Directory Structure**:
+```
+/path/to/project/
+├── main-repo/           # Main repository (usually on develop branch)
+├── wt-feature-a/        # Worktree for feature A
+├── wt-feature-b/        # Worktree for feature B
+└── wt-refactor-c/       # Worktree for refactoring C
+```
+
+**Branch Naming**:
+- `feature/<description>` - New features
+- `refactor/<description>` - Code refactoring
+- `fix/<description>` - Bug fixes
+- `hotfix/<description>` - Critical production fixes
+
+### Creating Worktrees
+
+```bash
+# Create worktree with new branch from develop
+git worktree add -b feature/new-feature ../wt-new-feature develop
+
+# List all worktrees
+git worktree list
+
+# Remove worktree after merging
+git worktree remove ../wt-new-feature
+```
+
+### Parallel Execution with AI Agents
+
+AI coding assistants (Claude Code, Codex, etc.) can work on multiple worktrees in parallel:
+
+**Single Worktree Execution**:
+```bash
+cd /path/to/wt-feature-a
+<ai-agent-command> --add-dir src/ --allow-file-operations --allow-bash
+```
+
+**Parallel Execution** (3 worktrees simultaneously):
+```bash
+# Terminal 1
+cd /path/to/wt-feature-a
+<ai-agent-command> --add-dir src/ --allow-file-operations
+
+# Terminal 2
+cd /path/to/wt-feature-b
+<ai-agent-command> --add-dir src/ --allow-file-operations
+
+# Terminal 3
+cd /path/to/wt-refactor-c
+<ai-agent-command> --add-dir core/ --allow-file-operations
+```
+
+**Background Execution with Logs**:
+```bash
+# Start all worktrees in background
+<ai-agent> -p "implement feature A" > logs/feature-a.log 2>&1 &
+<ai-agent> -p "implement feature B" > logs/feature-b.log 2>&1 &
+<ai-agent> -p "refactor C" > logs/refactor-c.log 2>&1 &
+
+# Monitor progress
+tail -f logs/feature-a.log
+```
+
+### Permission Flags for Automation
+
+For autonomous execution without interactive prompts, use permission flags:
+
+- `--allow-file-operations` - Auto-approve file read/write operations
+- `--allow-bash` - Auto-approve bash command execution
+- `--allow-all` - Auto-approve all operations (use with caution)
+
+**Example Autonomous Execution**:
+```bash
+<ai-agent> --add-dir src/ \
+          --allow-file-operations \
+          --allow-bash \
+          -p "Read docs/issue.md and implement the complete solution. Create all files, make all changes, and run tests."
+```
+
+### Worktree Best Practices
+
+1. **Independence**: Only work on independent features in parallel
+2. **Communication**: Document what each worktree is working on
+3. **Sync Frequently**: Pull from develop regularly to stay in sync
+4. **Clean Up**: Remove worktrees after merging to avoid clutter
+5. **Test Isolation**: Run tests in each worktree independently
+
+### Workflow Example
+
+```bash
+# 1. Create worktrees for 3 independent features
+git worktree add -b feature/ui-improvements ../wt-ui develop
+git worktree add -b refactor/storage ../wt-storage develop
+git worktree add -b feature/ai-tools ../wt-ai develop
+
+# 2. Run AI agents in parallel (autonomous mode)
+cd ../wt-ui && <ai-agent> --allow-file-operations -p "implement UI improvements" &
+cd ../wt-storage && <ai-agent> --allow-file-operations -p "refactor storage layer" &
+cd ../wt-ai && <ai-agent> --allow-file-operations -p "add AI tool integration" &
+
+# 3. Wait for completion
+wait
+
+# 4. Review changes in each worktree
+git -C ../wt-ui status
+git -C ../wt-storage status
+git -C ../wt-ai status
+
+# 5. Commit and push from each worktree
+git -C ../wt-ui add <files> && git -C ../wt-ui commit -m "feat: ui improvements"
+git -C ../wt-storage add <files> && git -C ../wt-storage commit -m "refactor: storage layer"
+git -C ../wt-ai add <files> && git -C ../wt-ai commit -m "feat: ai tools"
+
+# 6. Clean up after merging
+git worktree remove ../wt-ui
+git worktree remove ../wt-storage
+git worktree remove ../wt-ai
+```
+
+### Troubleshooting
+
+**Worktree already exists**:
+```bash
+git worktree list
+git worktree remove /path/to/worktree
+```
+
+**Branch conflicts**:
+```bash
+# Delete branch and recreate worktree
+git branch -D feature/name
+git worktree add -b feature/name ../wt-name develop
+```
+
+**Sync with develop**:
+```bash
+cd /path/to/worktree
+git fetch origin
+git merge origin/develop
+```

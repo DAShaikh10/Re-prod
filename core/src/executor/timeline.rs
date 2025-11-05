@@ -296,8 +296,8 @@ impl SqliteTimeline {
         Ok(stats)
     }
 
-    /// Clear all events (for testing)
-    #[allow(dead_code)]
+    /// Clear all events (available for tests)
+    #[cfg(test)]
     pub fn clear(&self) -> Result<usize> {
         let conn = self.conn.lock().expect("timeline lock poisoned");
         let count = conn.execute("DELETE FROM timeline_events", [])?;

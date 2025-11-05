@@ -1,5 +1,5 @@
 import type { StateCreator } from 'zustand';
-import type { CodeBlock } from '../../../../../shared/src/types';
+import type { CodeBlock } from '@shared/types';
 
 export interface EditorState {
   editor: {

@@ -54,7 +54,7 @@ impl Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            r_path: "/usr/local/bin/R".to_string(),
+            r_path: "Rscript".to_string(),
             anthropic_api_key: std::env::var("ANTHROPIC_API_KEY").ok(),
             openai_api_key: std::env::var("OPENAI_API_KEY").ok(),
             default_ai_provider: default_ai_provider(),

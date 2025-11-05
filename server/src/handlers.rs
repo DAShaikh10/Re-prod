@@ -10,8 +10,8 @@ use reprod_core::{
         SortOrder, SqliteTimeline, TimelineFilters, TimelineQuery, TimelineResponse,
         TimelineStats,
     },
-    AIProvider, AnthropicProvider, ChatMessage, Config, ExecutionRequest, ExecutionResult,
-    OpenAIProvider, RExecutor, ToolExecutor, ToolManifest, ToolRegistry,
+    ai, ChatMessage, Config, ExecutionRequest, ExecutionResult, RExecutor, ToolExecutor,
+    ToolManifest, ToolRegistry,
 };
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -19,8 +19,6 @@ use tokio::sync::Mutex;
 #[derive(Clone)]
 pub struct AppState {
     pub r_executor: Arc<Mutex<RExecutor>>,
-    pub anthropic_provider: Arc<Mutex<AnthropicProvider>>,
-    pub openai_provider: Arc<Mutex<OpenAIProvider>>,
     pub config: Arc<Mutex<Config>>,
     pub tool_registry: Arc<ToolRegistry>,
     pub tool_executor: Arc<ToolExecutor>,
@@ -191,26 +189,9 @@ async fn handle_ws_request(request: WSRequest, state: &AppState) -> WSResponse {
             }
         }
         WSRequest::AIMessage { messages } => {
-            let provider_name = {
-                let config = state.config.lock().await;
-                config.default_ai_provider.clone()
-            };
-
-            let result = match provider_name.as_str() {
-                "openai" => {
-                    let provider = state.openai_provider.lock().await;
-                    provider.send_message(messages).await
-                }
-                "anthropic" => {
-                    let provider = state.anthropic_provider.lock().await;
-                    provider.send_message(messages).await
-                }
-                _ => {
-                    return WSResponse::Error {
-                        message: format!("Unknown AI provider: {}", provider_name),
-                    }
-                }
-            };
+            let cfg = state.config.lock().await.clone();
+            let provider = ai::from_config(&cfg);
+            let result = provider.send_message(messages).await;
 
             match result {
                 Ok(response) => WSResponse::AIResponse { response },

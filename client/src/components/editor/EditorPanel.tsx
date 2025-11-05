@@ -13,10 +13,8 @@ import {
   buildExecutionRequest,
 } from "@/core";
 import { socketService } from "@/services/socket";
-import type {
-  CodeBlock,
-  ExecutionResult,
-} from "../../../../shared/src/types";
+import type { WSResponse } from "@/services/socket";
+import type { CodeBlock, ExecutionLogEntry } from "@shared/types";
 
 export function EditorPanel(): JSX.Element {
   const editor = useStore((state) => state.editor);
@@ -126,13 +124,16 @@ export function EditorPanel(): JSX.Element {
       filepath: editor.filepath ?? undefined
     });
 
-    socketService.send({ type: 'execute', request }, (response) => {
+    const matcher = (message: WSResponse) =>
+      message.type === 'execution_result' || message.type === 'error';
+
+    const sent = socketService.send({ type: 'execute', request }, (response) => {
       setExecutingCellIndex(null);
       setIsRunning(false);
 
       if (response.type === 'execution_result') {
         const result = response.result;
-        const normalized: ExecutionResult = {
+        const normalized: ExecutionLogEntry = {
           stdout: result.output,
           stderr: result.error || "",
           plots: result.plots.map((plot) => ({
@@ -147,7 +148,7 @@ export function EditorPanel(): JSX.Element {
         };
         addExecutionResult(normalized);
       } else if (response.type === 'error') {
-        const normalized: ExecutionResult = {
+        const normalized: ExecutionLogEntry = {
           stdout: "",
           stderr: response.message,
           plots: [],
@@ -159,7 +160,21 @@ export function EditorPanel(): JSX.Element {
       }
 
       console.log("Execution completed");
-    });
+    }, matcher);
+
+    if (!sent) {
+      setExecutingCellIndex(null);
+      setIsRunning(false);
+      const normalized: ExecutionLogEntry = {
+        stdout: "",
+        stderr: "Unable to execute: not connected to backend",
+        plots: [],
+        timestamp: Date.now(),
+        duration: 0,
+        success: false,
+      };
+      addExecutionResult(normalized);
+    }
   };
 
   const handleRunAll = (): void => {

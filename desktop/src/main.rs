@@ -2,7 +2,7 @@
 
 mod commands;
 
-use reprod_core::{AnthropicProvider, Config, RExecutor};
+use reprod_core::{Config, RExecutor};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -22,15 +22,10 @@ async fn main() {
 
     let r_executor = Arc::new(Mutex::new(RExecutor::new(temp_dir, config.r_path.clone())));
 
-    let ai_provider = Arc::new(Mutex::new(AnthropicProvider::new(
-        config.anthropic_api_key.clone(),
-    )));
-
     let config_state = Arc::new(Mutex::new(config));
 
     tauri::Builder::default()
         .manage(r_executor)
-        .manage(ai_provider)
         .manage(config_state)
         .invoke_handler(tauri::generate_handler![
             commands::execute_r_code,
