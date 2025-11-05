@@ -77,6 +77,8 @@ docs/overview.md
 .serena
 docs/
 docs/.obsidian/
-
+.claude/
+.status/
 # Git worktrees
 wt-*/
+
