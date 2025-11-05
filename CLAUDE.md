@@ -12,55 +12,42 @@ Re-prod is a reproducible data analysis environment for R, built with Tauri and 
 
 This project uses **git worktrees** for parallel development. Each worktree is an independent working directory for a specific feature or refactoring task.
 
-### Quick Start Script
+### Quick Start with Slash Command
 
-Use the `start-worktrees.sh` script to launch Claude Code in a worktree:
+Use the `/pw` (parallel-worktree) command to launch 3 Claude Code subagents in parallel:
 
 ```bash
-# From main repository
-bash start-worktrees.sh <issue-number>
+# Inside Claude Code
+/pw
 ```
 
 This automatically:
-1. Changes to the appropriate worktree directory
-2. Adds relevant source directories with `--add-dir`
-3. Enables autonomous execution with `--allow-file-operations` and `--allow-bash`
-4. Provides a comprehensive prompt to implement the complete solution
-
-### Manual Worktree Execution
-
-If you prefer manual control:
-
-```bash
-# Navigate to worktree
-cd /path/to/worktree
-
-# Start Claude Code with context
-claude --add-dir path/to/relevant/code/ \
-      --allow-file-operations \
-      --allow-bash \
-      -p "Read docs/.obsidian/issues/XXX-description.md. IMPLEMENT the complete solution - do not just plan, actually create all files and make all changes. [detailed tasks...] Make all necessary changes and run tests."
-```
-
-### Key Principles
-
-1. **Autonomous Execution**: Use `-p` flag with explicit instructions to implement (not just plan)
-2. **Permission Flags**: Include `--allow-file-operations` and `--allow-bash` for uninterrupted execution
-3. **Complete Instructions**: Specify "IMPLEMENT" and "create all files and make all changes" to ensure full implementation
-4. **Testing**: Include "run tests" in the prompt to verify changes
+1. Launches 3 parallel subagents using Task tool
+2. Each subagent works in its own worktree
+3. Auto-retries up to 3 times if tests fail
+4. Verifies tests and builds before finishing
 
 ### Parallel Development
 
-Multiple worktrees can run simultaneously:
+The `parallel-worktree` skill handles:
+- **Issue 021**: UI Pane Improvements (wt-021-ui-pane)
+- **Issue 007**: JSON Storage Refactoring (wt-007-json-storage)
+- **Issue 020**: AI File Operations (wt-020-ai-files)
+
+### Before Running
+
+Clean worktrees to remove unstaged changes:
 
 ```bash
-# Start multiple Claude Code instances
-bash start-worktrees.sh <issue-A> > logs/issue-A.log 2>&1 &
-bash start-worktrees.sh <issue-B> > logs/issue-B.log 2>&1 &
-bash start-worktrees.sh <issue-C> > logs/issue-C.log 2>&1 &
+bash clean-worktrees.sh
+```
 
-# Monitor progress
-tail -f logs/issue-A.log
+### If Complete Reset Needed
+
+Reset all worktrees to develop:
+
+```bash
+bash reset-worktrees.sh
 ```
 
 ## 🚨 Important Notes
