@@ -56,12 +56,15 @@ export function AIPanel(): JSX.Element {
     timeoutIdRef.current = timeoutId;
 
     const matcher = (message: WSResponse) =>
-      message.type === 'ai_response' || message.type === 'error';
+      message.type === 'ai_response' ||
+      message.type === 'ai_response_with_tools' ||
+      message.type === 'error';
 
     const sent = socketService.send(
       {
         type: 'ai_message',
-        messages
+        messages,
+        enable_tools: true
       },
       (response: WSResponse) => {
         if (timeoutIdRef.current) {
@@ -74,6 +77,18 @@ export function AIPanel(): JSX.Element {
             id: Date.now().toString(),
             role: 'assistant',
             content: response.response,
+            timestamp: Date.now()
+          });
+        } else if (response.type === 'ai_response_with_tools') {
+          // Handle AI response with tool calls
+          const content = typeof response.response === 'string'
+            ? response.response
+            : response.response.content || JSON.stringify(response.response);
+
+          addAIMessage({
+            id: Date.now().toString(),
+            role: 'assistant',
+            content,
             timestamp: Date.now()
           });
         } else if (response.type === 'error') {
