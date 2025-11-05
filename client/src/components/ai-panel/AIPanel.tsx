@@ -11,6 +11,7 @@ export function AIPanel(): JSX.Element {
   const addAIMessage = useStore((state) => state.addAIMessage);
   const setAILoading = useStore((state) => state.setAILoading);
   const applyCodeChange = useStore((state) => state.applyCodeChange);
+  const editorContent = useStore((state) => state.editor.content);
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const timeoutIdRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -29,7 +30,14 @@ export function AIPanel(): JSX.Element {
       timestamp: Date.now()
     };
 
+    // Include editor content as context
+    const systemMessage = {
+      role: 'system' as const,
+      content: `Current R code in editor:\n\`\`\`r\n${editorContent}\n\`\`\``
+    };
+
     const messages = [
+      systemMessage,
       ...ai.messages.map((message) => ({
         role: message.role,
         content: message.content
@@ -56,12 +64,15 @@ export function AIPanel(): JSX.Element {
     timeoutIdRef.current = timeoutId;
 
     const matcher = (message: WSResponse) =>
-      message.type === 'ai_response' || message.type === 'error';
+      message.type === 'ai_response' ||
+      message.type === 'ai_response_with_tools' ||
+      message.type === 'error';
 
     const sent = socketService.send(
       {
         type: 'ai_message',
-        messages
+        messages,
+        enable_tools: true
       },
       (response: WSResponse) => {
         if (timeoutIdRef.current) {
@@ -74,6 +85,30 @@ export function AIPanel(): JSX.Element {
             id: Date.now().toString(),
             role: 'assistant',
             content: response.response,
+            timestamp: Date.now()
+          });
+        } else if (response.type === 'ai_response_with_tools') {
+          // Handle AI response with tool calls
+          let content: string;
+
+          if (typeof response.response === 'string') {
+            content = response.response;
+          } else if (response.response.content) {
+            content = response.response.content;
+          } else if (response.response.tool_calls && response.response.tool_calls.length > 0) {
+            // Format tool calls in a user-friendly way
+            const toolCallsFormatted = response.response.tool_calls
+              .map((tc, idx) => `${idx + 1}. **${tc.name}**\n   Input: \`${JSON.stringify(tc.input)}\``)
+              .join('\n\n');
+            content = `🔧 Executing tools:\n\n${toolCallsFormatted}`;
+          } else {
+            content = 'AI response received (no content)';
+          }
+
+          addAIMessage({
+            id: Date.now().toString(),
+            role: 'assistant',
+            content,
             timestamp: Date.now()
           });
         } else if (response.type === 'error') {
