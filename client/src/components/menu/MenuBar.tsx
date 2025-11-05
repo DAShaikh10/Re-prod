@@ -160,10 +160,6 @@ export function MenuBar(): JSX.Element {
     };
   }, []);
 
-  const handleToggleSection = (label: string) => {
-    setOpenSection((current) => (current === label ? null : label));
-  };
-
   const handleOpenSection = (label: string) => {
     setOpenSection(label);
   };
@@ -183,7 +179,6 @@ export function MenuBar(): JSX.Element {
               section={section}
               isOpen={openSection === section.label}
               anyMenuOpen={isAnyMenuOpen}
-              onToggle={handleToggleSection}
               onOpenExplicit={handleOpenSection}
               onClose={handleCloseMenus}
             />
@@ -202,7 +197,6 @@ interface MenuSectionComponentProps {
   section: MenuSection;
   isOpen: boolean;
   anyMenuOpen: boolean;
-  onToggle: (label: string) => void;
   onOpenExplicit: (label: string) => void;
   onClose: () => void;
 }
@@ -211,7 +205,6 @@ function MenuSectionComponent({
   section,
   isOpen,
   anyMenuOpen,
-  onToggle,
   onOpenExplicit,
   onClose,
 }: MenuSectionComponentProps) {
