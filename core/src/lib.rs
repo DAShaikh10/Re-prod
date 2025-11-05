@@ -1,8 +1,10 @@
 pub mod protocol;
 pub mod error;
+pub mod api;
 pub mod ai;
 pub mod config;
 pub mod executor;
+pub mod timeline;
 pub mod tools;
 pub mod export;
 

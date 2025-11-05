@@ -18,8 +18,9 @@ pub async fn send_ai_message(
     config: State<'_, Arc<Mutex<Config>>>,
 ) -> Result<String, String> {
     let cfg = config.lock().await.clone();
-    let provider = ai::from_config(&cfg);
-    provider.send_message(messages).await.map_err(|e| e.to_string())
+    ai::send_message_with_config(&cfg, messages)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
