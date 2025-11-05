@@ -278,8 +278,14 @@ export function EditorPanel(): JSX.Element {
     }
   };
 
+  const setRunCurrentCell = useStore((state) => state.setRunCurrentCell);
+  const setRunAll = useStore((state) => state.setRunAll);
+  const setMonacoEditor = useStore((state) => state.setMonacoEditor);
+
   useEffect(() => {
     setApplyCodeChange(applyCodeChange);
+    setRunCurrentCell(handleRunCurrentCell);
+    setRunAll(handleRunAll);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleEditorDidMount = (
@@ -287,6 +293,7 @@ export function EditorPanel(): JSX.Element {
     monaco: Monaco,
   ): void => {
     editorRef.current = monacoEditor;
+    setMonacoEditor(monacoEditor);
 
     // Track cursor position
     monacoEditor.onDidChangeCursorPosition((e) => {

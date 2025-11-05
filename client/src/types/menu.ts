@@ -19,7 +19,7 @@ export interface MenuItem {
   shortcut?: string;
 
   /** Action to execute when item is clicked */
-  action: (editor?: any) => void;
+  action: () => void;
 
   /** Function to check if item should be enabled */
   enabled?: () => boolean;
