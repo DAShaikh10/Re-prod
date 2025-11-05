@@ -12,6 +12,7 @@
  */
 
 import { useStore } from '@/core/state/store';
+import type { ViewPane } from '@/core/state/slices/viewSlice';
 
 /**
  * Menu Actions
@@ -343,41 +344,42 @@ export const menuActions = {
      * Toggle pane visibility
      */
     togglePane: (paneId: string) => {
-      // Toggle pane visibility via DOM
-      const pane = document.querySelector(`.${paneId}-panel`);
-      if (pane) {
-        const isVisible = pane.classList.contains('hidden');
-        pane.classList.toggle('hidden');
-        console.log(`${paneId} ${isVisible ? 'shown' : 'hidden'}`);
-      }
+      const pane = paneId as ViewPane;
+      const { togglePaneVisibility } = useStore.getState();
+      togglePaneVisibility(pane);
+      const next = useStore.getState().view.panes[pane];
+      console.log(`${paneId} ${next ? 'shown' : 'hidden'}`);
     },
 
     /**
      * Zoom in
      */
     zoomIn: () => {
-      const currentZoom = parseFloat(document.documentElement.style.getPropertyValue('--zoom-level') || '1.0');
-      const newZoom = Math.min(2.0, currentZoom + 0.1);
-      document.documentElement.style.setProperty('--zoom-level', String(newZoom));
-      console.log(`Zoom: ${Math.round(newZoom * 100)}%`);
+      const { adjustZoom } = useStore.getState();
+      adjustZoom(0.1);
+      const { view } = useStore.getState();
+      console.log(`Zoom: ${Math.round(view.zoom * 100)}%`);
     },
 
     /**
      * Zoom out
      */
     zoomOut: () => {
-      const currentZoom = parseFloat(document.documentElement.style.getPropertyValue('--zoom-level') || '1.0');
-      const newZoom = Math.max(0.5, currentZoom - 0.1);
-      document.documentElement.style.setProperty('--zoom-level', String(newZoom));
-      console.log(`Zoom: ${Math.round(newZoom * 100)}%`);
+      const { adjustZoom } = useStore.getState();
+      adjustZoom(-0.1);
+      const { view } = useStore.getState();
+      console.log(`Zoom: ${Math.round(view.zoom * 100)}%`);
     },
 
     /**
      * Reset zoom to 100%
      */
     zoomReset: () => {
-      document.documentElement.style.setProperty('--zoom-level', '1');
-      console.log('Zoom reset to 100%');
+      const { resetZoom } = useStore.getState();
+      resetZoom();
+      const next = useStore.getState().view.zoom;
+      const rounded = Math.round(next * 100);
+      console.log(rounded === 100 ? 'Zoom reset to 100%' : `Zoom: ${rounded}%`);
     },
   },
 
