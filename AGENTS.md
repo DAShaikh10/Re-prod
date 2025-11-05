@@ -202,17 +202,16 @@ tail -f logs/feature-a.log
 
 ### Permission Flags for Automation
 
-For autonomous execution without interactive prompts, use permission flags:
+For autonomous execution without interactive prompts, use permission mode flags:
 
-- `--allow-file-operations` - Auto-approve file read/write operations
-- `--allow-bash` - Auto-approve bash command execution
-- `--allow-all` - Auto-approve all operations (use with caution)
+- `--permission-mode bypassPermissions` - Bypass all permission checks for autonomous execution
+- `--permission-mode acceptEdits` - Auto-accept edit operations
+- `--dangerously-skip-permissions` - Alternative bypass flag (for sandboxes only)
 
 **Example Autonomous Execution**:
 ```bash
 <ai-agent> --add-dir src/ \
-          --allow-file-operations \
-          --allow-bash \
+          --permission-mode bypassPermissions \
           -p "Read docs/issue.md and implement the complete solution. Create all files, make all changes, and run tests."
 ```
 
