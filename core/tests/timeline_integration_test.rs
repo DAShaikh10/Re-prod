@@ -174,11 +174,7 @@ async fn test_timeline_filters_by_actor() {
         })
         .unwrap();
 
-    assert_eq!(
-        query_result.events.len(),
-        2,
-        "Should find 2 user events"
-    );
+    assert_eq!(query_result.events.len(), 2, "Should find 2 user events");
     assert!(
         query_result
             .events
@@ -471,7 +467,10 @@ async fn test_timeline_handles_execution_errors() {
     let error_request = create_execution_request("stop('intentional error')", ExecutionActor::User);
     let result = executor.execute_with_event(error_request).await;
 
-    assert!(result.is_ok(), "Execution should return result even on error");
+    assert!(
+        result.is_ok(),
+        "Execution should return result even on error"
+    );
     let (exec_result, _event) = result.unwrap();
 
     // Verify error was captured
