@@ -215,3 +215,659 @@ fn source_to_string(source: ExecutionSource) -> String {
         ExecutionSource::Unknown => "unknown".to_string(),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_timeline_query_payload_into_domain_basic() {
+        let payload = TimelineQueryPayload {
+            filters: None,
+            sort: Some("asc".to_string()),
+            limit: Some(10),
+            offset: Some(5),
+        };
+
+        let query = payload.into_domain().unwrap();
+        assert_eq!(query.sort, Some(SortOrder::Asc));
+        assert_eq!(query.limit, Some(10));
+        assert_eq!(query.offset, Some(5));
+        assert!(query.filters.is_none());
+    }
+
+    #[test]
+    fn test_timeline_query_payload_sort_desc() {
+        let payload = TimelineQueryPayload {
+            filters: None,
+            sort: Some("desc".to_string()),
+            limit: None,
+            offset: None,
+        };
+
+        let query = payload.into_domain().unwrap();
+        assert_eq!(query.sort, Some(SortOrder::Desc));
+    }
+
+    #[test]
+    fn test_timeline_query_payload_invalid_sort() {
+        let payload = TimelineQueryPayload {
+            filters: None,
+            sort: Some("invalid".to_string()),
+            limit: None,
+            offset: None,
+        };
+
+        let result = payload.into_domain();
+        assert!(result.is_err());
+        match result {
+            Err(ReprodError::ProtocolError(msg)) => {
+                assert!(msg.contains("Invalid sort order"));
+            }
+            _ => panic!("Expected ProtocolError"),
+        }
+    }
+
+    #[test]
+    fn test_timeline_filters_payload_actor_user() {
+        let payload = TimelineFiltersPayload {
+            actor: Some("user".to_string()),
+            source: None,
+            start_time: None,
+            end_time: None,
+            has_plots: None,
+            has_errors: None,
+            code_contains: None,
+        };
+
+        let filters: TimelineFilters = payload.try_into().unwrap();
+        assert_eq!(filters.actor, Some(ExecutionActor::User));
+    }
+
+    #[test]
+    fn test_timeline_filters_payload_actor_ai() {
+        let payload = TimelineFiltersPayload {
+            actor: Some("ai".to_string()),
+            source: None,
+            start_time: None,
+            end_time: None,
+            has_plots: None,
+            has_errors: None,
+            code_contains: None,
+        };
+
+        let filters: TimelineFilters = payload.try_into().unwrap();
+        assert_eq!(filters.actor, Some(ExecutionActor::Ai));
+    }
+
+    #[test]
+    fn test_timeline_filters_payload_invalid_actor() {
+        let payload = TimelineFiltersPayload {
+            actor: Some("invalid".to_string()),
+            source: None,
+            start_time: None,
+            end_time: None,
+            has_plots: None,
+            has_errors: None,
+            code_contains: None,
+        };
+
+        let result: Result<TimelineFilters, _> = payload.try_into();
+        assert!(result.is_err());
+        match result {
+            Err(ReprodError::ProtocolError(msg)) => {
+                assert!(msg.contains("Invalid actor"));
+            }
+            _ => panic!("Expected ProtocolError"),
+        }
+    }
+
+    #[test]
+    fn test_timeline_filters_payload_source_selection() {
+        let payload = TimelineFiltersPayload {
+            actor: None,
+            source: Some("selection".to_string()),
+            start_time: None,
+            end_time: None,
+            has_plots: None,
+            has_errors: None,
+            code_contains: None,
+        };
+
+        let filters: TimelineFilters = payload.try_into().unwrap();
+        assert_eq!(filters.source, Some(ExecutionSource::Selection));
+    }
+
+    #[test]
+    fn test_timeline_filters_payload_source_cell() {
+        let payload = TimelineFiltersPayload {
+            actor: None,
+            source: Some("cell".to_string()),
+            start_time: None,
+            end_time: None,
+            has_plots: None,
+            has_errors: None,
+            code_contains: None,
+        };
+
+        let filters: TimelineFilters = payload.try_into().unwrap();
+        assert_eq!(filters.source, Some(ExecutionSource::Cell));
+    }
+
+    #[test]
+    fn test_timeline_filters_payload_source_whole_document() {
+        let payload = TimelineFiltersPayload {
+            actor: None,
+            source: Some("whole_document".to_string()),
+            start_time: None,
+            end_time: None,
+            has_plots: None,
+            has_errors: None,
+            code_contains: None,
+        };
+
+        let filters: TimelineFilters = payload.try_into().unwrap();
+        assert_eq!(filters.source, Some(ExecutionSource::WholeDocument));
+    }
+
+    #[test]
+    fn test_timeline_filters_payload_source_unknown() {
+        let payload = TimelineFiltersPayload {
+            actor: None,
+            source: Some("unknown".to_string()),
+            start_time: None,
+            end_time: None,
+            has_plots: None,
+            has_errors: None,
+            code_contains: None,
+        };
+
+        let filters: TimelineFilters = payload.try_into().unwrap();
+        assert_eq!(filters.source, Some(ExecutionSource::Unknown));
+    }
+
+    #[test]
+    fn test_timeline_filters_payload_invalid_source() {
+        let payload = TimelineFiltersPayload {
+            actor: None,
+            source: Some("invalid".to_string()),
+            start_time: None,
+            end_time: None,
+            has_plots: None,
+            has_errors: None,
+            code_contains: None,
+        };
+
+        let result: Result<TimelineFilters, _> = payload.try_into();
+        assert!(result.is_err());
+        match result {
+            Err(ReprodError::ProtocolError(msg)) => {
+                assert!(msg.contains("Invalid source"));
+            }
+            _ => panic!("Expected ProtocolError"),
+        }
+    }
+
+    #[test]
+    fn test_timeline_filters_payload_all_fields() {
+        let payload = TimelineFiltersPayload {
+            actor: Some("user".to_string()),
+            source: Some("cell".to_string()),
+            start_time: Some(1000),
+            end_time: Some(2000),
+            has_plots: Some(true),
+            has_errors: Some(false),
+            code_contains: Some("plot".to_string()),
+        };
+
+        let filters: TimelineFilters = payload.try_into().unwrap();
+        assert_eq!(filters.actor, Some(ExecutionActor::User));
+        assert_eq!(filters.source, Some(ExecutionSource::Cell));
+        assert_eq!(filters.start_time, Some(1000));
+        assert_eq!(filters.end_time, Some(2000));
+        assert_eq!(filters.has_plots, Some(true));
+        assert_eq!(filters.has_errors, Some(false));
+        assert_eq!(filters.code_contains, Some("plot".to_string()));
+    }
+
+    #[test]
+    fn test_actor_to_string_user() {
+        assert_eq!(actor_to_string(ExecutionActor::User), "user");
+    }
+
+    #[test]
+    fn test_actor_to_string_ai() {
+        assert_eq!(actor_to_string(ExecutionActor::Ai), "ai");
+    }
+
+    #[test]
+    fn test_source_to_string_selection() {
+        assert_eq!(
+            source_to_string(ExecutionSource::Selection),
+            "selection"
+        );
+    }
+
+    #[test]
+    fn test_source_to_string_cell() {
+        assert_eq!(source_to_string(ExecutionSource::Cell), "cell");
+    }
+
+    #[test]
+    fn test_source_to_string_whole_document() {
+        assert_eq!(
+            source_to_string(ExecutionSource::WholeDocument),
+            "whole_document"
+        );
+    }
+
+    #[test]
+    fn test_source_to_string_unknown() {
+        assert_eq!(source_to_string(ExecutionSource::Unknown), "unknown");
+    }
+
+    #[test]
+    fn test_timeline_response_payload_conversion() {
+        let response = TimelineResponse {
+            events: vec![],
+            total: 100,
+            has_more: true,
+            query: TimelineQuery {
+                filters: Some(TimelineFilters {
+                    actor: Some(ExecutionActor::User),
+                    source: Some(ExecutionSource::Cell),
+                    start_time: Some(1000),
+                    end_time: Some(2000),
+                    has_plots: Some(true),
+                    has_errors: Some(false),
+                    code_contains: Some("test".to_string()),
+                }),
+                sort: Some(SortOrder::Desc),
+                limit: Some(20),
+                offset: Some(10),
+            },
+        };
+
+        let payload: TimelineResponsePayload = response.into();
+        assert_eq!(payload.total, 100);
+        assert_eq!(payload.has_more, true);
+        assert_eq!(payload.query.sort, Some("desc".to_string()));
+        assert_eq!(payload.query.limit, Some(20));
+        assert_eq!(payload.query.offset, Some(10));
+
+        let filters = payload.query.filters.unwrap();
+        assert_eq!(filters.actor, Some("user".to_string()));
+        assert_eq!(filters.source, Some("cell".to_string()));
+        assert_eq!(filters.start_time, Some(1000));
+        assert_eq!(filters.end_time, Some(2000));
+        assert_eq!(filters.has_plots, Some(true));
+        assert_eq!(filters.has_errors, Some(false));
+        assert_eq!(filters.code_contains, Some("test".to_string()));
+    }
+
+    #[test]
+    fn test_timeline_stats_payload_conversion() {
+        let stats = TimelineStats {
+            total_events: 150,
+            total_plots: 25,
+            total_errors: 5,
+            user_actions: 100,
+            ai_actions: 50,
+            session_start_time: 1000,
+            session_end_time: 2000,
+            session_duration: 1000,
+        };
+
+        let payload: TimelineStatsPayload = stats.into();
+        assert_eq!(payload.total_events, 150);
+        assert_eq!(payload.total_plots, 25);
+        assert_eq!(payload.total_errors, 5);
+        assert_eq!(payload.user_actions, 100);
+        assert_eq!(payload.ai_actions, 50);
+        assert_eq!(payload.session_start_time, 1000);
+        assert_eq!(payload.session_end_time, 2000);
+        assert_eq!(payload.session_duration, 1000);
+    }
+
+    // Complex integration-style tests
+
+    #[test]
+    fn test_query_with_complex_filters_combination() {
+        // Test realistic scenario: User wants all their cell executions with plots from last hour
+        let payload = TimelineQueryPayload {
+            filters: Some(TimelineFiltersPayload {
+                actor: Some("user".to_string()),
+                source: Some("cell".to_string()),
+                start_time: Some(1700000000000), // Unix timestamp
+                end_time: Some(1700003600000),   // 1 hour later
+                has_plots: Some(true),
+                has_errors: Some(false),
+                code_contains: Some("ggplot".to_string()),
+            }),
+            sort: Some("desc".to_string()),
+            limit: Some(50),
+            offset: Some(0),
+        };
+
+        let query = payload.into_domain().unwrap();
+
+        // Verify all filters are correctly converted
+        let filters = query.filters.unwrap();
+        assert_eq!(filters.actor, Some(ExecutionActor::User));
+        assert_eq!(filters.source, Some(ExecutionSource::Cell));
+        assert_eq!(filters.start_time, Some(1700000000000));
+        assert_eq!(filters.end_time, Some(1700003600000));
+        assert_eq!(filters.has_plots, Some(true));
+        assert_eq!(filters.has_errors, Some(false));
+        assert_eq!(filters.code_contains, Some("ggplot".to_string()));
+
+        assert_eq!(query.sort, Some(SortOrder::Desc));
+        assert_eq!(query.limit, Some(50));
+        assert_eq!(query.offset, Some(0));
+    }
+
+    #[test]
+    fn test_query_pagination_realistic_use_case() {
+        // Page 1: First 20 items
+        let page1 = TimelineQueryPayload {
+            filters: None,
+            sort: Some("desc".to_string()),
+            limit: Some(20),
+            offset: Some(0),
+        };
+        let query1 = page1.into_domain().unwrap();
+        assert_eq!(query1.limit, Some(20));
+        assert_eq!(query1.offset, Some(0));
+
+        // Page 2: Next 20 items
+        let page2 = TimelineQueryPayload {
+            filters: None,
+            sort: Some("desc".to_string()),
+            limit: Some(20),
+            offset: Some(20),
+        };
+        let query2 = page2.into_domain().unwrap();
+        assert_eq!(query2.limit, Some(20));
+        assert_eq!(query2.offset, Some(20));
+
+        // Page 3: Next 20 items
+        let page3 = TimelineQueryPayload {
+            filters: None,
+            sort: Some("desc".to_string()),
+            limit: Some(20),
+            offset: Some(40),
+        };
+        let query3 = page3.into_domain().unwrap();
+        assert_eq!(query3.limit, Some(20));
+        assert_eq!(query3.offset, Some(40));
+    }
+
+    #[test]
+    fn test_error_only_filter_for_debugging() {
+        // Realistic scenario: Developer wants to see all errors
+        let payload = TimelineQueryPayload {
+            filters: Some(TimelineFiltersPayload {
+                actor: None,
+                source: None,
+                start_time: None,
+                end_time: None,
+                has_plots: None,
+                has_errors: Some(true),
+                code_contains: None,
+            }),
+            sort: Some("desc".to_string()),
+            limit: Some(100),
+            offset: Some(0),
+        };
+
+        let query = payload.into_domain().unwrap();
+        let filters = query.filters.unwrap();
+        assert_eq!(filters.has_errors, Some(true));
+        assert!(filters.actor.is_none());
+        assert!(filters.source.is_none());
+    }
+
+    #[test]
+    fn test_code_search_filter() {
+        // Search for specific function usage in code
+        let payload = TimelineQueryPayload {
+            filters: Some(TimelineFiltersPayload {
+                actor: None,
+                source: None,
+                start_time: None,
+                end_time: None,
+                has_plots: None,
+                has_errors: None,
+                code_contains: Some("dplyr::filter".to_string()),
+            }),
+            sort: Some("asc".to_string()),
+            limit: None,
+            offset: None,
+        };
+
+        let query = payload.into_domain().unwrap();
+        let filters = query.filters.unwrap();
+        assert_eq!(filters.code_contains, Some("dplyr::filter".to_string()));
+        assert_eq!(query.sort, Some(SortOrder::Asc));
+    }
+
+    #[test]
+    fn test_ai_generated_code_filter() {
+        // Filter only AI-generated code
+        let payload = TimelineQueryPayload {
+            filters: Some(TimelineFiltersPayload {
+                actor: Some("ai".to_string()),
+                source: None,
+                start_time: None,
+                end_time: None,
+                has_plots: None,
+                has_errors: None,
+                code_contains: None,
+            }),
+            sort: Some("desc".to_string()),
+            limit: Some(50),
+            offset: Some(0),
+        };
+
+        let query = payload.into_domain().unwrap();
+        let filters = query.filters.unwrap();
+        assert_eq!(filters.actor, Some(ExecutionActor::Ai));
+    }
+
+    #[test]
+    fn test_time_range_filter() {
+        // Query events within specific time window
+        let start = 1700000000000u64;
+        let end = 1700010000000u64;
+
+        let payload = TimelineQueryPayload {
+            filters: Some(TimelineFiltersPayload {
+                actor: None,
+                source: None,
+                start_time: Some(start),
+                end_time: Some(end),
+                has_plots: None,
+                has_errors: None,
+                code_contains: None,
+            }),
+            sort: Some("asc".to_string()),
+            limit: None,
+            offset: None,
+        };
+
+        let query = payload.into_domain().unwrap();
+        let filters = query.filters.unwrap();
+        assert_eq!(filters.start_time, Some(start));
+        assert_eq!(filters.end_time, Some(end));
+    }
+
+    #[test]
+    fn test_response_payload_empty_events() {
+        // Test empty events array
+        let response = TimelineResponse {
+            events: vec![],
+            total: 0,
+            has_more: false,
+            query: TimelineQuery {
+                filters: None,
+                sort: Some(SortOrder::Desc),
+                limit: Some(10),
+                offset: Some(0),
+            },
+        };
+
+        let payload: TimelineResponsePayload = response.into();
+        assert_eq!(payload.events.len(), 0);
+        assert_eq!(payload.total, 0);
+        assert_eq!(payload.has_more, false);
+    }
+
+    #[test]
+    fn test_empty_filters_equal_to_none() {
+        // When all filter fields are None, it should behave same as no filters
+        let payload_with_empty_filters = TimelineQueryPayload {
+            filters: Some(TimelineFiltersPayload {
+                actor: None,
+                source: None,
+                start_time: None,
+                end_time: None,
+                has_plots: None,
+                has_errors: None,
+                code_contains: None,
+            }),
+            sort: Some("desc".to_string()),
+            limit: Some(10),
+            offset: Some(0),
+        };
+
+        let query = payload_with_empty_filters.into_domain().unwrap();
+        let filters = query.filters.unwrap();
+
+        // All fields should be None
+        assert!(filters.actor.is_none());
+        assert!(filters.source.is_none());
+        assert!(filters.start_time.is_none());
+        assert!(filters.end_time.is_none());
+        assert!(filters.has_plots.is_none());
+        assert!(filters.has_errors.is_none());
+        assert!(filters.code_contains.is_none());
+    }
+
+    #[test]
+    fn test_query_with_no_pagination() {
+        // Query without limit/offset should return all results
+        let payload = TimelineQueryPayload {
+            filters: None,
+            sort: Some("desc".to_string()),
+            limit: None,
+            offset: None,
+        };
+
+        let query = payload.into_domain().unwrap();
+        assert!(query.limit.is_none());
+        assert!(query.offset.is_none());
+    }
+
+    #[test]
+    fn test_stats_with_zero_values() {
+        // Edge case: session with no activity
+        let stats = TimelineStats {
+            total_events: 0,
+            total_plots: 0,
+            total_errors: 0,
+            user_actions: 0,
+            ai_actions: 0,
+            session_start_time: 1700000000000,
+            session_end_time: 1700000000000,
+            session_duration: 0,
+        };
+
+        let payload: TimelineStatsPayload = stats.into();
+        assert_eq!(payload.total_events, 0);
+        assert_eq!(payload.total_plots, 0);
+        assert_eq!(payload.total_errors, 0);
+        assert_eq!(payload.user_actions, 0);
+        assert_eq!(payload.ai_actions, 0);
+        assert_eq!(payload.session_duration, 0);
+    }
+
+    #[test]
+    fn test_stats_with_large_values() {
+        // Stress test with large numbers
+        let stats = TimelineStats {
+            total_events: 1_000_000,
+            total_plots: 50_000,
+            total_errors: 10_000,
+            user_actions: 600_000,
+            ai_actions: 400_000,
+            session_start_time: 1700000000000,
+            session_end_time: 1700086400000, // 24 hours later
+            session_duration: 86400000,       // 24 hours in ms
+        };
+
+        let payload: TimelineStatsPayload = stats.into();
+        assert_eq!(payload.total_events, 1_000_000);
+        assert_eq!(payload.total_plots, 50_000);
+        assert_eq!(payload.total_errors, 10_000);
+        assert_eq!(payload.user_actions, 600_000);
+        assert_eq!(payload.ai_actions, 400_000);
+        assert_eq!(payload.session_duration, 86400000);
+    }
+
+    #[test]
+    fn test_multiple_invalid_sort_orders() {
+        let invalid_sorts = vec!["ascending", "descending", "INVALID", "123", ""];
+
+        for invalid_sort in invalid_sorts {
+            let payload = TimelineQueryPayload {
+                filters: None,
+                sort: Some(invalid_sort.to_string()),
+                limit: None,
+                offset: None,
+            };
+
+            let result = payload.into_domain();
+            assert!(result.is_err(), "Sort '{}' should be invalid", invalid_sort);
+        }
+    }
+
+    #[test]
+    fn test_multiple_invalid_actors() {
+        let invalid_actors = vec!["USER", "AI", "admin", "system", ""];
+
+        for invalid_actor in invalid_actors {
+            let payload = TimelineFiltersPayload {
+                actor: Some(invalid_actor.to_string()),
+                source: None,
+                start_time: None,
+                end_time: None,
+                has_plots: None,
+                has_errors: None,
+                code_contains: None,
+            };
+
+            let result: Result<TimelineFilters, _> = payload.try_into();
+            assert!(result.is_err(), "Actor '{}' should be invalid", invalid_actor);
+        }
+    }
+
+    #[test]
+    fn test_multiple_invalid_sources() {
+        let invalid_sources = vec!["CELL", "SELECTION", "document", "file", ""];
+
+        for invalid_source in invalid_sources {
+            let payload = TimelineFiltersPayload {
+                actor: None,
+                source: Some(invalid_source.to_string()),
+                start_time: None,
+                end_time: None,
+                has_plots: None,
+                has_errors: None,
+                code_contains: None,
+            };
+
+            let result: Result<TimelineFilters, _> = payload.try_into();
+            assert!(result.is_err(), "Source '{}' should be invalid", invalid_source);
+        }
+    }
+}
