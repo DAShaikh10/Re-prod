@@ -52,6 +52,7 @@
 }
 
 .plots-container,
+.timeline-container,
 .help-container {
   height: 100%;
   overflow: auto;
