@@ -7,8 +7,12 @@ use axum::{
 };
 use reprod_core::{
     ai::{self, tools::{FileSystemTool, RContextTool, get_filesystem_tools, get_r_context_tools}},
-    api::timeline::{TimelineQueryPayload, TimelineResponsePayload, TimelineStatsPayload},
+    api::timeline::{
+        ExportRMarkdownRequest, ExportRMarkdownResponse, TimelineQueryPayload,
+        TimelineResponsePayload, TimelineStatsPayload,
+    },
     executor::timeline::JsonTimeline,
+    export::{BundleMetadata, RMarkdownGenerator, ReproductionBundle},
     ChatMessage, Config, ExecutionEvent, ExecutionRequest, ExecutionResult, RExecutor,
     ToolExecutor, ToolManifest, ToolRegistry, AIResponse,
 };
@@ -78,6 +82,8 @@ enum WSRequest {
     TimelineQuery { query: TimelineQueryPayload },
     #[serde(rename = "timeline_stats_query")]
     TimelineStatsQuery,
+    #[serde(rename = "export_rmarkdown")]
+    ExportRMarkdown { request: ExportRMarkdownRequest },
 }
 
 #[derive(serde::Serialize)]
@@ -109,6 +115,8 @@ enum WSResponse {
     TimelineStatsResponse { stats: TimelineStatsPayload },
     #[serde(rename = "timeline_event_added")]
     TimelineEventAdded { event: ExecutionEvent },
+    #[serde(rename = "export_rmarkdown_response")]
+    ExportRMarkdownResponse { response: ExportRMarkdownResponse },
 }
 
 async fn handle_ws_request(request: WSRequest, state: &AppState) -> Vec<WSResponse> {
@@ -266,6 +274,14 @@ async fn handle_ws_request(request: WSRequest, state: &AppState) -> Vec<WSRespon
                 message: format!("Timeline stats query failed: {}", e),
             }],
         },
+        WSRequest::ExportRMarkdown { request } => {
+            match handle_export_rmarkdown(request, &state).await {
+                Ok(response) => vec![WSResponse::ExportRMarkdownResponse { response }],
+                Err(e) => vec![WSResponse::Error {
+                    message: format!("RMarkdown export failed: {}", e),
+                }],
+            }
+        }
     }
 }
 
@@ -355,4 +371,70 @@ async fn execute_ai_tool_call(
         }
         _ => Err(format!("Unknown tool: {}", tool_call.name)),
     }
+}
+
+async fn handle_export_rmarkdown(
+    request: ExportRMarkdownRequest,
+    state: &AppState,
+) -> Result<ExportRMarkdownResponse, String> {
+    // Get document path before consuming request
+    let document_path = request.document_path();
+
+    // Parse request into options
+    let (mode, options, output_path) = request
+        .into_options()
+        .map_err(|e| format!("Invalid export options: {}", e))?;
+
+    // Create generator
+    let generator = RMarkdownGenerator::new(options);
+
+    // Generate RMarkdown content based on mode
+    let content = match mode {
+        reprod_core::export::ExportMode::Timeline => {
+            // Query all events from timeline
+            let query = reprod_core::executor::timeline::TimelineQuery {
+                filters: None,
+                sort: Some(reprod_core::executor::timeline::SortOrder::Asc),
+                limit: Some(10000), // Large limit to get all events
+                offset: None,
+            };
+
+            let response = state
+                .timeline
+                .query(query)
+                .map_err(|e| format!("Failed to query timeline: {}", e))?;
+
+            // Create bundle from events
+            let bundle = ReproductionBundle::from_events(response.events);
+
+            // Generate RMarkdown
+            generator.from_timeline(&bundle)
+        }
+        reprod_core::export::ExportMode::Document => {
+            // Get document path (required for document mode)
+            let doc_path = document_path.ok_or("Document path is required for document mode")?;
+
+            // Read document content
+            let doc_content = tokio::fs::read_to_string(&doc_path)
+                .await
+                .map_err(|e| format!("Failed to read document: {}", e))?;
+
+            // Create metadata with simple timestamp-based ID
+            let timestamp = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs();
+            let metadata = BundleMetadata::new(format!("export-{}", timestamp));
+
+            // Generate RMarkdown
+            generator.from_document(&doc_path, &doc_content, &metadata)
+        }
+    };
+
+    // Write to file
+    tokio::fs::write(&output_path, content)
+        .await
+        .map_err(|e| format!("Failed to write RMarkdown file: {}", e))?;
+
+    Ok(ExportRMarkdownResponse::success(output_path))
 }

@@ -7,6 +7,7 @@
 //! - Extracted code files
 //! - Plot artifacts
 //! - Validation and replay scripts
+//! - RMarkdown documents for publication
 //!
 //! # Example
 //!
@@ -29,10 +30,12 @@
 
 pub mod bundle;
 pub mod metadata;
+pub mod rmarkdown;
 pub mod scripts;
 pub mod writer;
 
 pub use bundle::{ReproductionBundle, TimelineExport, ValidationReport};
 pub use metadata::{BundleFiles, BundleMetadata, EnvironmentInfo, SessionInfo, Statistics};
+pub use rmarkdown::{ExportMode, RMarkdownGenerator, RMarkdownOptions};
 pub use scripts::{generate_readme, generate_replay_script, generate_validation_script};
 pub use writer::{BundleWriter, WriterError};

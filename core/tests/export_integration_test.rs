@@ -1,5 +1,8 @@
 use flate2::read::GzDecoder;
-use reprod_core::export::{BundleWriter, ReproductionBundle};
+use reprod_core::export::{
+    BundleMetadata, BundleWriter, ExportMode, RMarkdownGenerator, RMarkdownOptions,
+    ReproductionBundle,
+};
 use reprod_core::protocol::{
     CodeBlockKind, CodeBlockMetadata, EnvironmentSnapshot, ExecutionActor, ExecutionContext,
     ExecutionEvent, ExecutionResult, ExecutionSource, PlotInfo,
