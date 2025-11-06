@@ -125,11 +125,15 @@ export const menuActions = {
 
     /**
      * Export reproducible session
-     * Triggers backend export with timeline
+     * Opens export dialog for RMarkdown/Bundle export
      */
     exportSession: () => {
-      console.info('Export session not yet implemented');
-      // TODO: Implement session export with timeline
+      // Call global export dialog handler
+      if (typeof (window as any).openExportDialog === 'function') {
+        (window as any).openExportDialog();
+      } else {
+        console.error('Export dialog not initialized');
+      }
     },
   },
 
