@@ -138,6 +138,7 @@ export function TimelinePanel(): JSX.Element {
       setStatsLoading(true);
       try {
         const statsData = await getTimelineStats();
+        console.log('[TimelinePanel] Stats fetched:', statsData);
         setStats(statsData);
       } catch (err) {
         console.error('Failed to load timeline stats:', err);
@@ -155,21 +156,37 @@ export function TimelinePanel(): JSX.Element {
     }
 
     const unsubscribe = subscribeToTimelineEvents((event) => {
+      console.log('[TimelinePanel] New event received:', event.event_id);
+
       if (!matchesFilters(event, filters)) {
+        console.log('[TimelinePanel] Event filtered out');
         return;
       }
 
       addEvent(event);
 
       setStats((prev) => {
+        console.log('[TimelinePanel] Updating stats, prev:', prev);
+        // If no previous stats, create initial stats from this first event
         if (!prev) {
-          return prev;
+          const newStats = {
+            totalEvents: 1,
+            totalPlots: event.result.plots.length,
+            totalErrors: event.result.error ? 1 : 0,
+            userActions: event.context.actor === 'user' ? 1 : 0,
+            aiActions: event.context.actor === 'ai' ? 1 : 0,
+            sessionStartTime: event.created_at_ms,
+            sessionEndTime: event.created_at_ms,
+            sessionDuration: 0,
+          };
+          console.log('[TimelinePanel] Created initial stats:', newStats);
+          return newStats;
         }
 
         const nextStart = Math.min(prev.sessionStartTime, event.created_at_ms);
         const nextEnd = Math.max(prev.sessionEndTime, event.created_at_ms);
 
-        return {
+        const updatedStats = {
           ...prev,
           totalEvents: prev.totalEvents + 1,
           totalPlots: prev.totalPlots + event.result.plots.length,
@@ -180,6 +197,8 @@ export function TimelinePanel(): JSX.Element {
           sessionEndTime: nextEnd,
           sessionDuration: nextEnd - nextStart,
         };
+        console.log('[TimelinePanel] Updated stats:', updatedStats);
+        return updatedStats;
       });
     });
 
