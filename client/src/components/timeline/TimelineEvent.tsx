@@ -1,9 +1,4 @@
-import { type ExecutionEventPayload } from 'shared';
-
-interface TimelineEventProps {
-  event: ExecutionEventPayload;
-  onNavigate?: (event: ExecutionEventPayload) => void;
-}
+import type { TimelineEventProps } from '@/types/timeline';
 
 export function TimelineEvent({ event, onNavigate }: TimelineEventProps): JSX.Element {
   const { context, blocks, result } = event;

@@ -8,11 +8,17 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent } from 'react';
 import { useStore } from '@/core/state/store';
 import { menuActions } from '@/services/menuActions';
-import { type MenuSection, type MenuItem } from '@/types/menu';
+import {
+  type MenuSection,
+  type MenuItem,
+  type MenuSectionComponentProps,
+  type ConnectionIndicatorProps,
+} from '@/types/menu';
 
 // Menu sections definition
 const menuSections: MenuSection[] = [
   {
+    id: 'file',
     label: 'File',
     items: [
       { id: 'file:new', label: 'New R Script', shortcut: '⌘N', action: () => menuActions.file.new() },
@@ -34,6 +40,7 @@ const menuSections: MenuSection[] = [
     ],
   },
   {
+    id: 'edit',
     label: 'Edit',
     items: [
       { id: 'edit:undo', label: 'Undo', shortcut: '⌘Z', action: () => menuActions.edit.undo() },
@@ -50,6 +57,7 @@ const menuSections: MenuSection[] = [
     ],
   },
   {
+    id: 'code',
     label: 'Code',
     items: [
       { id: 'code:run-selection', label: 'Run Current Line/Selection', shortcut: '⌘↵', action: () => menuActions.code.runSelection(), description: 'Uses Editor execution with metadata' },
@@ -69,6 +77,7 @@ const menuSections: MenuSection[] = [
     ],
   },
   {
+    id: 'session',
     label: 'Session',
     items: [
       { id: 'session:show-timeline', label: 'Show Timeline', shortcut: '⌘T', action: () => menuActions.session.showTimeline() },
@@ -83,6 +92,7 @@ const menuSections: MenuSection[] = [
     ],
   },
   {
+    id: 'view',
     label: 'View',
     items: [
       {
@@ -120,6 +130,7 @@ const menuSections: MenuSection[] = [
     ],
   },
   {
+    id: 'help',
     label: 'Help',
     items: [
       { id: 'help:docs', label: 'Documentation', action: () => menuActions.help.docs() },
@@ -193,14 +204,6 @@ export function MenuBar(): JSX.Element {
 }
 
 // Individual menu section component
-interface MenuSectionComponentProps {
-  section: MenuSection;
-  isOpen: boolean;
-  anyMenuOpen: boolean;
-  onOpenExplicit: (label: string) => void;
-  onClose: () => void;
-}
-
 function MenuSectionComponent({
   section,
   isOpen,
@@ -347,7 +350,8 @@ function MenuSectionComponent({
 
           const menuItem = item as MenuItem;
           const isEnabled = menuItem.enabled ? menuItem.enabled() : true;
-          const isChecked = menuItem.checked ? menuItem.checked() : false;
+          const isToggleItem = 'checked' in menuItem;
+          const isChecked = isToggleItem ? menuItem.checked() : false;
 
           return (
             <button
@@ -357,7 +361,7 @@ function MenuSectionComponent({
               className="menu-dropdown-item"
               data-id={menuItem.id}
               data-disabled={!isEnabled}
-              data-checked={isChecked}
+              data-checked={isToggleItem ? isChecked : undefined}
               disabled={!isEnabled}
               onClick={() => {
                 menuItem.action();
@@ -365,7 +369,7 @@ function MenuSectionComponent({
               }}
             >
               <span className="menu-item-label">
-                {menuItem.checked ? <span className="menu-item-check">{isChecked ? '✓' : ''}</span> : null}
+                {isToggleItem ? <span className="menu-item-check">{isChecked ? '✓' : ''}</span> : null}
                 {menuItem.label}
               </span>
               {menuItem.shortcut && <span className="menu-item-shortcut">{menuItem.shortcut}</span>}
@@ -378,7 +382,7 @@ function MenuSectionComponent({
 }
 
 // Connection indicator component
-function ConnectionIndicator({ isConnected }: { isConnected: boolean }) {
+function ConnectionIndicator({ isConnected }: ConnectionIndicatorProps) {
   return (
     <div className={`connection-indicator ${isConnected ? 'connected' : 'disconnected'}`}>
       <span className="connection-dot"></span>
