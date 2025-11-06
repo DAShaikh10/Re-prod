@@ -162,8 +162,18 @@ export function TimelinePanel(): JSX.Element {
       addEvent(event);
 
       setStats((prev) => {
+        // If no previous stats, create initial stats from this first event
         if (!prev) {
-          return prev;
+          return {
+            totalEvents: 1,
+            totalPlots: event.result.plots.length,
+            totalErrors: event.result.error ? 1 : 0,
+            userActions: event.context.actor === 'user' ? 1 : 0,
+            aiActions: event.context.actor === 'ai' ? 1 : 0,
+            sessionStartTime: event.created_at_ms,
+            sessionEndTime: event.created_at_ms,
+            sessionDuration: 0,
+          };
         }
 
         const nextStart = Math.min(prev.sessionStartTime, event.created_at_ms);
