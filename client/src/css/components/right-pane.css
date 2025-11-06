@@ -1,9 +1,9 @@
-.plots-panel {
+.unified-right-pane {
   border: none;
   background: transparent;
 }
 
-.plots-panel .panel-header {
+.unified-right-pane .panel-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -12,14 +12,14 @@
   box-shadow: none;
 }
 
-.plots-panel .tabs {
+.unified-right-pane .tabs {
   flex: 1;
   margin: 0;
   padding-left: 0;
   background: transparent;
 }
 
-.plots-panel .panel-actions {
+.unified-right-pane .panel-actions {
   padding: 0 10px;
   gap: 8px;
 }
@@ -33,7 +33,6 @@
 }
 
 .plots-container,
-.viewer-container,
 .help-container {
   height: 100%;
   overflow: auto;

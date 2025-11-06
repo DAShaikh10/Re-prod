@@ -1,12 +1,26 @@
 import { useState, useEffect, useRef } from 'react';
-import { IconTrash, IconBarChart, IconCheckCircle, IconXCircle } from '@/components/shared';
+import {
+  IconTrash,
+  IconBarChart,
+  IconCheckCircle,
+  IconXCircle,
+  PanelTabs,
+  type PanelTabItem,
+} from '@/components/shared';
 import { useStore } from '@/core';
+
+type ConsoleTab = 'console' | 'history';
 
 export function ConsolePanel(): JSX.Element {
   const execution = useStore((state) => state.execution);
   const clearExecutionResults = useStore((state) => state.clearExecutionResults);
-  const [activeTab, setActiveTab] = useState<'console' | 'history'>('console');
+  const [activeTab, setActiveTab] = useState<ConsoleTab>('console');
   const consoleEndRef = useRef<HTMLDivElement>(null);
+
+  const tabs: PanelTabItem<ConsoleTab>[] = [
+    { id: 'console', label: 'Console' },
+    { id: 'history', label: 'History' },
+  ];
 
   useEffect(() => {
     if (activeTab === 'console') {
@@ -17,20 +31,7 @@ export function ConsolePanel(): JSX.Element {
   return (
     <div className="panel console-panel">
       <div className="panel-header">
-        <div className="tabs">
-          <div
-            className={`tab ${activeTab === 'console' ? 'active' : ''}`}
-            onClick={() => setActiveTab('console')}
-          >
-            Console
-          </div>
-          <div
-            className={`tab ${activeTab === 'history' ? 'active' : ''}`}
-            onClick={() => setActiveTab('history')}
-          >
-            History
-          </div>
-        </div>
+        <PanelTabs items={tabs} activeId={activeTab} onSelect={setActiveTab} />
         <div className="panel-actions">
           <button
             className="btn btn-icon"

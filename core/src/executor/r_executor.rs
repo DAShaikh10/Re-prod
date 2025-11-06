@@ -38,6 +38,14 @@ impl RExecutor {
     }
 
     pub async fn execute(&self, request: ExecutionRequest) -> Result<ExecutionResult> {
+        let (result, _) = self.execute_with_event(request).await?;
+        Ok(result)
+    }
+
+    pub async fn execute_with_event(
+        &self,
+        request: ExecutionRequest,
+    ) -> Result<(ExecutionResult, ExecutionEvent)> {
         let start = Instant::now();
 
         let mut blocks = ensure_blocks(&request);
@@ -78,9 +86,9 @@ impl RExecutor {
 
         let environment = self.environment_snapshot();
         let event = build_event(&request, &result, environment.clone(), blocks.clone());
-        self.timeline.record(event).await?;
+        self.timeline.record(event.clone()).await?;
 
-        Ok(result)
+        Ok((result, event))
     }
 
     fn wrap_code_with_plot_capture(&self, code: &str, plot_prefix: &str) -> String {
@@ -182,6 +190,11 @@ impl RExecutorBuilder {
         T: TimelineSink + 'static,
     {
         self.timeline = Arc::new(timeline);
+        self
+    }
+
+    pub fn with_shared_timeline(mut self, timeline: Arc<dyn TimelineSink>) -> Self {
+        self.timeline = timeline;
         self
     }
 

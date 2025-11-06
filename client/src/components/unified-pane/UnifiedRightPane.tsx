@@ -1,5 +1,11 @@
 import { useState, useEffect } from 'react';
-import { IconBarChart, IconChevronLeft, IconChevronRight } from '@/components/shared';
+import {
+  IconBarChart,
+  IconChevronLeft,
+  IconChevronRight,
+  PanelTabs,
+  type PanelTabItem,
+} from '@/components/shared';
 import { useStore } from '@/core';
 import { TimelinePanel } from '@/components/timeline';
 
@@ -15,6 +21,15 @@ export function UnifiedRightPane(): JSX.Element {
   const currentPlot = allPlots[selectedPlotIndex];
   const plotsVisible = panes.plots;
   const timelineVisible = panes.timeline;
+
+  const tabs: PanelTabItem<TabType>[] = [];
+  if (plotsVisible) {
+    tabs.push({ id: 'plots', label: 'Plots' });
+  }
+  if (timelineVisible) {
+    tabs.push({ id: 'timeline', label: 'Timeline' });
+  }
+  tabs.push({ id: 'help', label: 'Help' });
 
   // Listen for plot focus events from ConsolePanel
   useEffect(() => {
@@ -70,30 +85,7 @@ export function UnifiedRightPane(): JSX.Element {
   return (
     <div className="panel unified-right-pane">
       <div className="panel-header">
-        <div className="tabs">
-          {plotsVisible && (
-            <div
-              className={`tab ${activeTab === 'plots' ? 'active' : ''}`}
-              onClick={() => setActiveTab('plots')}
-            >
-              Plots
-            </div>
-          )}
-          {timelineVisible && (
-            <div
-              className={`tab ${activeTab === 'timeline' ? 'active' : ''}`}
-              onClick={() => setActiveTab('timeline')}
-            >
-              Timeline
-            </div>
-          )}
-          <div
-            className={`tab ${activeTab === 'help' ? 'active' : ''}`}
-            onClick={() => setActiveTab('help')}
-          >
-            Help
-          </div>
-        </div>
+        <PanelTabs items={tabs} activeId={activeTab} onSelect={setActiveTab} />
         {allPlots.length > 0 && activeTab === 'plots' && (
           <div className="panel-actions">
             <button

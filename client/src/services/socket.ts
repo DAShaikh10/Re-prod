@@ -9,6 +9,8 @@ type OneShotHandler = {
   matcher?: (message: ServerMessage) => boolean;
 };
 
+type ConnectionStatus = 'connected' | 'disconnected' | 'error';
+
 class SocketService {
   private ws: WebSocket | null = null;
   // Event handlers keyed by response.type (e.g., 'ai_response').
@@ -17,6 +19,7 @@ class SocketService {
   private oneShotHandlers: OneShotHandler[] = [];
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private url: string = '';
+  private connectionListeners: Set<(status: ConnectionStatus) => void> = new Set();
 
   connect(url: string = 'ws://localhost:3001/ws'): void {
     // Prevent duplicate connections
@@ -34,6 +37,7 @@ class SocketService {
         clearTimeout(this.reconnectTimer);
         this.reconnectTimer = null;
       }
+      this.notifyConnection('connected');
     };
 
     this.ws.onmessage = (event) => {
@@ -52,9 +56,11 @@ class SocketService {
 
     this.ws.onerror = (error) => {
       console.error('WebSocket error:', error);
+      this.notifyConnection('error');
     };
 
     this.ws.onclose = () => {
+      this.notifyConnection('disconnected');
       // Auto-reconnect after 2 seconds
       this.reconnectTimer = setTimeout(() => {
         this.connect(this.url);
@@ -115,10 +121,18 @@ class SocketService {
     }
     this.messageHandlers.clear();
     this.oneShotHandlers = [];
+    this.notifyConnection('disconnected');
   }
 
   isConnected(): boolean {
     return this.ws?.readyState === WebSocket.OPEN;
+  }
+
+  onConnectionChange(listener: (status: ConnectionStatus) => void): () => void {
+    this.connectionListeners.add(listener);
+    return () => {
+      this.connectionListeners.delete(listener);
+    };
   }
 
   private dispatch(type: string, message: ServerMessage): void {
@@ -149,6 +163,16 @@ class SocketService {
     } catch (error) {
       console.error('WebSocket one-shot handler threw an error', error);
     }
+  }
+
+  private notifyConnection(status: ConnectionStatus): void {
+    this.connectionListeners.forEach((listener) => {
+      try {
+        listener(status);
+      } catch (error) {
+        console.error('WebSocket connection listener threw an error', error);
+      }
+    });
   }
 }
 
