@@ -1,108 +1,55 @@
-import { useState, useEffect } from 'react';
 import {
   IconBarChart,
   IconChevronLeft,
   IconChevronRight,
   PanelTabs,
-  type PanelTabItem,
 } from '@/components/shared';
-import { useStore } from '@/core';
 import { TimelinePanel } from '@/components/timeline';
-
-type TabType = 'plots' | 'timeline' | 'help';
+import { useUnifiedRightPaneState } from '@/hooks/useUnifiedRightPaneState';
 
 export function UnifiedRightPane(): JSX.Element {
-  const execution = useStore((state) => state.execution);
-  const panes = useStore((state) => state.view.panes);
-  const [activeTab, setActiveTab] = useState<TabType>('plots');
-  const [selectedPlotIndex, setSelectedPlotIndex] = useState(0);
+  const {
+    panes,
+    tabs,
+    activeTab,
+    setActiveTab,
+    navigation,
+    allPlots,
+    currentPlot,
+    selectPreviousPlot,
+    selectNextPlot,
+  } = useUnifiedRightPaneState();
 
-  const allPlots = execution.results.flatMap(result => result.plots);
-  const currentPlot = allPlots[selectedPlotIndex];
   const plotsVisible = panes.plots;
   const timelineVisible = panes.timeline;
-
-  const tabs: PanelTabItem<TabType>[] = [];
-  if (plotsVisible) {
-    tabs.push({ id: 'plots', label: 'Plots' });
-  }
-  if (timelineVisible) {
-    tabs.push({ id: 'timeline', label: 'Timeline' });
-  }
-  tabs.push({ id: 'help', label: 'Help' });
-
-  // Listen for plot focus events from ConsolePanel
-  useEffect(() => {
-    const handleFocusPlot = (event: CustomEvent) => {
-      if (!plotsVisible) {
-        return;
-      }
-      const { plotIndex } = event.detail;
-      setActiveTab('plots');
-      setSelectedPlotIndex(plotIndex);
-    };
-
-    window.addEventListener('focusPlot', handleFocusPlot as EventListener);
-
-    return () => {
-      window.removeEventListener('focusPlot', handleFocusPlot as EventListener);
-    };
-  }, [plotsVisible]);
-
-  // Auto-switch to Plots tab when a new plot is created
-  useEffect(() => {
-    if (!plotsVisible) {
-      return;
-    }
-    if (allPlots.length > 0 && activeTab !== 'plots') {
-      setActiveTab('plots');
-      // Set to the latest plot
-      setSelectedPlotIndex(allPlots.length - 1);
-    }
-  }, [allPlots.length, plotsVisible, activeTab]);
-
-  // Ensure active tab is valid when panes are hidden
-  useEffect(() => {
-    if (activeTab === 'plots' && !plotsVisible) {
-      setActiveTab(timelineVisible ? 'timeline' : 'help');
-    } else if (activeTab === 'timeline' && !timelineVisible) {
-      setActiveTab(plotsVisible ? 'plots' : 'help');
-    }
-  }, [activeTab, plotsVisible, timelineVisible]);
-
-  const handlePrevious = (): void => {
-    if (selectedPlotIndex > 0) {
-      setSelectedPlotIndex(selectedPlotIndex - 1);
-    }
-  };
-
-  const handleNext = (): void => {
-    if (selectedPlotIndex < allPlots.length - 1) {
-      setSelectedPlotIndex(selectedPlotIndex + 1);
-    }
-  };
+  const { selectedPlotIndex, totalPlots } = navigation;
 
   return (
-    <div className="panel unified-right-pane">
-      <div className="panel-header">
-        <PanelTabs items={tabs} activeId={activeTab} onSelect={setActiveTab} />
+    <div className="panel panel--transparent unified-right-pane">
+      <div className="panel-header panel-header--plain">
+        <PanelTabs
+          items={tabs}
+          activeId={activeTab}
+          onSelect={setActiveTab}
+          className="panel-tabs--flush"
+        />
         {allPlots.length > 0 && activeTab === 'plots' && (
-          <div className="panel-actions">
+          <div className="panel-actions panel-actions--compact">
             <button
               className="btn btn-icon"
-              onClick={handlePrevious}
+              onClick={selectPreviousPlot}
               disabled={selectedPlotIndex === 0}
               title="Previous plot"
               aria-label="Previous plot">
               <IconChevronLeft width={16} height={16} aria-hidden />
             </button>
             <span className="plot-counter">
-              {selectedPlotIndex + 1} / {allPlots.length}
+              {selectedPlotIndex + 1} / {totalPlots}
             </span>
             <button
               className="btn btn-icon"
-              onClick={handleNext}
-              disabled={selectedPlotIndex >= allPlots.length - 1}
+              onClick={selectNextPlot}
+              disabled={selectedPlotIndex >= totalPlots - 1}
               title="Next plot"
               aria-label="Next plot">
               <IconChevronRight width={16} height={16} aria-hidden />

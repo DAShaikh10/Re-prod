@@ -1,7 +1,4 @@
-interface TimelineSortProps {
-  sort: 'asc' | 'desc';
-  onChange: (sort: 'asc' | 'desc') => void;
-}
+import type { TimelineSortProps } from '@/types/timeline';
 
 export function TimelineSort({ sort, onChange }: TimelineSortProps): JSX.Element {
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {

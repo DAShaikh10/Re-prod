@@ -1,38 +1,26 @@
-import { useState, useEffect, useRef } from 'react';
-import {
-  IconTrash,
-  IconBarChart,
-  IconCheckCircle,
-  IconXCircle,
-  PanelTabs,
-  type PanelTabItem,
-} from '@/components/shared';
-import { useStore } from '@/core';
-
-type ConsoleTab = 'console' | 'history';
+import { IconTrash, IconBarChart, IconCheckCircle, IconXCircle, PanelTabs } from '@/components/shared';
+import { useConsolePanelState } from '@/hooks/useConsolePanelState';
 
 export function ConsolePanel(): JSX.Element {
-  const execution = useStore((state) => state.execution);
-  const clearExecutionResults = useStore((state) => state.clearExecutionResults);
-  const [activeTab, setActiveTab] = useState<ConsoleTab>('console');
-  const consoleEndRef = useRef<HTMLDivElement>(null);
-
-  const tabs: PanelTabItem<ConsoleTab>[] = [
-    { id: 'console', label: 'Console' },
-    { id: 'history', label: 'History' },
-  ];
-
-  useEffect(() => {
-    if (activeTab === 'console') {
-      consoleEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [execution.results, activeTab]);
+  const {
+    execution,
+    tabs,
+    activeTab,
+    setActiveTab,
+    consoleEndRef,
+    clearExecutionResults,
+  } = useConsolePanelState();
 
   return (
-    <div className="panel console-panel">
-      <div className="panel-header">
-        <PanelTabs items={tabs} activeId={activeTab} onSelect={setActiveTab} />
-        <div className="panel-actions">
+    <div className="panel panel--transparent console-panel">
+      <div className="panel-header panel-header--plain">
+        <PanelTabs
+          items={tabs}
+          activeId={activeTab}
+          onSelect={setActiveTab}
+          className="panel-tabs--flush"
+        />
+        <div className="panel-actions panel-actions--compact">
           <button
             className="btn btn-icon"
             title="Clear Console"

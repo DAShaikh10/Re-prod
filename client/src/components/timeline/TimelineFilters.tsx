@@ -1,9 +1,4 @@
-import { type TimelineQuery } from 'shared';
-
-interface TimelineFiltersProps {
-  filters: TimelineQuery['filters'];
-  onChange: (filters: TimelineQuery['filters']) => void;
-}
+import type { TimelineFiltersProps } from '@/types/timeline';
 
 export function TimelineFilters({ filters = {}, onChange }: TimelineFiltersProps): JSX.Element {
   const handleActorChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
