@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { Allotment } from 'allotment';
 import 'allotment/dist/style.css';
 import { MenuBar, StatusBar } from '@/components/menu';
@@ -6,32 +5,16 @@ import { EditorPanel } from '@/components/editor';
 import { AIPanel } from '@/components/ai-panel';
 import { ConsolePanel } from '@/components/console';
 import { UnifiedRightPane } from '@/components/unified-pane';
-import { socketService } from './services/socket';
 import { useStore } from '@/core';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { useSocketConnection } from '@/hooks/useSocketConnection';
 
 function App(): JSX.Element {
-  const setConnected = useStore((state) => state.setConnected);
   const panes = useStore((state) => state.view.panes);
 
   // Enable global keyboard shortcuts
   useKeyboardShortcuts();
-
-  useEffect(() => {
-    socketService.connect();
-    if (socketService.isConnected()) {
-      setConnected(true);
-    }
-
-    const unsubscribe = socketService.onConnectionChange((status) => {
-      setConnected(status === 'connected');
-    });
-
-    return () => {
-      unsubscribe();
-      socketService.disconnect();
-    };
-  }, [setConnected]);
+  useSocketConnection();
 
   return (
     <div className="app">
