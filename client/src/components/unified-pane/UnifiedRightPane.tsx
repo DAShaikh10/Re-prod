@@ -50,16 +50,21 @@ export function UnifiedRightPane(): JSX.Element {
   }, [plotsVisible]);
 
   // Auto-switch to Plots tab when a new plot is created
+  // Note: We removed 'activeTab' from dependencies to prevent switching back
+  // when user manually navigates to Timeline/Help tabs
   useEffect(() => {
     if (!plotsVisible) {
       return;
     }
+    // Only switch if we have plots and we're not already on plots tab
+    // This will trigger once when length changes (new plot added)
     if (allPlots.length > 0 && activeTab !== 'plots') {
       setActiveTab('plots');
       // Set to the latest plot
       setSelectedPlotIndex(allPlots.length - 1);
     }
-  }, [allPlots.length, plotsVisible, activeTab]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allPlots.length, plotsVisible]); // Removed activeTab to prevent re-triggering
 
   // Ensure active tab is valid when panes are hidden
   useEffect(() => {
