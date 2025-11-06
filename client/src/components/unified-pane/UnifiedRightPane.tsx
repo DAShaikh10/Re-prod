@@ -82,7 +82,9 @@ export function UnifiedRightPane(): JSX.Element {
           </div>
         )}
         {activeTab === 'timeline' && timelineVisible && (
-          <TimelinePanel />
+          <div className="timeline-container">
+            <TimelinePanel />
+          </div>
         )}
         {activeTab === 'help' && (
           <div className="help-container">

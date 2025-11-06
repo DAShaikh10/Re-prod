@@ -1,12 +1,13 @@
+mod conversions;
 mod handlers;
 mod http;
-mod conversions;
 mod routes;
 
 use axum::{routing::get, Router};
 use reprod_core::{
-    executor::timeline::{JsonTimeline, TimelineSink}, Config, RExecutor, ToolExecutor,
-    ToolRegistry, ai::tools::{FileSystemTool, RContextTool},
+    ai::tools::{FileSystemTool, RContextTool},
+    executor::timeline::{JsonTimeline, TimelineSink},
+    Config, RExecutor, ToolExecutor, ToolRegistry,
 };
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -31,7 +32,10 @@ async fn main() {
     // Initialize timeline storage (shared between executor and websocket pushes)
     let timeline_file_path = temp_dir.join("timeline.ndjson");
     let timeline = JsonTimeline::new(timeline_file_path).unwrap_or_else(|error| {
-        tracing::warn!("Failed to initialize timeline storage: {}. Using in-memory timeline.", error);
+        tracing::warn!(
+            "Failed to initialize timeline storage: {}. Using in-memory timeline.",
+            error
+        );
         JsonTimeline::new_in_memory().expect("Failed to create in-memory timeline")
     });
     let timeline = Arc::new(timeline);
@@ -68,7 +72,10 @@ async fn main() {
     let workspace_root = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
     let filesystem_tool = Arc::new(FileSystemTool::new(workspace_root.clone()));
     let r_context_tool = Arc::new(RContextTool::new());
-    tracing::info!("AI tools initialized with workspace: {}", workspace_root.display());
+    tracing::info!(
+        "AI tools initialized with workspace: {}",
+        workspace_root.display()
+    );
 
     // Build application
     let app = Router::new()

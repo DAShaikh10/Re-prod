@@ -1,6 +1,8 @@
 use reprod_core::{ArtifactInfo as ProtoArtifact, ToolExecutionResult as ProtoToolExecutionResult};
 
-pub fn to_proto_tool_result(src: reprod_core::tools::ToolExecutionResult) -> ProtoToolExecutionResult {
+pub fn to_proto_tool_result(
+    src: reprod_core::tools::ToolExecutionResult,
+) -> ProtoToolExecutionResult {
     ProtoToolExecutionResult {
         tool_id: src.tool_id,
         capability_id: src.capability_id,
