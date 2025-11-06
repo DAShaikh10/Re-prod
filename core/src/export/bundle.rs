@@ -1,5 +1,5 @@
+use super::metadata::{BundleFiles, BundleMetadata, EnvironmentInfo, SessionInfo, Statistics};
 use crate::protocol::{ExecutionActor, ExecutionEvent};
-use super::metadata::{BundleMetadata, SessionInfo, EnvironmentInfo, Statistics, BundleFiles};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
@@ -83,11 +83,7 @@ impl ReproductionBundle {
             .min()
             .unwrap_or(0);
 
-        let end_time = events
-            .iter()
-            .map(|e| e.created_at_ms)
-            .max()
-            .unwrap_or(0);
+        let end_time = events.iter().map(|e| e.created_at_ms).max().unwrap_or(0);
 
         SessionInfo {
             start_time,
@@ -109,15 +105,9 @@ impl ReproductionBundle {
             .filter(|e| matches!(e.context.actor, ExecutionActor::Ai))
             .count();
 
-        let total_plots = events
-            .iter()
-            .map(|e| e.result.plots.len())
-            .sum();
+        let total_plots = events.iter().map(|e| e.result.plots.len()).sum();
 
-        let total_errors = events
-            .iter()
-            .filter(|e| e.result.error.is_some())
-            .count();
+        let total_errors = events.iter().filter(|e| e.result.error.is_some()).count();
 
         let unique_documents = events
             .iter()
@@ -262,8 +252,8 @@ impl ReproductionBundle {
 mod tests {
     use super::*;
     use crate::protocol::{
-        CodeBlockKind, CodeBlockMetadata, EnvironmentSnapshot, ExecutionContext,
-        ExecutionResult, ExecutionSource, PlotInfo,
+        CodeBlockKind, CodeBlockMetadata, EnvironmentSnapshot, ExecutionContext, ExecutionResult,
+        ExecutionSource, PlotInfo,
     };
 
     fn create_test_event(event_id: &str, actor: ExecutionActor, has_plot: bool) -> ExecutionEvent {

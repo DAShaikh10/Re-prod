@@ -1,8 +1,8 @@
+use crate::ReprodError;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::path::{Path, PathBuf};
 use tokio::fs;
-use crate::ReprodError;
 
 const MAX_FILE_SIZE: u64 = 10 * 1024 * 1024; // 10MB limit
 
@@ -140,9 +140,9 @@ impl FileSystemTool {
 
         // Ensure parent directory exists
         if let Some(parent) = path.parent() {
-            fs::create_dir_all(parent)
-                .await
-                .map_err(|e| ReprodError::IOError(format!("Cannot create parent directory: {}", e)))?;
+            fs::create_dir_all(parent).await.map_err(|e| {
+                ReprodError::IOError(format!("Cannot create parent directory: {}", e))
+            })?;
         }
 
         fs::write(&path, request.content)
@@ -153,7 +153,10 @@ impl FileSystemTool {
     }
 
     /// List files in a directory
-    pub async fn list_files(&self, request: ListFilesRequest) -> Result<Vec<FileInfo>, ReprodError> {
+    pub async fn list_files(
+        &self,
+        request: ListFilesRequest,
+    ) -> Result<Vec<FileInfo>, ReprodError> {
         let path = if let Some(ref p) = request.path {
             self.validate_path(p)?
         } else {
@@ -423,9 +426,7 @@ mod tests {
             .unwrap();
         fs::create_dir(workspace.join("subdir")).await.unwrap();
 
-        let result = tool
-            .list_files(ListFilesRequest { path: None })
-            .await;
+        let result = tool.list_files(ListFilesRequest { path: None }).await;
 
         assert!(result.is_ok());
         let files = result.unwrap();

@@ -33,8 +33,6 @@ pub mod scripts;
 pub mod writer;
 
 pub use bundle::{ReproductionBundle, TimelineExport, ValidationReport};
-pub use metadata::{
-    BundleFiles, BundleMetadata, EnvironmentInfo, SessionInfo, Statistics,
-};
+pub use metadata::{BundleFiles, BundleMetadata, EnvironmentInfo, SessionInfo, Statistics};
 pub use scripts::{generate_readme, generate_replay_script, generate_validation_script};
 pub use writer::{BundleWriter, WriterError};
