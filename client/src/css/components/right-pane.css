@@ -24,6 +24,13 @@
   flex-direction: column;
 }
 
+/* Ensure Timeline panel takes full height for scrolling */
+.unified-right-pane .panel-content > * {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .unified-right-pane .tabs {
   flex: 1;
   margin: 0;
