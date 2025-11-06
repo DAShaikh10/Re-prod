@@ -20,15 +20,6 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Ensure Timeline panel takes full height for scrolling */
-.unified-right-pane .panel-content > * {
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
 }
 
 .unified-right-pane .tabs {
@@ -52,7 +43,6 @@
 }
 
 .plots-container,
-.timeline-container,
 .help-container {
   height: 100%;
   overflow: auto;
