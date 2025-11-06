@@ -166,6 +166,44 @@ Let's implement this step by step:
 Run cargo test timeline::json to verify our changes
 ```
 
+## 🔒 Git Hooks
+
+This project uses Git hooks to ensure code quality before pushing.
+
+### Installing Hooks
+
+Run this once after cloning the repository:
+
+```bash
+bash scripts/install-hooks.sh
+```
+
+### Pre-Push Checks
+
+The following checks run automatically before `git push`:
+
+1. **Rust Formatting** (`cargo fmt --check`)
+   - Ensures all Rust code follows standard formatting
+   - Fix with: `cargo fmt`
+
+2. **Rust Linting** (`cargo clippy`)
+   - Catches common mistakes and suggests improvements
+   - Fix with: `cargo clippy --fix`
+
+3. **TypeScript Linting** (`pnpm run lint`)
+   - Validates TypeScript/JavaScript code style
+   - Fix with: `pnpm run lint --fix` (if available)
+
+### Bypassing Hooks (Not Recommended)
+
+If you need to bypass the checks temporarily:
+
+```bash
+git push --no-verify
+```
+
+**Note**: Use this only in exceptional cases. Failed checks indicate issues that should be fixed before pushing.
+
 ---
 
-**Last Updated**: 2025-11-05
+**Last Updated**: 2025-11-06
