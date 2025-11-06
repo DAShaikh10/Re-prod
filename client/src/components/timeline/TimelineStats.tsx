@@ -1,9 +1,4 @@
-import { type TimelineStats as TimelineStatsType } from 'shared';
-
-interface TimelineStatsProps {
-  stats: TimelineStatsType | null;
-  loading: boolean;
-}
+import type { TimelineStatsProps } from '@/types/timeline';
 
 export function TimelineStats({ stats, loading }: TimelineStatsProps): JSX.Element {
   if (loading || !stats) {
