@@ -1,6 +1,6 @@
 use super::AIProvider;
+use crate::{AIResponse, ChatMessage, ReprodError, ToolCall};
 use async_trait::async_trait;
-use crate::{ChatMessage, ReprodError, AIResponse, ToolCall};
 use reqwest::Client;
 use serde_json::{json, Value};
 
@@ -125,7 +125,9 @@ impl AIProvider for AnthropicProvider {
                     let tool_call = ToolCall {
                         id: block["id"]
                             .as_str()
-                            .ok_or_else(|| ReprodError::AIError("Missing tool call id".to_string()))?
+                            .ok_or_else(|| {
+                                ReprodError::AIError("Missing tool call id".to_string())
+                            })?
                             .to_string(),
                         name: block["name"]
                             .as_str()

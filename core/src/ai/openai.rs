@@ -1,6 +1,6 @@
 use super::AIProvider;
+use crate::{AIResponse, ChatMessage, ReprodError, ToolCall};
 use async_trait::async_trait;
-use crate::{ChatMessage, ReprodError, AIResponse, ToolCall};
 use reqwest::Client;
 use serde_json::{json, Value};
 
@@ -152,10 +152,7 @@ impl AIProvider for OpenAIProvider {
             .map_err(|e| ReprodError::AIError(format!("Invalid response: {}", e)))?;
 
         let message = &data["choices"][0]["message"];
-        let content = message["content"]
-            .as_str()
-            .unwrap_or("")
-            .to_string();
+        let content = message["content"].as_str().unwrap_or("").to_string();
 
         let mut tool_calls = Vec::new();
         if let Some(calls) = message["tool_calls"].as_array() {

@@ -48,8 +48,7 @@ fn test_all_manifests_parse_successfully() {
 fn test_registry_loads_all_manifests() {
     let tools_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tools");
 
-    let registry = ToolRegistry::load_from_dir(&tools_dir)
-        .expect("Failed to load tool registry");
+    let registry = ToolRegistry::load_from_dir(&tools_dir).expect("Failed to load tool registry");
 
     assert!(
         !registry.is_empty(),
@@ -66,8 +65,7 @@ fn test_registry_loads_all_manifests() {
 #[test]
 fn test_r_package_manifest_structure() {
     let tools_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tools");
-    let registry = ToolRegistry::load_from_dir(&tools_dir)
-        .expect("Failed to load tool registry");
+    let registry = ToolRegistry::load_from_dir(&tools_dir).expect("Failed to load tool registry");
 
     for manifest in registry.iter() {
         // Check basic fields
@@ -125,8 +123,7 @@ fn test_r_package_manifest_structure() {
 #[test]
 fn test_expected_tools_present() {
     let tools_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tools");
-    let registry = ToolRegistry::load_from_dir(&tools_dir)
-        .expect("Failed to load tool registry");
+    let registry = ToolRegistry::load_from_dir(&tools_dir).expect("Failed to load tool registry");
 
     let expected_tools = vec![
         "ape",
@@ -152,8 +149,7 @@ fn test_expected_tools_present() {
 #[test]
 fn test_validation_configuration() {
     let tools_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tools");
-    let registry = ToolRegistry::load_from_dir(&tools_dir)
-        .expect("Failed to load tool registry");
+    let registry = ToolRegistry::load_from_dir(&tools_dir).expect("Failed to load tool registry");
 
     for manifest in registry.iter() {
         let validation = &manifest.validation;
@@ -191,8 +187,7 @@ fn test_validation_configuration() {
 #[test]
 fn test_capability_templates() {
     let tools_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tools");
-    let registry = ToolRegistry::load_from_dir(&tools_dir)
-        .expect("Failed to load tool registry");
+    let registry = ToolRegistry::load_from_dir(&tools_dir).expect("Failed to load tool registry");
 
     for manifest in registry.iter() {
         for capability in &manifest.capabilities {
@@ -240,8 +235,7 @@ fn test_capability_templates() {
 #[test]
 fn test_tool_tags() {
     let tools_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tools");
-    let registry = ToolRegistry::load_from_dir(&tools_dir)
-        .expect("Failed to load tool registry");
+    let registry = ToolRegistry::load_from_dir(&tools_dir).expect("Failed to load tool registry");
 
     for manifest in registry.iter() {
         assert!(
@@ -253,7 +247,8 @@ fn test_tool_tags() {
         // Check that tags are lowercase and use hyphens (numbers allowed)
         for tag in &manifest.tags {
             assert!(
-                tag.chars().all(|c| c.is_lowercase() || c == '-' || c.is_numeric()),
+                tag.chars()
+                    .all(|c| c.is_lowercase() || c == '-' || c.is_numeric()),
                 "Tag '{}' in tool '{}' should be lowercase with hyphens and numbers only",
                 tag,
                 manifest.id
@@ -266,8 +261,7 @@ fn test_tool_tags() {
 #[test]
 fn test_capability_lookup() {
     let tools_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tools");
-    let registry = ToolRegistry::load_from_dir(&tools_dir)
-        .expect("Failed to load tool registry");
+    let registry = ToolRegistry::load_from_dir(&tools_dir).expect("Failed to load tool registry");
 
     // Test a specific capability lookup
     if let Some(_ape_manifest) = registry.get("ape") {
@@ -287,8 +281,7 @@ fn test_capability_lookup() {
 #[test]
 fn test_input_parameter_types() {
     let tools_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tools");
-    let registry = ToolRegistry::load_from_dir(&tools_dir)
-        .expect("Failed to load tool registry");
+    let registry = ToolRegistry::load_from_dir(&tools_dir).expect("Failed to load tool registry");
 
     for manifest in registry.iter() {
         for capability in &manifest.capabilities {
@@ -321,8 +314,7 @@ fn test_input_parameter_types() {
 #[test]
 fn test_output_specifications() {
     let tools_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tools");
-    let registry = ToolRegistry::load_from_dir(&tools_dir)
-        .expect("Failed to load tool registry");
+    let registry = ToolRegistry::load_from_dir(&tools_dir).expect("Failed to load tool registry");
 
     for manifest in registry.iter() {
         for capability in &manifest.capabilities {

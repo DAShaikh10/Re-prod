@@ -4,17 +4,17 @@ use std::{
     time::{Instant, SystemTime, UNIX_EPOCH},
 };
 
-use anyhow::{anyhow, Result};
-use async_trait::async_trait;
-use base64::Engine;
 use crate::{
     CodeBlockKind, CodeBlockMetadata, EnvironmentSnapshot, ExecutionContext, ExecutionEvent,
     ExecutionRequest, ExecutionResult, ExecutionSource, PlotInfo,
 };
+use anyhow::{anyhow, Result};
+use async_trait::async_trait;
+use base64::Engine;
 use tokio::{fs, process::Command};
 use uuid::Uuid;
 
-use super::{NoopTimeline, TimelineSink, segment_r_code, SegmentationInput};
+use super::{segment_r_code, NoopTimeline, SegmentationInput, TimelineSink};
 
 pub struct RExecutor {
     temp_dir: PathBuf,
@@ -316,8 +316,8 @@ fn build_event(
 mod tests {
     use super::*;
     use crate::executor::InMemoryTimeline;
-    use anyhow::Result;
     use crate::{ExecutionActor, ExecutionContext};
+    use anyhow::Result;
     use tokio::sync::Mutex;
 
     struct MockRunner {

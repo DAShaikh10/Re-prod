@@ -18,8 +18,8 @@ pub struct BundleMetadata {
 /// Information about the session being exported.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SessionInfo {
-    pub start_time: u64,     // epoch milliseconds
-    pub end_time: u64,       // epoch milliseconds
+    pub start_time: u64, // epoch milliseconds
+    pub end_time: u64,   // epoch milliseconds
     pub duration_ms: u64,
     pub total_events: usize,
 }

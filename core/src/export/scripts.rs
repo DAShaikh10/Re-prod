@@ -204,7 +204,8 @@ if command -v jq &> /dev/null; then
   jq -r '"  Errors: \(.statistics.total_errors)"' metadata.json
   jq -r '"  Duration: \(.session.duration_ms / 1000) seconds"' metadata.json
 fi
-"#.to_string()
+"#
+    .to_string()
 }
 
 /// Generate replay script (replay.R).
@@ -311,7 +312,8 @@ if (results$failed > 0) {
 }
 
 cat("\nReplay complete!\n")
-"#.to_string()
+"#
+    .to_string()
 }
 
 #[cfg(test)]

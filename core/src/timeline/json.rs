@@ -42,8 +42,7 @@ impl JsonTimeline {
     pub fn new(file_path: PathBuf) -> Result<Self> {
         // Ensure parent directory exists
         if let Some(parent) = file_path.parent() {
-            std::fs::create_dir_all(parent)
-                .context("Failed to create timeline directory")?;
+            std::fs::create_dir_all(parent).context("Failed to create timeline directory")?;
         }
 
         // Open file in append mode (create if not exists)
@@ -123,8 +122,8 @@ impl JsonTimeline {
             return Ok(Vec::new());
         }
 
-        let file = File::open(&self.file_path)
-            .context("Failed to open timeline file for reading")?;
+        let file =
+            File::open(&self.file_path).context("Failed to open timeline file for reading")?;
         let reader = BufReader::new(file);
 
         let mut records = Vec::new();
@@ -136,8 +135,9 @@ impl JsonTimeline {
                 continue;
             }
 
-            let record: TimelineRecord = serde_json::from_str(&line)
-                .with_context(|| format!("Failed to parse timeline record at line {}", line_num + 1))?;
+            let record: TimelineRecord = serde_json::from_str(&line).with_context(|| {
+                format!("Failed to parse timeline record at line {}", line_num + 1)
+            })?;
             records.push(record);
         }
 
@@ -145,7 +145,11 @@ impl JsonTimeline {
     }
 
     /// Apply filters to records
-    fn apply_filters(&self, records: &[TimelineRecord], filters: &TimelineFilters) -> Vec<TimelineRecord> {
+    fn apply_filters(
+        &self,
+        records: &[TimelineRecord],
+        filters: &TimelineFilters,
+    ) -> Vec<TimelineRecord> {
         records
             .iter()
             .filter(|record| {
@@ -204,7 +208,11 @@ impl JsonTimeline {
     }
 
     /// Sort records
-    fn sort_records(&self, mut records: Vec<TimelineRecord>, sort_order: SortOrder) -> Vec<TimelineRecord> {
+    fn sort_records(
+        &self,
+        mut records: Vec<TimelineRecord>,
+        sort_order: SortOrder,
+    ) -> Vec<TimelineRecord> {
         match sort_order {
             SortOrder::Asc => {
                 records.sort_by_key(|r| r.created_at_ms);
@@ -301,8 +309,7 @@ impl JsonTimeline {
         let mut writer = self.writer.lock().expect("timeline lock poisoned");
         drop(writer.take()); // Close the current file handle
 
-        std::fs::write(&self.file_path, "")
-            .context("Failed to clear timeline file")?;
+        std::fs::write(&self.file_path, "").context("Failed to clear timeline file")?;
 
         // Reopen in append mode
         let file = OpenOptions::new()
@@ -321,15 +328,12 @@ impl JsonTimeline {
 impl TimelineSink for JsonTimeline {
     async fn record(&self, event: ExecutionEvent) -> Result<()> {
         let record = Self::create_record(event);
-        let json = serde_json::to_string(&record)
-            .context("Failed to serialize timeline record")?;
+        let json = serde_json::to_string(&record).context("Failed to serialize timeline record")?;
 
         let mut writer = self.writer.lock().expect("timeline lock poisoned");
         if let Some(ref mut file) = *writer {
-            writeln!(file, "{}", json)
-                .context("Failed to write timeline record")?;
-            file.flush()
-                .context("Failed to flush timeline file")?;
+            writeln!(file, "{}", json).context("Failed to write timeline record")?;
+            file.flush().context("Failed to flush timeline file")?;
         }
 
         Ok(())

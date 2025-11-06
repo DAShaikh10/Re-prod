@@ -1,4 +1,7 @@
-use crate::{ai::{AIProvider, AnthropicProvider, OpenAIProvider}, Config};
+use crate::{
+    ai::{AIProvider, AnthropicProvider, OpenAIProvider},
+    Config,
+};
 use std::sync::Arc;
 
 /// Create an AI provider from Config.default_ai_provider.
@@ -10,4 +13,3 @@ pub fn from_config(cfg: &Config) -> Arc<dyn AIProvider> {
         _ => Arc::new(AnthropicProvider::new(cfg.anthropic_api_key.clone())),
     }
 }
-

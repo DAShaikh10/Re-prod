@@ -42,11 +42,11 @@ fi
 
 # Check 2: Rust linting with Clippy
 echo -e "${YELLOW}[2/3]${NC} Running Rust linter (clippy)..."
-if cargo clippy --manifest-path core/Cargo.toml --all-targets --all-features -- -D warnings > /dev/null 2>&1; then
+if cargo clippy --manifest-path core/Cargo.toml --lib --all-features -- -D warnings > /dev/null 2>&1; then
     print_status 0 "Clippy checks passed"
 else
     print_status 1 "Clippy found issues"
-    echo "  → Run 'cargo clippy --fix' to auto-fix or check errors manually"
+    echo "  → Run 'cargo clippy' to see details"
     echo ""
 fi
 

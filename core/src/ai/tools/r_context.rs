@@ -1,6 +1,6 @@
+use crate::{RExecutor, ReprodError};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use crate::{RExecutor, ReprodError};
 
 /// R Context tool for AI to query R environment state
 #[derive(Debug, Clone)]
@@ -68,8 +68,8 @@ jsonlite::toJSON(info_list, auto_unbox = TRUE)
         }
 
         // Parse the JSON output
-        let variables: Vec<VariableInfo> = serde_json::from_str(&result.output)
-            .unwrap_or_else(|_| vec![]);
+        let variables: Vec<VariableInfo> =
+            serde_json::from_str(&result.output).unwrap_or_else(|_| vec![]);
 
         Ok(variables)
     }
@@ -135,8 +135,7 @@ jsonlite::toJSON(pkgs, auto_unbox = TRUE)
         }
 
         // Parse the JSON output
-        let packages: Vec<String> = serde_json::from_str(&result.output)
-            .unwrap_or_else(|_| vec![]);
+        let packages: Vec<String> = serde_json::from_str(&result.output).unwrap_or_else(|_| vec![]);
 
         Ok(packages)
     }
