@@ -65,6 +65,84 @@ body.phylo-design {
   font-family: var(--phylo-font-family);
   font-size: var(--phylo-font-size-base);
   line-height: var(--phylo-line-height-base);
+  /* Map theme tokens to app variables */
+  --bg-primary: var(--phylo-bg-primary);
+  --bg-secondary: var(--phylo-bg-secondary);
+  --bg-tertiary: var(--phylo-bg-tertiary);
+  --bg-toolbar: var(--phylo-bg-toolbar);
+  --bg-elevated: var(--phylo-bg-primary);
+  --bg-code: var(--phylo-bg-code);
+  --text-primary: var(--phylo-text-primary);
+  --text-secondary: var(--phylo-text-secondary);
+  --text-muted: var(--phylo-text-muted);
+  --border-color: #cccccc;
+  --border-light: #e0e0e0;
+  --border-strong: #999999;
+  --panel-radius: var(--phylo-panel-radius);
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-inset: none;
+  --panel-header-min-height: 32px;
+  --panel-header-padding: 0 12px;
+  --panel-header-shadow: none;
+  --panel-actions-gap: 6px;
+  --panel-title-font-size: 12px;
+  --panel-title-gap: 6px;
+  --panel-title-letter-spacing: 0;
+  --accent-blue: var(--phylo-cytosine);
+  --accent-blue-hover: #2563eb;
+  --accent-blue-light: rgba(59, 130, 246, 0.18);
+  --success-color: var(--phylo-success);
+  --error-color: var(--phylo-error);
+  --warning-color: var(--phylo-warning);
+  --font-family-base: var(--phylo-font-family);
+  --font-size-base: var(--phylo-font-size-base);
+  --line-height-base: var(--phylo-line-height-base);
+  --letter-spacing-base: 0;
+  --btn-padding: 5px 12px;
+  --btn-font-size: 11px;
+  --btn-radius: 3px;
+  --btn-border: var(--phylo-border);
+  --btn-bg: var(--phylo-bg-secondary);
+  --btn-color: var(--phylo-text-primary);
+  --btn-shadow: none;
+  --btn-height: 24px;
+  --btn-transition: background 0.1s ease, border-color 0.1s ease;
+  --btn-hover-bg: var(--phylo-bg-tertiary);
+  --btn-hover-shadow: none;
+  --btn-hover-transform: none;
+  --btn-hover-border-color: #999999;
+  --btn-active-bg: #d8d8d8;
+  --btn-active-shadow: none;
+  --btn-active-transform: none;
+  --btn-primary-bg: var(--phylo-cytosine);
+  --btn-primary-color: #ffffff;
+  --btn-primary-border: transparent;
+  --btn-primary-shadow: none;
+  --btn-primary-hover-bg: #2563eb;
+  --btn-primary-hover-shadow: none;
+  --btn-icon-padding: 4px;
+  --btn-icon-size: 24px;
+  --btn-icon-height: 24px;
+  --btn-icon-radius: 3px;
+  --tabs-gap: 0;
+  --tabs-padding: 0;
+  --tabs-background: var(--phylo-bg-tertiary);
+  --tabs-border-bottom: var(--phylo-border);
+  --tab-padding: 6px 12px;
+  --tab-font-size: 11px;
+  --tab-color: var(--phylo-text-secondary);
+  --tab-bg: var(--phylo-bg-secondary);
+  --tab-radius: 0;
+  --tab-border: none;
+  --tab-divider: var(--phylo-border-light);
+  --tab-transition: background 0.1s ease;
+  --tab-shadow: none;
+  --tab-active-color: var(--phylo-text-primary);
+  --tab-active-bg: var(--phylo-bg-primary);
+  --tab-active-border: transparent;
+  --tab-active-shadow: none;
+  --tab-active-underline: 2px solid var(--phylo-cytosine);
 }
 
 /* ============================================
@@ -86,117 +164,6 @@ body.phylo-design {
 
 .phylo-design .workspace-shell .allotment__layout {
   gap: var(--phylo-panel-gap) !important;
-}
-
-/* ============================================
-   PANEL BASE STYLES
-   ============================================ */
-.phylo-design .panel {
-  background: var(--phylo-bg-primary);
-  border: var(--phylo-border);
-  border-radius: var(--phylo-panel-radius);
-  box-shadow: none;
-  backdrop-filter: none;
-}
-
-.phylo-design .panel-header {
-  min-height: 32px;
-  padding: 0 12px;
-  background: var(--phylo-bg-toolbar);
-  border-bottom: var(--phylo-border-light);
-  box-shadow: none;
-}
-
-.phylo-design .panel-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--phylo-text-primary);
-  gap: 6px;
-  letter-spacing: 0;
-}
-
-.phylo-design .panel-actions {
-  gap: 6px;
-}
-
-.phylo-design .panel-content {
-  background-color: var(--phylo-bg-primary);
-}
-
-/* ============================================
-   BUTTON STYLES - NO PILL SHAPES
-   ============================================ */
-.phylo-design .btn {
-  padding: 5px 12px;
-  font-size: 11px;
-  border-radius: 3px; /* Sharp, not pill */
-  border: var(--phylo-border);
-  background: var(--phylo-bg-secondary);
-  color: var(--phylo-text-primary);
-  box-shadow: none;
-  transition: background 0.1s ease, border-color 0.1s ease;
-  height: 24px;
-}
-
-.phylo-design .btn:hover:not(:disabled) {
-  background: var(--phylo-bg-tertiary);
-  border-color: #999999;
-  transform: none;
-  box-shadow: none;
-}
-
-.phylo-design .btn:active:not(:disabled) {
-  background: #d8d8d8;
-  transform: none;
-  box-shadow: none;
-}
-
-.phylo-design .btn-primary {
-  background: var(--phylo-cytosine);
-  color: #ffffff;
-  border-color: transparent;
-  box-shadow: none;
-}
-
-.phylo-design .btn-primary:hover:not(:disabled) {
-  background: #2563eb;
-  box-shadow: none;
-}
-
-.phylo-design .btn-icon {
-  padding: 4px;
-  min-width: 24px;
-  height: 24px;
-  border-radius: 3px;
-}
-
-/* ============================================
-   TAB STYLES
-   ============================================ */
-.phylo-design .tabs {
-  gap: 0;
-  padding: 0;
-  background: var(--phylo-bg-tertiary);
-  border-bottom: var(--phylo-border);
-}
-
-.phylo-design .tab {
-  padding: 6px 12px;
-  font-size: 11px;
-  color: var(--phylo-text-secondary);
-  background: var(--phylo-bg-secondary);
-  border-radius: 0;
-  border: none;
-  border-right: var(--phylo-border-light);
-  box-shadow: none;
-}
-
-.phylo-design .tab.active {
-  color: var(--phylo-text-primary);
-  background: var(--phylo-bg-primary);
-  border-color: transparent;
-  border-bottom: 2px solid var(--phylo-cytosine);
-  box-shadow: none;
 }
 
 /* ============================================
