@@ -157,7 +157,10 @@ mod tests {
         assert_eq!(deserialized.r_path, original.r_path);
         assert_eq!(deserialized.anthropic_api_key, original.anthropic_api_key);
         assert_eq!(deserialized.openai_api_key, original.openai_api_key);
-        assert_eq!(deserialized.default_ai_provider, original.default_ai_provider);
+        assert_eq!(
+            deserialized.default_ai_provider,
+            original.default_ai_provider
+        );
     }
 
     #[test]

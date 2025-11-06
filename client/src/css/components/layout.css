@@ -78,6 +78,36 @@
   background-color: var(--bg-primary);
 }
 
+.panel--transparent {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.panel--transparent .panel-content {
+  background: transparent;
+}
+
+.panel-header--plain {
+  padding: 0 12px;
+  background: transparent;
+  box-shadow: none;
+  border-bottom: none;
+}
+
+.panel-tabs--flush {
+  flex: 1;
+  margin: 0;
+  padding-left: 0;
+  background: transparent;
+}
+
+.panel-actions--compact {
+  padding: 0 10px;
+  gap: var(--panel-actions-gap, 8px);
+}
+
 /* Button styles */
 .btn {
   padding: var(--btn-padding, 6px 14px);

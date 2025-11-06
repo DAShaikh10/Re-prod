@@ -1,14 +1,5 @@
-import { type ExecutionEventPayload } from 'shared';
 import { TimelineEvent } from './TimelineEvent';
-
-interface TimelineProps {
-  events: ExecutionEventPayload[];
-  total: number;
-  hasMore: boolean;
-  loading: boolean;
-  onLoadMore: () => void;
-  onNavigate?: (event: ExecutionEventPayload) => void;
-}
+import type { TimelineListProps } from '@/types/timeline';
 
 export function Timeline({
   events,
@@ -17,7 +8,7 @@ export function Timeline({
   loading,
   onLoadMore,
   onNavigate,
-}: TimelineProps): JSX.Element {
+}: TimelineListProps): JSX.Element {
   if (events.length === 0 && !loading) {
     return (
       <div className="timeline-empty">
