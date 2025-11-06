@@ -282,11 +282,18 @@ async fn handle_ws_request(request: WSRequest, state: &AppState) -> Vec<WSRespon
             }],
         },
         WSRequest::ExportRMarkdown { request } => {
+            eprintln!("[handlers] Processing export_rmarkdown request: mode={:?}", request.mode());
             match handle_export_rmarkdown(request, &state).await {
-                Ok(response) => vec![WSResponse::ExportRMarkdownResponse { response }],
-                Err(e) => vec![WSResponse::Error {
-                    message: format!("RMarkdown export failed: {}", e),
-                }],
+                Ok(response) => {
+                    eprintln!("[handlers] Export successful: {}", response.output_path());
+                    vec![WSResponse::ExportRMarkdownResponse { response }]
+                }
+                Err(e) => {
+                    eprintln!("[handlers] Export failed: {}", e);
+                    vec![WSResponse::Error {
+                        message: format!("RMarkdown export failed: {}", e),
+                    }]
+                }
             }
         }
     }
