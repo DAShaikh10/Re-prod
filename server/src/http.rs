@@ -14,4 +14,3 @@ pub fn err_404(msg: impl Into<String>) -> HttpError {
 pub fn err_500(e: impl std::fmt::Display) -> HttpError {
     (StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
 }
-

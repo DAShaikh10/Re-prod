@@ -7,7 +7,8 @@
 }
 
 .plots-container,
-.help-container {
+.help-container,
+.timeline-container {
   height: 100%;
   overflow: auto;
   background: var(--bg-primary);
