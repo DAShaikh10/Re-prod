@@ -1,16 +1,16 @@
-pub mod protocol;
-pub mod error;
-pub mod api;
 pub mod ai;
+pub mod api;
 pub mod config;
+pub mod error;
 pub mod executor;
+pub mod export;
+pub mod protocol;
 pub mod timeline;
 pub mod tools;
-pub mod export;
 
 // Re-export protocol types (for API boundaries)
-pub use protocol::*;
 pub use error::*;
+pub use protocol::*;
 
 // Re-export core services
 pub use ai::{AIProvider, AnthropicProvider, OpenAIProvider};

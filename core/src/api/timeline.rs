@@ -1,6 +1,8 @@
 use crate::{
     error::ReprodError,
-    executor::timeline::{SortOrder, TimelineFilters, TimelineQuery, TimelineResponse, TimelineStats},
+    executor::timeline::{
+        SortOrder, TimelineFilters, TimelineQuery, TimelineResponse, TimelineStats,
+    },
     ExecutionActor, ExecutionEvent, ExecutionSource,
 };
 use serde::{Deserialize, Serialize};

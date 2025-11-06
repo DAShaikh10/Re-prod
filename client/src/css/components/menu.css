@@ -14,15 +14,15 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 32px; /* Reduced from 44px for RStudio compactness */
-  padding: 0 12px; /* Reduced from 20px */
-  background: #f6f8fa; /* Flat gray, no gradient */
-  border-bottom: 1px solid #d0d7de; /* Hard border */
-  border-radius: 0; /* No rounding */
-  box-shadow: none; /* No shadow */
-  backdrop-filter: none; /* No blur */
+  height: var(--menu-height, 32px);
+  padding: var(--menu-padding, 0 12px);
+  background: var(--menu-bg, #f6f8fa);
+  border-bottom: 1px solid var(--menu-border-color, #d0d7de);
+  border-radius: var(--menu-border-radius, 0);
+  box-shadow: var(--menu-shadow, none);
+  backdrop-filter: none;
   position: relative;
-  overflow: visible; /* Allow dropdowns */
+  overflow: visible;
 }
 
 /* Remove decorative overlay */
@@ -33,20 +33,20 @@
 .menubar-left {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: var(--menu-gap, 20px);
 }
 
 .menubar-brand {
-  font-size: 13px; /* Slightly reduced from 14px */
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: -0.01em;
   color: var(--text-primary);
-  font-family: var(--font-ui);
+  font-family: var(--font-ui, var(--font-family-base));
 }
 
 .menubar-menu {
   display: flex;
-  gap: 2px; /* Tighter spacing */
+  gap: var(--menu-item-gap, 2px);
 }
 
 .menubar-right {
@@ -60,11 +60,11 @@
 }
 
 .menu-item {
-  padding: 4px 10px; /* Reduced from 6px 12px */
-  font-size: 12px; /* Compact */
+  padding: var(--menu-item-padding, 4px 10px);
+  font-size: var(--menu-item-font-size, 12px);
   font-weight: 500;
   color: var(--text-secondary);
-  border-radius: 3px; /* Subtle, not pill */
+  border-radius: var(--menu-item-border-radius, 3px);
   transition: none; /* No animations */
   background: transparent;
   cursor: pointer;
@@ -75,19 +75,19 @@
 
 .menu-item:hover {
   color: var(--text-primary);
-  background: #e5e7eb; /* Flat gray, no blue tint */
+  background: var(--menu-item-hover-bg, #e5e7eb);
 }
 
 .menu-item:active,
 .menu-item.active {
-  background: #d1d5db; /* Slightly darker on click */
+  background: var(--menu-item-active-bg, #d1d5db);
 }
 
 /* AI Assistant menu item - Lab notebook accent */
 .menu-item[data-id="edit:ai-assist"],
 .menu-dropdown-item[data-id="edit:ai-assist"] {
-  background: var(--lab-notebook, #fefce8); /* Lab notebook yellow */
-  border-left: 3px solid var(--dna-guanine, #f59e0b); /* DNA guanine orange */
+  background: var(--menu-ai-bg, #fefce8);
+  border-left: 3px solid var(--menu-ai-border, #f59e0b);
   padding-left: 7px; /* Adjust for border */
   font-weight: 600;
   color: var(--text-primary);
@@ -95,33 +95,33 @@
 
 .menu-item[data-id="edit:ai-assist"]:hover,
 .menu-dropdown-item[data-id="edit:ai-assist"]:hover {
-  background: #fef9c3; /* Slightly darker yellow */
+  background: var(--menu-ai-hover-bg, #fef9c3);
 }
 
 /* --- Connection Indicator --- */
 .connection-indicator {
   display: flex;
   align-items: center;
-  gap: 6px; /* Reduced from 8px */
-  font-size: 11px; /* Reduced from 12px */
+  gap: var(--menu-connection-gap, 6px);
+  font-size: var(--menu-connection-font-size, 11px);
   color: var(--text-secondary);
-  padding: 4px 8px; /* Reduced from 6px 12px */
-  border-radius: 3px; /* Not pill (was 999px) */
-  background: #ffffff;
-  border: 1px solid #d0d7de;
-  box-shadow: none; /* No inset shadow */
+  padding: var(--menu-connection-padding, 4px 8px);
+  border-radius: var(--menu-item-border-radius, 3px);
+  background: var(--menu-connection-bg, #ffffff);
+  border: 1px solid var(--menu-connection-border, #d0d7de);
+  box-shadow: none;
 }
 
 .connection-dot {
   width: 8px; /* Reduced from 10px */
   height: 8px;
   border-radius: 50%;
-  background: var(--error-color, #ef4444);
+  background: var(--menu-error-color, var(--error-color, #ef4444));
   box-shadow: none; /* No glow effect */
 }
 
 .connection-indicator.connected .connection-dot {
-  background: var(--success-color, #10b981);
+  background: var(--menu-success-color, var(--success-color, #10b981));
   box-shadow: none;
 }
 
@@ -140,10 +140,10 @@
   top: 100%;
   left: 0;
   min-width: 220px;
-  background: #ffffff;
-  border: 1px solid #d0d7de;
+  background: var(--menu-dropdown-bg, #ffffff);
+  border: 1px solid var(--menu-dropdown-border, #d0d7de);
   border-radius: 0; /* No rounding */
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Subtle shadow only */
+  box-shadow: var(--menu-dropdown-shadow, 0 4px 12px rgba(0, 0, 0, 0.1));
   padding: 4px 0;
   margin-top: 2px;
   z-index: 1000;
@@ -166,11 +166,11 @@
 }
 
 .menu-dropdown-item:hover {
-  background: #f6f8fa; /* Flat hover */
+  background: var(--menu-dropdown-hover-bg, #f6f8fa);
 }
 
 .menu-dropdown-item:active {
-  background: #e5e7eb;
+  background: var(--menu-dropdown-active-bg, #e5e7eb);
 }
 
 .menu-dropdown-item[data-disabled="true"] {
@@ -185,7 +185,7 @@
 /* Separator */
 .menu-dropdown-separator {
   height: 1px;
-  background: #e5e7eb;
+  background: var(--menu-dropdown-separator, #e5e7eb);
   margin: 4px 0;
 }
 
@@ -202,7 +202,7 @@
   width: 16px;
   height: 16px;
   margin-right: 8px;
-  color: var(--dna-adenine, #059669); /* Green checkmark */
+  color: var(--menu-success-color, var(--success-color, #10b981));
   visibility: hidden;
 }
 
@@ -218,37 +218,3 @@
 /* ============================================
    CSS VARIABLES (if not already defined)
    ============================================ */
-
-:root {
-  /* Base colors - RStudio-inspired */
-  --bg-primary: #ffffff;
-  --bg-secondary: #f6f8fa;
-  --bg-tertiary: #e5e7eb;
-  --border-color: #d0d7de;
-  --border-strong: #afb8c1;
-
-  /* Text */
-  --text-primary: #1f2937;
-  --text-secondary: #6b7280;
-  --text-muted: #9ca3af;
-
-  /* DNA bases (for accents) */
-  --dna-adenine: #059669;   /* Green - checkmarks */
-  --dna-thymine: #dc2626;   /* Red - errors */
-  --dna-cytosine: #2563eb;  /* Blue - info */
-  --dna-guanine: #f59e0b;   /* Yellow/Orange - warnings */
-
-  /* Lab environment */
-  --lab-notebook: #fefce8;  /* Yellow paper - AI features */
-  --lab-data: #f0f9ff;      /* Blue data sheets */
-
-  /* Functional colors */
-  --success-color: #10b981;
-  --error-color: #ef4444;
-  --warning-color: #f59e0b;
-  --info-color: #3b82f6;
-
-  /* Typography */
-  --font-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-  --font-code: 'Berkeley Mono', 'Fira Code', 'Consolas', monospace;
-}

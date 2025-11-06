@@ -86,10 +86,7 @@ async fn test_symlink_escape_attack() {
         std::os::unix::fs::symlink(&secret_file, &link_path).unwrap();
 
         let result = tool.validate_path("evil_link");
-        assert!(
-            result.is_err(),
-            "Symlink escape attack should be blocked"
-        );
+        assert!(result.is_err(), "Symlink escape attack should be blocked");
         assert!(
             result
                 .unwrap_err()
@@ -106,11 +103,7 @@ async fn test_null_byte_injection() {
     let tool = FileSystemTool::new(temp.path().to_path_buf());
 
     // Null byte injection attempts
-    let attacks = vec![
-        "file.txt\0.html",
-        "data/file\0/etc/passwd",
-        "test\0",
-    ];
+    let attacks = vec!["file.txt\0.html", "data/file\0/etc/passwd", "test\0"];
 
     for attack in attacks {
         // These should either be blocked or sanitized
@@ -219,7 +212,9 @@ async fn test_valid_paths_allowed() {
     let tool = FileSystemTool::new(workspace.to_path_buf());
 
     // Create test files
-    fs::write(workspace.join("test.txt"), "content").await.unwrap();
+    fs::write(workspace.join("test.txt"), "content")
+        .await
+        .unwrap();
     fs::create_dir_all(workspace.join("data")).await.unwrap();
     fs::write(workspace.join("data/file.csv"), "a,b,c")
         .await
@@ -297,11 +292,7 @@ async fn test_special_characters_in_filenames() {
             })
             .await;
 
-        assert!(
-            result.is_ok(),
-            "Valid filename should be allowed: {}",
-            name
-        );
+        assert!(result.is_ok(), "Valid filename should be allowed: {}", name);
     }
 }
 

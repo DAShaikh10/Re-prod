@@ -1,11 +1,11 @@
 use super::bundle::ReproductionBundle;
-use super::scripts::{generate_readme, generate_validation_script, generate_replay_script};
+use super::scripts::{generate_readme, generate_replay_script, generate_validation_script};
+use base64::prelude::*;
+use flate2::write::GzEncoder;
+use flate2::Compression;
 use std::fs::File;
 use std::io::{self, Write};
 use std::path::Path;
-use flate2::write::GzEncoder;
-use flate2::Compression;
-use base64::prelude::*;
 
 /// Error type for bundle writing operations.
 #[derive(Debug)]
@@ -191,7 +191,11 @@ mod tests {
         let output_path = temp_dir.join("test-bundle.tar.gz");
 
         let result = writer.write_tarball(&output_path);
-        assert!(result.is_ok(), "Failed to write tarball: {:?}", result.err());
+        assert!(
+            result.is_ok(),
+            "Failed to write tarball: {:?}",
+            result.err()
+        );
 
         // Verify file was created
         assert!(output_path.exists());

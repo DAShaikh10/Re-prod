@@ -1,10 +1,10 @@
+use flate2::read::GzDecoder;
 use reprod_core::export::{BundleWriter, ReproductionBundle};
 use reprod_core::protocol::{
     CodeBlockKind, CodeBlockMetadata, EnvironmentSnapshot, ExecutionActor, ExecutionContext,
     ExecutionEvent, ExecutionResult, ExecutionSource, PlotInfo,
 };
 use std::fs::File;
-use flate2::read::GzDecoder;
 use std::io::Read;
 
 /// Create a realistic execution event for testing.
@@ -167,7 +167,11 @@ fn test_full_export_workflow() {
     // Verify file exists and has content
     assert!(output_path.exists());
     let file_size = std::fs::metadata(&output_path).unwrap().len();
-    assert!(file_size > 1000, "Bundle file is too small: {} bytes", file_size);
+    assert!(
+        file_size > 1000,
+        "Bundle file is too small: {} bytes",
+        file_size
+    );
 
     // Extract and verify contents
     let file = File::open(&output_path).unwrap();
@@ -192,8 +196,14 @@ fn test_full_export_workflow() {
     }
 
     // Verify required files exist
-    assert!(found_files.contains("metadata.json"), "Missing metadata.json");
-    assert!(found_files.contains("timeline.json"), "Missing timeline.json");
+    assert!(
+        found_files.contains("metadata.json"),
+        "Missing metadata.json"
+    );
+    assert!(
+        found_files.contains("timeline.json"),
+        "Missing timeline.json"
+    );
     assert!(found_files.contains("README.md"), "Missing README.md");
     assert!(found_files.contains("validate.sh"), "Missing validate.sh");
     assert!(found_files.contains("replay.R"), "Missing replay.R");
@@ -204,7 +214,10 @@ fn test_full_export_workflow() {
         "Missing code/analysis.R"
     );
     assert!(found_files.contains("code/plots.R"), "Missing code/plots.R");
-    assert!(found_files.contains("code/models.R"), "Missing code/models.R");
+    assert!(
+        found_files.contains("code/models.R"),
+        "Missing code/models.R"
+    );
 
     // Verify plot files
     assert!(
@@ -213,8 +226,8 @@ fn test_full_export_workflow() {
     );
 
     // Parse and verify metadata JSON
-    let metadata: serde_json::Value = serde_json::from_str(&metadata_content)
-        .expect("Failed to parse metadata.json");
+    let metadata: serde_json::Value =
+        serde_json::from_str(&metadata_content).expect("Failed to parse metadata.json");
 
     assert_eq!(metadata["format_version"], "1.0");
     assert_eq!(metadata["session"]["total_events"], 6);
@@ -224,8 +237,8 @@ fn test_full_export_workflow() {
     assert_eq!(metadata["statistics"]["total_errors"], 1);
 
     // Parse and verify timeline JSON
-    let timeline: serde_json::Value = serde_json::from_str(&timeline_content)
-        .expect("Failed to parse timeline.json");
+    let timeline: serde_json::Value =
+        serde_json::from_str(&timeline_content).expect("Failed to parse timeline.json");
 
     assert_eq!(timeline["format_version"], "1.0");
     let events_array = timeline["events"].as_array().unwrap();
