@@ -12,8 +12,7 @@ import {
   getAllCode,
   buildExecutionRequest,
 } from "@/core";
-import { socketService } from "@/services/socket";
-import type { WSResponse } from "@/services/socket";
+import { executeRequest, ExecutionServiceError } from '@/services/executionService';
 import type { CodeBlock, ExecutionLogEntry } from "@shared/types";
 
 export function EditorPanel(): JSX.Element {
@@ -110,7 +109,7 @@ export function EditorPanel(): JSX.Element {
     }
   };
 
-  const executeCode = (target: ExecutionTarget): void => {
+  const executeCode = async (target: ExecutionTarget): Promise<void> => {
     setIsRunning(true);
 
     if (target.cellIndex !== undefined) {
@@ -124,63 +123,48 @@ export function EditorPanel(): JSX.Element {
       filepath: editor.filepath ?? undefined
     });
 
-    const matcher = (message: WSResponse) =>
-      message.type === 'execution_result' || message.type === 'error';
-
-    const sent = socketService.send({ type: 'execute', request }, (response) => {
-      setExecutingCellIndex(null);
-      setIsRunning(false);
-
-      if (response.type === 'execution_result') {
-        const result = response.result;
-        const normalized: ExecutionLogEntry = {
-          stdout: result.output,
-          stderr: result.error || "",
-          plots: result.plots.map((plot) => ({
-            id: plot.filename || `plot-${plot.index}`,
-            path: plot.filename,
-            data: `data:image/png;base64,${plot.base64_data}`,
-            timestamp: Date.now(),
-          })),
+    try {
+      const { result } = await executeRequest(request);
+      const normalized: ExecutionLogEntry = {
+        stdout: result.output,
+        stderr: result.error || "",
+        plots: result.plots.map((plot) => ({
+          id: plot.filename || `plot-${plot.index}`,
+          path: plot.filename,
+          data: `data:image/png;base64,${plot.base64_data}`,
           timestamp: Date.now(),
-          duration: result.execution_time_ms,
-          success: result.success,
-        };
-        addExecutionResult(normalized);
-      } else if (response.type === 'error') {
-        const normalized: ExecutionLogEntry = {
-          stdout: "",
-          stderr: response.message,
-          plots: [],
-          timestamp: Date.now(),
-          duration: 0,
-          success: false,
-        };
-        addExecutionResult(normalized);
-      }
-
+        })),
+        timestamp: Date.now(),
+        duration: result.execution_time_ms,
+        success: result.success,
+      };
+      addExecutionResult(normalized);
       console.log("Execution completed");
-    }, matcher);
+    } catch (error) {
+      const message =
+        error instanceof ExecutionServiceError
+          ? error.message
+          : 'Execution failed due to an unexpected error.';
 
-    if (!sent) {
-      setExecutingCellIndex(null);
-      setIsRunning(false);
       const normalized: ExecutionLogEntry = {
         stdout: "",
-        stderr: "Unable to execute: not connected to backend",
+        stderr: message,
         plots: [],
         timestamp: Date.now(),
         duration: 0,
         success: false,
       };
       addExecutionResult(normalized);
+    } finally {
+      setExecutingCellIndex(null);
+      setIsRunning(false);
     }
   };
 
   const handleRunAll = (): void => {
     const code = getAllCode(editorRef.current);
     if (code) {
-      executeCode({
+      void executeCode({
         code,
         source: 'whole-document'
       });
@@ -195,7 +179,7 @@ export function EditorPanel(): JSX.Element {
     );
 
     if (target) {
-      executeCode(target);
+      void executeCode(target);
     }
   };
 
@@ -209,7 +193,7 @@ export function EditorPanel(): JSX.Element {
     if (!result) return;
 
     // Execute the target (selection, cell, or whole document)
-    executeCode(result.target);
+    void executeCode(result.target);
 
     // Only move to next cell if we executed a cell and there's a next cell
     if (result.nextCell && editorRef.current) {
