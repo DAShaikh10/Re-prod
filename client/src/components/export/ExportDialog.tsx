@@ -27,8 +27,20 @@ export function ExportDialog({ open, onClose }: ExportDialogProps): JSX.Element 
     setExporting(true);
     setError('');
 
+    // Set timeout to prevent hanging
+    const timeout = setTimeout(() => {
+      setError('Export timeout - please check server logs');
+      setExporting(false);
+    }, 30000); // 30 second timeout
+
     try {
       if (format === 'rmarkdown' || format === 'both') {
+        console.log('[ExportDialog] Sending export_rmarkdown request:', {
+          mode,
+          output_path: outputPath,
+          document_path: mode === 'document' ? documentPath : undefined,
+        });
+
         const success = socketService.send(
           {
             type: 'export_rmarkdown',
@@ -43,25 +55,38 @@ export function ExportDialog({ open, onClose }: ExportDialogProps): JSX.Element 
             include_summary: options.includeSummary,
           },
           (response) => {
-            const msg = response as ExtractServerMessage<'export_rmarkdown_response'>;
-            if (msg.success) {
-              console.log('RMarkdown exported to:', msg.output_path);
-              setExporting(false);
-              onClose();
-            } else {
-              setError(msg.error || 'Export failed');
+            clearTimeout(timeout);
+            console.log('[ExportDialog] Received response:', response);
+
+            if (response.type === 'export_rmarkdown_response') {
+              const msg = response as ExtractServerMessage<'export_rmarkdown_response'>;
+              if (msg.success) {
+                console.log('✅ RMarkdown exported to:', msg.output_path);
+                setExporting(false);
+                onClose();
+              } else {
+                console.error('❌ Export failed:', msg.error);
+                setError(msg.error || 'Export failed');
+                setExporting(false);
+              }
+            } else if (response.type === 'error') {
+              console.error('❌ Server error:', response);
+              setError((response as any).message || 'Export failed');
               setExporting(false);
             }
           },
-          (msg) => msg.type === 'export_rmarkdown_response'
+          (msg) => msg.type === 'export_rmarkdown_response' || msg.type === 'error'
         );
 
         if (!success) {
+          clearTimeout(timeout);
           setError('WebSocket not connected');
           setExporting(false);
         }
       }
     } catch (err) {
+      clearTimeout(timeout);
+      console.error('[ExportDialog] Export error:', err);
       setError(err instanceof Error ? err.message : 'Export failed');
       setExporting(false);
     }

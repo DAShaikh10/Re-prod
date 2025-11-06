@@ -905,6 +905,10 @@ pub struct ExportRMarkdownRequest {
 }
 
 impl ExportRMarkdownRequest {
+    pub fn mode(&self) -> &str {
+        &self.mode
+    }
+
     pub fn into_options(self) -> Result<(ExportMode, RMarkdownOptions, String), ReprodError> {
         let mode = match self.mode.as_str() {
             "timeline" => ExportMode::Timeline,
@@ -959,5 +963,9 @@ impl ExportRMarkdownResponse {
             output_path: String::new(),
             error: Some(error),
         }
+    }
+
+    pub fn output_path(&self) -> &str {
+        &self.output_path
     }
 }
