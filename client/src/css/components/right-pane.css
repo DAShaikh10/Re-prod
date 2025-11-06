@@ -1,6 +1,9 @@
 .unified-right-pane {
   border: none;
   background: transparent;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .unified-right-pane .panel-header {
@@ -10,6 +13,15 @@
   padding: 0 14px;
   background: transparent;
   box-shadow: none;
+  flex-shrink: 0;
+}
+
+.unified-right-pane .panel-content {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .unified-right-pane .tabs {
