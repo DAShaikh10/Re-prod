@@ -3,6 +3,7 @@ use crate::{
     executor::timeline::{
         SortOrder, TimelineFilters, TimelineQuery, TimelineResponse, TimelineStats,
     },
+    export::{ExportMode, RMarkdownOptions},
     ExecutionActor, ExecutionEvent, ExecutionSource,
 };
 use serde::{Deserialize, Serialize};
@@ -875,6 +876,88 @@ mod tests {
                 "Source '{}' should be invalid",
                 invalid_source
             );
+        }
+    }
+}
+
+// ===== RMarkdown Export API Types =====
+
+/// Request to export timeline as RMarkdown document.
+#[derive(Debug, Deserialize)]
+pub struct ExportRMarkdownRequest {
+    pub mode: String, // "timeline" or "document"
+    #[serde(rename = "outputPath")]
+    pub output_path: String,
+    #[serde(rename = "documentPath")]
+    pub document_path: Option<String>,
+    #[serde(rename = "includeTimestamps")]
+    pub include_timestamps: bool,
+    #[serde(rename = "showActor")]
+    pub show_actor: bool,
+    #[serde(rename = "embedPlots")]
+    pub embed_plots: bool,
+    #[serde(rename = "includeOutputs")]
+    pub include_outputs: bool,
+    #[serde(rename = "includeErrors")]
+    pub include_errors: bool,
+    #[serde(rename = "includeSummary")]
+    pub include_summary: bool,
+}
+
+impl ExportRMarkdownRequest {
+    pub fn into_options(self) -> Result<(ExportMode, RMarkdownOptions, String), ReprodError> {
+        let mode = match self.mode.as_str() {
+            "timeline" => ExportMode::Timeline,
+            "document" => ExportMode::Document,
+            other => {
+                return Err(ReprodError::ProtocolError(format!(
+                    "Invalid export mode: {}",
+                    other
+                )))
+            }
+        };
+
+        let options = RMarkdownOptions {
+            mode,
+            include_timestamps: self.include_timestamps,
+            show_actor: self.show_actor,
+            embed_plots: self.embed_plots,
+            include_outputs: self.include_outputs,
+            include_errors: self.include_errors,
+            include_summary: self.include_summary,
+        };
+
+        Ok((mode, options, self.output_path))
+    }
+
+    pub fn document_path(&self) -> Option<String> {
+        self.document_path.clone()
+    }
+}
+
+/// Response from RMarkdown export operation.
+#[derive(Debug, Serialize)]
+pub struct ExportRMarkdownResponse {
+    pub success: bool,
+    #[serde(rename = "outputPath")]
+    pub output_path: String,
+    pub error: Option<String>,
+}
+
+impl ExportRMarkdownResponse {
+    pub fn success(output_path: String) -> Self {
+        Self {
+            success: true,
+            output_path,
+            error: None,
+        }
+    }
+
+    pub fn error(error: String) -> Self {
+        Self {
+            success: false,
+            output_path: String::new(),
+            error: Some(error),
         }
     }
 }
