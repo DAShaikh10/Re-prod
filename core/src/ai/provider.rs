@@ -1,5 +1,5 @@
+use crate::{AIResponse, ChatMessage, ReprodError};
 use async_trait::async_trait;
-use crate::{ChatMessage, ReprodError, AIResponse};
 use serde_json::Value;
 
 /// Trait for AI provider implementations

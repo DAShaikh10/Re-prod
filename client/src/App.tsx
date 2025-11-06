@@ -19,14 +19,16 @@ function App(): JSX.Element {
 
   useEffect(() => {
     socketService.connect();
+    if (socketService.isConnected()) {
+      setConnected(true);
+    }
 
-    // Check connection status
-    const checkConnection = setInterval(() => {
-      setConnected(socketService.isConnected());
-    }, 1000);
+    const unsubscribe = socketService.onConnectionChange((status) => {
+      setConnected(status === 'connected');
+    });
 
     return () => {
-      clearInterval(checkConnection);
+      unsubscribe();
       socketService.disconnect();
     };
   }, [setConnected]);

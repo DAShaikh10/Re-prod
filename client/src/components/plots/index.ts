@@ -1,1 +1,0 @@
-export { PlotsPanel } from './PlotsPanel';

@@ -1,11 +1,56 @@
 import { useEffect, useState } from 'react';
-import { type ExecutionEventPayload, type TimelineStats as TimelineStatsType } from 'shared';
+import {
+  type ExecutionEventPayload,
+  type TimelineStats as TimelineStatsType,
+  type TimelineQuery,
+} from 'shared';
 import { useStore } from '@/core';
-import { queryTimeline, getTimelineStats } from '@/services/timelineService';
+import { queryTimeline, getTimelineStats, subscribeToTimelineEvents } from '@/services/timelineService';
 import { Timeline } from './Timeline';
 import { TimelineStats } from './TimelineStats';
 import { TimelineFilters } from './TimelineFilters';
 import { TimelineSort } from './TimelineSort';
+
+const matchesFilters = (
+  event: ExecutionEventPayload,
+  filters: TimelineQuery['filters'] | undefined,
+): boolean => {
+  if (!filters) return true;
+
+  if (filters.actor && event.context.actor !== filters.actor) {
+    return false;
+  }
+
+  if (filters.source && event.context.source !== filters.source) {
+    return false;
+  }
+
+  if (filters.startTime && event.created_at_ms < filters.startTime) {
+    return false;
+  }
+
+  if (filters.endTime && event.created_at_ms > filters.endTime) {
+    return false;
+  }
+
+  if (filters.hasPlots && event.result.plots.length === 0) {
+    return false;
+  }
+
+  if (filters.hasErrors && !event.result.error) {
+    return false;
+  }
+
+  if (filters.codeContains) {
+    const search = filters.codeContains.toLowerCase();
+    const hasMatch = event.blocks.some((block) => block.code.toLowerCase().includes(search));
+    if (!hasMatch) {
+      return false;
+    }
+  }
+
+  return true;
+};
 
 export function TimelinePanel(): JSX.Element {
   const {
@@ -24,6 +69,7 @@ export function TimelinePanel(): JSX.Element {
     setLoading,
     setError,
     loadMore,
+    addEvent,
   } = useStore();
   const isConnected = useStore((state) => state.isConnected);
 
@@ -102,6 +148,43 @@ export function TimelinePanel(): JSX.Element {
 
     fetchStats();
   }, [isConnected]);
+
+  useEffect(() => {
+    if (!isConnected) {
+      return;
+    }
+
+    const unsubscribe = subscribeToTimelineEvents((event) => {
+      if (!matchesFilters(event, filters)) {
+        return;
+      }
+
+      addEvent(event);
+
+      setStats((prev) => {
+        if (!prev) {
+          return prev;
+        }
+
+        const nextStart = Math.min(prev.sessionStartTime, event.created_at_ms);
+        const nextEnd = Math.max(prev.sessionEndTime, event.created_at_ms);
+
+        return {
+          ...prev,
+          totalEvents: prev.totalEvents + 1,
+          totalPlots: prev.totalPlots + event.result.plots.length,
+          totalErrors: prev.totalErrors + (event.result.error ? 1 : 0),
+          userActions: prev.userActions + (event.context.actor === 'user' ? 1 : 0),
+          aiActions: prev.aiActions + (event.context.actor === 'ai' ? 1 : 0),
+          sessionStartTime: nextStart,
+          sessionEndTime: nextEnd,
+          sessionDuration: nextEnd - nextStart,
+        };
+      });
+    });
+
+    return unsubscribe;
+  }, [isConnected, filters, addEvent]);
 
   const handleNavigate = (event: ExecutionEventPayload) => {
     // TODO: Implement navigation to code location

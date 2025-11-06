@@ -52,10 +52,30 @@ export const createTimelineSlice: StateCreator<TimelineState> = (set) => ({
     })),
 
   addEvent: (event) =>
-    set((state) => ({
-      events: [event, ...state.events], // Add to beginning (newest first)
-      total: state.total + 1,
-    })),
+    set((state) => {
+      const exists = state.events.some((existing) => existing.event_id === event.event_id);
+      if (exists) {
+        return {};
+      }
+
+      let nextEvents: ExecutionEventPayload[];
+      if (state.sort === 'asc') {
+        nextEvents = [...state.events, event];
+        if (nextEvents.length > state.limit) {
+          nextEvents = nextEvents.slice(nextEvents.length - state.limit);
+        }
+      } else {
+        nextEvents = [event, ...state.events];
+        if (nextEvents.length > state.limit) {
+          nextEvents = nextEvents.slice(0, state.limit);
+        }
+      }
+
+      return {
+        events: nextEvents,
+        total: state.total + 1,
+      };
+    }),
 
   setFilters: (filters) =>
     set(() => ({
