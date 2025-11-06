@@ -60,7 +60,7 @@
 /* ============================================
    GLOBAL OVERRIDES
    ============================================ */
-body.phylo-design {
+:root[data-theme="phylo"] {
   background: #e8e8e8;
   font-family: var(--phylo-font-family);
   font-size: var(--phylo-font-size-base);
@@ -143,18 +143,48 @@ body.phylo-design {
   --tab-active-border: transparent;
   --tab-active-shadow: none;
   --tab-active-underline: 2px solid var(--phylo-cytosine);
+  --menu-height: 32px;
+  --menu-padding: 0 12px;
+  --menu-gap: 20px;
+  --menu-bg: var(--phylo-bg-tertiary);
+  --menu-border-color: var(--phylo-border);
+  --menu-border-radius: 0;
+  --menu-shadow: none;
+  --menu-item-gap: 2px;
+  --menu-item-padding: 4px 10px;
+  --menu-item-font-size: 12px;
+  --menu-item-border-radius: 3px;
+  --menu-item-hover-bg: var(--phylo-bg-secondary);
+  --menu-item-active-bg: var(--phylo-bg-tertiary);
+  --menu-dropdown-bg: var(--phylo-bg-primary);
+  --menu-dropdown-border: var(--phylo-border);
+  --menu-dropdown-shadow: none;
+  --menu-dropdown-hover-bg: var(--phylo-bg-secondary);
+  --menu-dropdown-active-bg: var(--phylo-bg-tertiary);
+  --menu-dropdown-separator: var(--phylo-border-light);
+  --menu-connection-bg: var(--phylo-bg-primary);
+  --menu-connection-border: var(--phylo-border);
+  --menu-connection-padding: 4px 8px;
+  --menu-connection-gap: 6px;
+  --menu-connection-font-size: 11px;
+  --menu-ai-bg: var(--phylo-bg-primary);
+  --menu-ai-border: var(--phylo-guanine);
+  --menu-ai-hover-bg: var(--phylo-bg-secondary);
+  --menu-info-color: var(--phylo-cytosine);
+  --menu-success-color: var(--phylo-success);
+  --menu-error-color: var(--phylo-error);
 }
 
 /* ============================================
    APP LAYOUT
    ============================================ */
-.phylo-design .app {
+[data-theme="phylo"] .app {
   padding: 0;
   gap: 0;
   background: var(--phylo-bg-tertiary);
 }
 
-.phylo-design .workspace-shell {
+[data-theme="phylo"] .workspace-shell {
   padding: 0;
   background: transparent;
   border: none;
@@ -162,24 +192,24 @@ body.phylo-design {
   box-shadow: none;
 }
 
-.phylo-design .workspace-shell .allotment__layout {
+[data-theme="phylo"] .workspace-shell .allotment__layout {
   gap: var(--phylo-panel-gap) !important;
 }
 
 /* ============================================
    AI PANEL - Lab Notebook Style
    ============================================ */
-.phylo-design .ai-panel .panel-content {
+[data-theme="phylo"] .ai-panel .panel-content {
   background: var(--phylo-bg-ai);
 }
 
-.phylo-design .ai-messages {
+[data-theme="phylo"] .ai-messages {
   padding: 12px;
   gap: 12px;
   background: var(--phylo-bg-ai);
 }
 
-.phylo-design .ai-welcome {
+[data-theme="phylo"] .ai-welcome {
   padding: 24px;
   border-radius: var(--phylo-panel-radius);
   background: var(--phylo-bg-primary);
@@ -187,22 +217,22 @@ body.phylo-design {
   box-shadow: none;
 }
 
-.phylo-design .ai-welcome-icon svg {
+[data-theme="phylo"] .ai-welcome-icon svg {
   width: 40px;
   height: 40px;
 }
 
-.phylo-design .ai-welcome h3 {
+[data-theme="phylo"] .ai-welcome h3 {
   font-size: 14px;
   margin-bottom: 6px;
 }
 
-.phylo-design .ai-welcome p {
+[data-theme="phylo"] .ai-welcome p {
   font-size: 11px;
   margin-bottom: 12px;
 }
 
-.phylo-design .suggestion {
+[data-theme="phylo"] .suggestion {
   padding: 8px 12px;
   border-radius: var(--phylo-panel-radius);
   background-color: var(--phylo-bg-primary);
@@ -212,13 +242,13 @@ body.phylo-design {
   box-shadow: none;
 }
 
-.phylo-design .suggestion:hover {
+[data-theme="phylo"] .suggestion:hover {
   background: var(--phylo-bg-secondary);
   transform: none;
   box-shadow: none;
 }
 
-.phylo-design .message-user {
+[data-theme="phylo"] .message-user {
   background: var(--phylo-cytosine);
   color: white;
   padding: 8px 12px;
@@ -226,7 +256,7 @@ body.phylo-design {
   box-shadow: none;
 }
 
-.phylo-design .message-assistant {
+[data-theme="phylo"] .message-assistant {
   background: var(--phylo-bg-primary);
   padding: 10px 12px;
   border-radius: var(--phylo-panel-radius);
@@ -234,18 +264,18 @@ body.phylo-design {
   box-shadow: none;
 }
 
-.phylo-design .message-header {
+[data-theme="phylo"] .message-header {
   font-size: 10px;
   margin-bottom: 4px;
 }
 
-.phylo-design .message-content {
+[data-theme="phylo"] .message-content {
   font-size: 11px;
   line-height: 1.5;
   gap: 6px;
 }
 
-.phylo-design .message-code {
+[data-theme="phylo"] .message-code {
   margin-top: 6px;
   padding: 8px;
   background-color: var(--phylo-bg-code);
@@ -253,18 +283,18 @@ body.phylo-design {
   border: var(--phylo-border-light);
 }
 
-.phylo-design .message-code pre {
+[data-theme="phylo"] .message-code pre {
   font-size: 10px;
 }
 
-.phylo-design .ai-input-container {
+[data-theme="phylo"] .ai-input-container {
   gap: 8px;
   padding: 12px;
   border-top: var(--phylo-border);
   background: var(--phylo-bg-toolbar);
 }
 
-.phylo-design .ai-input {
+[data-theme="phylo"] .ai-input {
   padding: 8px 10px;
   border: var(--phylo-border);
   border-radius: var(--phylo-panel-radius);
@@ -275,7 +305,7 @@ body.phylo-design {
   box-shadow: none;
 }
 
-.phylo-design .ai-input:focus {
+[data-theme="phylo"] .ai-input:focus {
   outline: 1px solid var(--phylo-cytosine);
   border-color: var(--phylo-cytosine);
 }
@@ -283,7 +313,7 @@ body.phylo-design {
 /* ============================================
    CODE BLOCKS
    ============================================ */
-.phylo-design .code-block-container {
+[data-theme="phylo"] .code-block-container {
   margin: 12px 0;
   border: var(--phylo-border);
   border-radius: var(--phylo-panel-radius);
@@ -292,7 +322,7 @@ body.phylo-design {
   backdrop-filter: none;
 }
 
-.phylo-design .code-explanation {
+[data-theme="phylo"] .code-explanation {
   gap: 6px;
   padding: 10px 12px;
   background: var(--phylo-bg-secondary);
@@ -300,14 +330,14 @@ body.phylo-design {
   font-size: 11px;
 }
 
-.phylo-design .code-header {
+[data-theme="phylo"] .code-header {
   padding: 8px 12px;
   background: var(--phylo-bg-toolbar);
   border-bottom: var(--phylo-border-light);
   font-size: 10px;
 }
 
-.phylo-design .code-content {
+[data-theme="phylo"] .code-content {
   padding: 12px;
   font-size: 11px;
   line-height: 1.5;
@@ -315,13 +345,13 @@ body.phylo-design {
   border-bottom: var(--phylo-border-light);
 }
 
-.phylo-design .code-actions {
+[data-theme="phylo"] .code-actions {
   gap: 8px;
   padding: 10px 12px;
   background: var(--phylo-bg-toolbar);
 }
 
-.phylo-design .code-actions .btn {
+[data-theme="phylo"] .code-actions .btn {
   font-size: 10px;
   padding: 5px 10px;
 }
@@ -329,25 +359,25 @@ body.phylo-design {
 /* ============================================
    TIMELINE - Phylogenetic Tree Style
    ============================================ */
-.phylo-design .timeline-panel-header,
-.phylo-design .timeline-panel-controls,
-.phylo-design .timeline-stats {
+[data-theme="phylo"] .timeline-panel-header,
+[data-theme="phylo"] .timeline-panel-controls,
+[data-theme="phylo"] .timeline-stats {
   background: var(--phylo-bg-toolbar);
   border-bottom: var(--phylo-border-light);
 }
 
-.phylo-design .timeline-panel-content {
+[data-theme="phylo"] .timeline-panel-content {
   padding: 10px;
 }
 
-.phylo-design .timeline-list {
+[data-theme="phylo"] .timeline-list {
   font-family: 'Monaco', 'Menlo', 'Consolas', 'Courier New', monospace;
   font-size: 11px;
   line-height: 1.4;
   gap: 8px;
 }
 
-.phylo-design .timeline-event {
+[data-theme="phylo"] .timeline-event {
   padding: 10px 12px;
   background: var(--phylo-bg-secondary);
   border: var(--phylo-border);
@@ -356,19 +386,19 @@ body.phylo-design {
   transition: background 0.1s ease;
 }
 
-.phylo-design .timeline-event:hover {
+[data-theme="phylo"] .timeline-event:hover {
   background: var(--phylo-bg-tertiary);
   transform: none;
   box-shadow: none;
 }
 
-.phylo-design .timeline-event-header {
+[data-theme="phylo"] .timeline-event-header {
   gap: 8px;
   margin-bottom: 8px;
   font-size: 10px;
 }
 
-.phylo-design .timeline-event-code pre {
+[data-theme="phylo"] .timeline-event-code pre {
   padding: 8px;
   background: var(--phylo-bg-code);
   border-radius: var(--phylo-panel-radius);
@@ -376,32 +406,32 @@ body.phylo-design {
   line-height: 1.4;
 }
 
-.phylo-design .timeline-stat {
+[data-theme="phylo"] .timeline-stat {
   padding: 6px;
   background: var(--phylo-bg-primary);
   border-radius: var(--phylo-panel-radius);
   border: var(--phylo-border);
 }
 
-.phylo-design .timeline-stat-value {
+[data-theme="phylo"] .timeline-stat-value {
   font-size: 16px;
 }
 
-.phylo-design .timeline-stat-label {
+[data-theme="phylo"] .timeline-stat-label {
   font-size: 10px;
 }
 
-.phylo-design .timeline-filter select,
-.phylo-design .timeline-filter input[type="text"],
-.phylo-design .timeline-sort select {
+[data-theme="phylo"] .timeline-filter select,
+[data-theme="phylo"] .timeline-filter input[type="text"],
+[data-theme="phylo"] .timeline-sort select {
   padding: 4px 8px;
   border: var(--phylo-border);
   border-radius: var(--phylo-panel-radius);
   font-size: 11px;
 }
 
-.phylo-design .timeline-filter-clear,
-.phylo-design .timeline-load-more {
+[data-theme="phylo"] .timeline-filter-clear,
+[data-theme="phylo"] .timeline-load-more {
   padding: 6px 10px;
   background: var(--phylo-bg-secondary);
   border: var(--phylo-border);
@@ -410,22 +440,22 @@ body.phylo-design {
   box-shadow: none;
 }
 
-.phylo-design .timeline-filter-clear:hover,
-.phylo-design .timeline-load-more:hover {
+[data-theme="phylo"] .timeline-filter-clear:hover,
+[data-theme="phylo"] .timeline-load-more:hover {
   background: var(--phylo-bg-tertiary);
 }
 
 /* ============================================
    CONSOLE - Phylogenetic Tree Style
    ============================================ */
-.phylo-design .console-output {
+[data-theme="phylo"] .console-output {
   font-family: 'Monaco', 'Menlo', 'Consolas', 'Courier New', monospace;
   font-size: 11px;
   line-height: 1.4;
   padding: 12px;
 }
 
-.phylo-design .console-entry {
+[data-theme="phylo"] .console-entry {
   margin-bottom: 12px;
   padding: 10px 12px;
   border-radius: var(--phylo-panel-radius);
@@ -434,14 +464,14 @@ body.phylo-design {
   box-shadow: none;
 }
 
-.phylo-design .console-meta {
+[data-theme="phylo"] .console-meta {
   gap: 8px;
   margin-bottom: 8px;
   font-size: 10px;
 }
 
-.phylo-design .console-stdout,
-.phylo-design .console-stderr {
+[data-theme="phylo"] .console-stdout,
+[data-theme="phylo"] .console-stderr {
   margin: 8px 0;
   padding: 8px 10px;
   border-radius: var(--phylo-panel-radius);
@@ -451,17 +481,17 @@ body.phylo-design {
   border: var(--phylo-border-light);
 }
 
-.phylo-design .console-stdout {
+[data-theme="phylo"] .console-stdout {
   border-left: 3px solid var(--phylo-success);
 }
 
-.phylo-design .console-stderr {
+[data-theme="phylo"] .console-stderr {
   color: var(--phylo-error);
   border-left: 3px solid var(--phylo-error);
   background: rgba(239, 68, 68, 0.05);
 }
 
-.phylo-design .console-error-badge {
+[data-theme="phylo"] .console-error-badge {
   background: rgba(239, 68, 68, 0.1);
   color: var(--phylo-error);
   padding: 2px 6px;
@@ -469,7 +499,7 @@ body.phylo-design {
   font-size: 9px;
 }
 
-.phylo-design .console-plots-info {
+[data-theme="phylo"] .console-plots-info {
   padding: 8px 10px;
   background-color: rgba(59, 130, 246, 0.08);
   border-left: 3px solid var(--phylo-cytosine);
@@ -479,25 +509,25 @@ body.phylo-design {
   box-shadow: none;
 }
 
-.phylo-design .console-plots-info.clickable:hover {
+[data-theme="phylo"] .console-plots-info.clickable:hover {
   background-color: rgba(59, 130, 246, 0.12);
   transform: none;
 }
 
-.phylo-design .console-plots-info.clickable:active {
+[data-theme="phylo"] .console-plots-info.clickable:active {
   transform: none;
   background-color: rgba(59, 130, 246, 0.15);
 }
 
-.phylo-design .console-history {
+[data-theme="phylo"] .console-history {
   padding: 12px;
 }
 
-.phylo-design .history-list {
+[data-theme="phylo"] .history-list {
   gap: 8px;
 }
 
-.phylo-design .history-item {
+[data-theme="phylo"] .history-item {
   padding: 10px 12px;
   background-color: var(--phylo-bg-secondary);
   border-radius: var(--phylo-panel-radius);
@@ -506,67 +536,67 @@ body.phylo-design {
   box-shadow: none;
 }
 
-.phylo-design .history-item:hover {
+[data-theme="phylo"] .history-item:hover {
   background: var(--phylo-bg-tertiary);
   transform: none;
   box-shadow: none;
 }
 
-.phylo-design .history-header {
+[data-theme="phylo"] .history-header {
   gap: 8px;
   margin-bottom: 6px;
   font-size: 10px;
 }
 
-.phylo-design .history-summary {
+[data-theme="phylo"] .history-summary {
   font-size: 10px;
 }
 
 /* ============================================
    SASH (SPLIT PANE) OVERRIDES
    ============================================ */
-.phylo-design .sash {
+[data-theme="phylo"] .sash {
   background-color: var(--phylo-bg-tertiary) !important;
 }
 
-.phylo-design .sash:hover {
+[data-theme="phylo"] .sash:hover {
   background-color: var(--phylo-cytosine) !important;
 }
 
-.phylo-design .sash-vertical {
+[data-theme="phylo"] .sash-vertical {
   width: 1px !important;
 }
 
-.phylo-design .sash-horizontal {
+[data-theme="phylo"] .sash-horizontal {
   height: 1px !important;
 }
 
 /* ============================================
    SCROLLBARS
    ============================================ */
-.phylo-design ::-webkit-scrollbar {
+[data-theme="phylo"] ::-webkit-scrollbar {
   width: 12px;
   height: 12px;
 }
 
-.phylo-design ::-webkit-scrollbar-track {
+[data-theme="phylo"] ::-webkit-scrollbar-track {
   background: var(--phylo-bg-secondary);
 }
 
-.phylo-design ::-webkit-scrollbar-thumb {
+[data-theme="phylo"] ::-webkit-scrollbar-thumb {
   background: #cccccc;
   border-radius: 0;
   border: 2px solid var(--phylo-bg-secondary);
 }
 
-.phylo-design ::-webkit-scrollbar-thumb:hover {
+[data-theme="phylo"] ::-webkit-scrollbar-thumb:hover {
   background: #999999;
 }
 
 /* ============================================
    MENU BAR
    ============================================ */
-.phylo-design .menubar {
+[data-theme="phylo"] .menubar {
   background: var(--phylo-bg-toolbar);
   border: var(--phylo-border);
   border-radius: 0;
@@ -576,18 +606,18 @@ body.phylo-design {
   backdrop-filter: none;
 }
 
-.phylo-design .menubar::after {
+[data-theme="phylo"] .menubar::after {
   display: none;
 }
 
-.phylo-design .menubar-brand {
+[data-theme="phylo"] .menubar-brand {
   font-size: 13px;
   font-weight: 700;
   color: var(--phylo-text-primary);
   letter-spacing: 0;
 }
 
-.phylo-design .menu-item {
+[data-theme="phylo"] .menu-item {
   padding: 6px 12px;
   font-size: 12px;
   font-weight: 500;
@@ -596,12 +626,12 @@ body.phylo-design {
   border: none;
 }
 
-.phylo-design .menu-item:hover {
+[data-theme="phylo"] .menu-item:hover {
   background: var(--phylo-bg-secondary);
   color: var(--phylo-text-primary);
 }
 
-.phylo-design .connection-indicator {
+[data-theme="phylo"] .connection-indicator {
   padding: 4px 10px;
   border-radius: 3px;
   background: var(--phylo-bg-secondary);
@@ -609,7 +639,7 @@ body.phylo-design {
   box-shadow: none;
 }
 
-.phylo-design .connection-dot {
+[data-theme="phylo"] .connection-dot {
   width: 8px;
   height: 8px;
   box-shadow: none;
@@ -618,7 +648,7 @@ body.phylo-design {
 /* ============================================
    STATUS BAR
    ============================================ */
-.phylo-design .statusbar {
+[data-theme="phylo"] .statusbar {
   background: var(--phylo-bg-toolbar);
   border: var(--phylo-border);
   border-radius: 0;
@@ -629,22 +659,22 @@ body.phylo-design {
   backdrop-filter: none;
 }
 
-.phylo-design .statusbar-item {
+[data-theme="phylo"] .statusbar-item {
   gap: 4px;
 }
 
-.phylo-design .statusbar-modified {
+[data-theme="phylo"] .statusbar-modified {
   color: var(--phylo-warning);
 }
 
-.phylo-design .statusbar-running {
+[data-theme="phylo"] .statusbar-running {
   color: var(--phylo-cytosine);
 }
 
 /* ============================================
    SPINNER
    ============================================ */
-.phylo-design .spinner {
+[data-theme="phylo"] .spinner {
   width: 12px;
   height: 12px;
   border: 2px solid var(--phylo-bg-tertiary);
@@ -655,94 +685,94 @@ body.phylo-design {
 /* ============================================
    STOP BUTTON
    ============================================ */
-.phylo-design .btn-stop {
+[data-theme="phylo"] .btn-stop {
   background: var(--phylo-thymine);
   color: white;
   border-color: transparent;
   box-shadow: none;
 }
 
-.phylo-design .btn-stop:hover:not(:disabled) {
+[data-theme="phylo"] .btn-stop:hover:not(:disabled) {
   background: #dc2626;
 }
 
 /* ============================================
    EDITOR
    ============================================ */
-.phylo-design .editor-panel {
+[data-theme="phylo"] .editor-panel {
   background: var(--phylo-bg-primary);
 }
 
-.phylo-design .dirty-marker {
+[data-theme="phylo"] .dirty-marker {
   color: var(--phylo-warning);
 }
 
-.phylo-design .cell-boundary-decoration {
+[data-theme="phylo"] .cell-boundary-decoration {
   background: rgba(59, 130, 246, 0.1);
   border-left: 2px solid var(--phylo-cytosine);
 }
 
-.phylo-design .executing-cell-background {
+[data-theme="phylo"] .executing-cell-background {
   background-color: rgba(59, 130, 246, 0.05);
 }
 
 /* ============================================
    PLOTS
    ============================================ */
-.phylo-design .plots-panel,
-.phylo-design .plots-panel .panel-header {
+[data-theme="phylo"] .plots-panel,
+[data-theme="phylo"] .plots-panel .panel-header {
   background: transparent;
 }
 
-.phylo-design .plot-counter {
+[data-theme="phylo"] .plot-counter {
   font-size: 10px;
 }
 
-.phylo-design .plots-container,
-.phylo-design .viewer-container,
-.phylo-design .help-container {
+[data-theme="phylo"] .plots-container,
+[data-theme="phylo"] .viewer-container,
+[data-theme="phylo"] .help-container {
   background: var(--phylo-bg-primary);
 }
 
-.phylo-design .empty-state {
+[data-theme="phylo"] .empty-state {
   padding: 24px;
   gap: 10px;
 }
 
-.phylo-design .empty-icon svg {
+[data-theme="phylo"] .empty-icon svg {
   width: 40px;
   height: 40px;
   color: var(--phylo-text-muted);
 }
 
-.phylo-design .empty-state p {
+[data-theme="phylo"] .empty-state p {
   font-size: 12px;
 }
 
-.phylo-design .empty-hint {
+[data-theme="phylo"] .empty-hint {
   font-size: 11px;
 }
 
-.phylo-design .plot-viewer {
+[data-theme="phylo"] .plot-viewer {
   padding: 12px;
   background: var(--phylo-bg-secondary);
 }
 
-.phylo-design .plot-image {
+[data-theme="phylo"] .plot-image {
   border: var(--phylo-border);
   box-shadow: none;
 }
 
-.phylo-design .help-content {
+[data-theme="phylo"] .help-content {
   padding: 18px;
   gap: 14px;
 }
 
-.phylo-design .help-content h3 {
+[data-theme="phylo"] .help-content h3 {
   font-size: 14px;
 }
 
-.phylo-design .help-section {
+[data-theme="phylo"] .help-section {
   padding: 12px;
   border-radius: var(--phylo-panel-radius);
   background: var(--phylo-bg-secondary);
@@ -750,17 +780,17 @@ body.phylo-design {
   box-shadow: none;
 }
 
-.phylo-design .help-section h4 {
+[data-theme="phylo"] .help-section h4 {
   font-size: 12px;
   margin-bottom: 6px;
 }
 
-.phylo-design .help-section li {
+[data-theme="phylo"] .help-section li {
   font-size: 11px;
   padding-left: 14px;
 }
 
-.phylo-design .help-section li::before {
+[data-theme="phylo"] .help-section li::before {
   width: 4px;
   height: 4px;
   background: var(--phylo-cytosine);
@@ -770,18 +800,18 @@ body.phylo-design {
 /* ============================================
    UTILITIES
    ============================================ */
-.phylo-design .phylo-success-text {
+[data-theme="phylo"] .phylo-success-text {
   color: var(--phylo-success);
 }
 
-.phylo-design .phylo-error-text {
+[data-theme="phylo"] .phylo-error-text {
   color: var(--phylo-error);
 }
 
-.phylo-design .phylo-warning-text {
+[data-theme="phylo"] .phylo-warning-text {
   color: var(--phylo-warning);
 }
 
-.phylo-design .phylo-muted-text {
+[data-theme="phylo"] .phylo-muted-text {
   color: var(--phylo-text-muted);
 }

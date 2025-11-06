@@ -1,4 +1,5 @@
-:root {
+:root,
+:root[data-theme="default"] {
   /* Surface palette */
   --bg-primary: #ffffff;
   --bg-secondary: #f4f6fb;
@@ -41,6 +42,8 @@
 
   /* Typography tokens */
   --font-family-base: 'Inter', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  --font-ui: 'Inter', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  --font-code: 'Berkeley Mono', 'Fira Code', 'Consolas', monospace;
   --font-size-base: 13px;
   --line-height-base: 1.55;
   --font-weight-base: 400;
@@ -96,4 +99,36 @@
   --tab-active-border: rgba(47, 111, 237, 0.32);
   --tab-active-shadow: 0 10px 24px rgba(47, 111, 237, 0.18);
   --tab-active-underline: none;
+
+  /* Menu system */
+  --menu-height: 32px;
+  --menu-padding: 0 12px;
+  --menu-gap: 20px;
+  --menu-bg: #f6f8fa;
+  --menu-border-color: #d0d7de;
+  --menu-border-radius: 0;
+  --menu-shadow: none;
+  --menu-item-gap: 2px;
+  --menu-item-padding: 4px 10px;
+  --menu-item-font-size: 12px;
+  --menu-item-border-radius: 3px;
+  --menu-item-hover-bg: #e5e7eb;
+  --menu-item-active-bg: #d1d5db;
+  --menu-dropdown-bg: #ffffff;
+  --menu-dropdown-border: #d0d7de;
+  --menu-dropdown-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --menu-dropdown-hover-bg: #f6f8fa;
+  --menu-dropdown-active-bg: #e5e7eb;
+  --menu-dropdown-separator: #e5e7eb;
+  --menu-connection-bg: #ffffff;
+  --menu-connection-border: #d0d7de;
+  --menu-connection-padding: 4px 8px;
+  --menu-connection-gap: 6px;
+  --menu-connection-font-size: 11px;
+  --menu-ai-bg: #fefce8;
+  --menu-ai-border: #f59e0b;
+  --menu-ai-hover-bg: #fef9c3;
+  --menu-info-color: #3b82f6;
+  --menu-success-color: var(--success-color);
+  --menu-error-color: var(--error-color);
 }
