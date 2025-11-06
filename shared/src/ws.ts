@@ -23,7 +23,19 @@ export type ClientMessage =
   | { type: 'list_tools' }
   | ({ type: 'execute_tool' } & ToolExecutionRequestPayload)
   | { type: 'timeline_query'; query: TimelineQuery }
-  | { type: 'timeline_stats_query' };
+  | { type: 'timeline_stats_query' }
+  | {
+      type: 'export_rmarkdown';
+      mode: 'timeline' | 'document';
+      output_path: string;
+      document_path?: string;
+      include_timestamps: boolean;
+      show_actor: boolean;
+      embed_plots: boolean;
+      include_outputs: boolean;
+      include_errors: boolean;
+      include_summary: boolean;
+    };
 
 type TimelineEventPush = Extract<TimelineMessage, { type: 'timeline_event_added' }>;
 
@@ -36,6 +48,7 @@ export type ServerMessage =
   | ({ type: 'tool_execution_result' } & ToolExecutionResponse)
   | { type: 'timeline_response'; data: TimelineResponse }
   | { type: 'timeline_stats_response'; stats: TimelineStats }
+  | { type: 'export_rmarkdown_response'; success: boolean; output_path: string; error?: string }
   | TimelineEventPush;
 
 export type ServerMessageType = ServerMessage['type'];

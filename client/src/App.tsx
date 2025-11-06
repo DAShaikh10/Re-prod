@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Allotment } from 'allotment';
 import 'allotment/dist/style.css';
 import { MenuBar, StatusBar } from '@/components/menu';
@@ -5,16 +6,21 @@ import { EditorPanel } from '@/components/editor';
 import { AIPanel } from '@/components/ai-panel';
 import { ConsolePanel } from '@/components/console';
 import { UnifiedRightPane } from '@/components/unified-pane';
+import { ExportDialog } from '@/components/export';
 import { useStore } from '@/core';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useSocketConnection } from '@/hooks/useSocketConnection';
 
 function App(): JSX.Element {
   const panes = useStore((state) => state.view.panes);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
 
   // Enable global keyboard shortcuts
   useKeyboardShortcuts();
   useSocketConnection();
+
+  // Expose export dialog handler globally for menu actions
+  (window as any).openExportDialog = () => setExportDialogOpen(true);
 
   return (
     <div className="app">
@@ -48,6 +54,7 @@ function App(): JSX.Element {
         </Allotment>
       </div>
       <StatusBar />
+      <ExportDialog open={exportDialogOpen} onClose={() => setExportDialogOpen(false)} />
     </div>
   );
 }
