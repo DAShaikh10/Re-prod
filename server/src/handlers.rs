@@ -9,8 +9,8 @@ use reprod_core::{
     ai::{self, tools::{FileSystemTool, RContextTool, get_filesystem_tools, get_r_context_tools}},
     api::timeline::{TimelineQueryPayload, TimelineResponsePayload, TimelineStatsPayload},
     executor::timeline::JsonTimeline,
-    ChatMessage, Config, ExecutionRequest, ExecutionResult, RExecutor, ToolExecutor,
-    ToolManifest, ToolRegistry, AIResponse,
+    ChatMessage, Config, ExecutionEvent, ExecutionRequest, ExecutionResult, RExecutor,
+    ToolExecutor, ToolManifest, ToolRegistry, AIResponse,
 };
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -35,11 +35,13 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
         match msg {
             Ok(Message::Text(text)) => {
                 if let Ok(request) = serde_json::from_str::<WSRequest>(&text) {
-                    let response = handle_ws_request(request, &state).await;
+                    let responses = handle_ws_request(request, &state).await;
 
-                    if let Ok(response_text) = serde_json::to_string(&response) {
-                        if socket.send(Message::Text(response_text)).await.is_err() {
-                            break;
+                    for response in responses {
+                        if let Ok(response_text) = serde_json::to_string(&response) {
+                            if socket.send(Message::Text(response_text)).await.is_err() {
+                                return;
+                            }
                         }
                     }
                 } else {
@@ -105,17 +107,22 @@ enum WSResponse {
     TimelineResponse { data: TimelineResponsePayload },
     #[serde(rename = "timeline_stats_response")]
     TimelineStatsResponse { stats: TimelineStatsPayload },
+    #[serde(rename = "timeline_event_added")]
+    TimelineEventAdded { event: ExecutionEvent },
 }
 
-async fn handle_ws_request(request: WSRequest, state: &AppState) -> WSResponse {
+async fn handle_ws_request(request: WSRequest, state: &AppState) -> Vec<WSResponse> {
     match request {
         WSRequest::Execute { request } => {
             let executor = state.r_executor.lock().await;
-            match executor.execute(request).await {
-                Ok(result) => WSResponse::ExecutionResult { result },
-                Err(e) => WSResponse::Error {
+            match executor.execute_with_event(request).await {
+                Ok((result, event)) => vec![
+                    WSResponse::ExecutionResult { result },
+                    WSResponse::TimelineEventAdded { event },
+                ],
+                Err(e) => vec![WSResponse::Error {
                     message: e.to_string(),
-                },
+                }],
             }
         }
         WSRequest::AIMessage { messages, enable_tools } => {
@@ -179,39 +186,39 @@ async fn handle_ws_request(request: WSRequest, state: &AppState) -> WSResponse {
                             match provider.send_message(follow_up_messages).await {
                                 Ok(final_response) => {
                                     tracing::info!("Received final response from AI");
-                                    WSResponse::AIResponse { response: final_response }
-                                },
+                                    vec![WSResponse::AIResponse { response: final_response }]
+                                }
                                 Err(e) => {
                                     tracing::error!("Failed to get final response: {}", e);
-                                    WSResponse::Error {
+                                    vec![WSResponse::Error {
                                         message: format!("Failed to get final response: {}", e),
-                                    }
-                                },
+                                    }]
+                                }
                             }
                         } else {
                             // No tool calls, return original response
-                            WSResponse::AIResponseWithTools { response }
+                            vec![WSResponse::AIResponseWithTools { response }]
                         }
                     }
-                    Err(e) => WSResponse::Error {
+                    Err(e) => vec![WSResponse::Error {
                         message: e.to_string(),
-                    },
+                    }],
                 }
             } else {
                 // Legacy mode without tools
                 let result = provider.send_message(messages).await;
 
                 match result {
-                    Ok(response) => WSResponse::AIResponse { response },
-                    Err(e) => WSResponse::Error {
+                    Ok(response) => vec![WSResponse::AIResponse { response }],
+                    Err(e) => vec![WSResponse::Error {
                         message: e.to_string(),
-                    },
+                    }],
                 }
             }
         }
         WSRequest::ListTools => {
             let tools = state.tool_registry.iter().cloned().collect();
-            WSResponse::Tools { tools }
+            vec![WSResponse::Tools { tools }]
         }
         WSRequest::ExecuteTool {
             tool_id,
@@ -224,7 +231,7 @@ async fn handle_ws_request(request: WSRequest, state: &AppState) -> WSResponse {
                 .execute(&tool_id, &capability_id, parameters, &mut r_executor)
                 .await
             {
-                Ok(result) => WSResponse::ToolExecutionResult {
+                Ok(result) => vec![WSResponse::ToolExecutionResult {
                     tool_id: result.tool_id,
                     capability_id: result.capability_id,
                     success: result.success,
@@ -232,32 +239,32 @@ async fn handle_ws_request(request: WSRequest, state: &AppState) -> WSResponse {
                     stderr: result.stderr,
                     execution_time_ms: result.execution_time_ms,
                     error: result.error,
-                },
-                Err(e) => WSResponse::Error {
+                }],
+                Err(e) => vec![WSResponse::Error {
                     message: e.to_string(),
-                },
+                }],
             }
         }
         WSRequest::TimelineQuery { query } => match query.into_domain() {
             Ok(timeline_query) => match state.timeline.query(timeline_query) {
-                Ok(response) => WSResponse::TimelineResponse {
+                Ok(response) => vec![WSResponse::TimelineResponse {
                     data: TimelineResponsePayload::from(response),
-                },
-                Err(e) => WSResponse::Error {
+                }],
+                Err(e) => vec![WSResponse::Error {
                     message: format!("Timeline query failed: {}", e),
-                },
+                }],
             },
-            Err(e) => WSResponse::Error {
+            Err(e) => vec![WSResponse::Error {
                 message: format!("Invalid timeline query: {}", e),
-            },
+            }],
         },
         WSRequest::TimelineStatsQuery => match state.timeline.stats() {
-            Ok(stats) => WSResponse::TimelineStatsResponse {
+            Ok(stats) => vec![WSResponse::TimelineStatsResponse {
                 stats: TimelineStatsPayload::from(stats),
-            },
-            Err(e) => WSResponse::Error {
+            }],
+            Err(e) => vec![WSResponse::Error {
                 message: format!("Timeline stats query failed: {}", e),
-            },
+            }],
         },
     }
 }

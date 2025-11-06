@@ -1,4 +1,5 @@
 import {
+  type ExecutionEventPayload,
   type TimelineQuery,
   type TimelineResponse,
   type TimelineStats,
@@ -57,6 +58,16 @@ export async function getTimelineStats(): Promise<TimelineStats> {
 
     if (!didSend) {
       reject(new Error('Timeline stats request failed: WebSocket is not connected.'));
+    }
+  });
+}
+
+export function subscribeToTimelineEvents(
+  handler: (event: ExecutionEventPayload) => void,
+): () => void {
+  return socketService.on('timeline_event_added', (message) => {
+    if (message.type === 'timeline_event_added') {
+      handler(message.event);
     }
   });
 }

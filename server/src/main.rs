@@ -5,8 +5,8 @@ mod routes;
 
 use axum::{routing::get, Router};
 use reprod_core::{
-    executor::timeline::JsonTimeline, Config, RExecutor, ToolExecutor, ToolRegistry,
-    ai::tools::{FileSystemTool, RContextTool},
+    executor::timeline::{JsonTimeline, TimelineSink}, Config, RExecutor, ToolExecutor,
+    ToolRegistry, ai::tools::{FileSystemTool, RContextTool},
 };
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -28,7 +28,21 @@ async fn main() {
         eprintln!("Failed to create temp directory: {}", e);
     }
 
-    let r_executor = Arc::new(Mutex::new(RExecutor::new(temp_dir, config.r_path.clone())));
+    // Initialize timeline storage (shared between executor and websocket pushes)
+    let timeline_file_path = temp_dir.join("timeline.ndjson");
+    let timeline = JsonTimeline::new(timeline_file_path).unwrap_or_else(|error| {
+        tracing::warn!("Failed to initialize timeline storage: {}. Using in-memory timeline.", error);
+        JsonTimeline::new_in_memory().expect("Failed to create in-memory timeline")
+    });
+    let timeline = Arc::new(timeline);
+    let shared_timeline: Arc<dyn TimelineSink> = timeline.clone();
+    tracing::info!("Timeline storage initialized");
+
+    let r_executor = Arc::new(Mutex::new(
+        RExecutor::builder(temp_dir.clone(), config.r_path.clone())
+            .with_shared_timeline(shared_timeline.clone())
+            .build(),
+    ));
 
     let config_state = Arc::new(Mutex::new(config));
 
@@ -49,15 +63,6 @@ async fn main() {
     let tool_registry = Arc::new(tool_registry);
 
     let tool_executor = Arc::new(ToolExecutor::new(tool_registry.clone()));
-
-    // Initialize timeline storage
-    let timeline_file_path = std::env::temp_dir().join("reprod").join("timeline.ndjson");
-    let timeline = JsonTimeline::new(timeline_file_path).unwrap_or_else(|error| {
-        tracing::warn!("Failed to initialize timeline storage: {}. Using in-memory timeline.", error);
-        JsonTimeline::new_in_memory().expect("Failed to create in-memory timeline")
-    });
-    let timeline = Arc::new(timeline);
-    tracing::info!("Timeline storage initialized");
 
     // Initialize AI tools
     let workspace_root = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));

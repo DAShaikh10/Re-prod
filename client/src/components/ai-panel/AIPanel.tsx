@@ -100,9 +100,7 @@ export function AIPanel(): JSX.Element {
         }
 
         if (response.type === 'ai_response') {
-          console.log('AI Response received:', response.response);
           const codeBlocks = extractCodeBlocks(response.response);
-          console.log('Extracted code blocks:', codeBlocks);
           addAIMessage({
             id: Date.now().toString(),
             role: 'assistant',
@@ -128,9 +126,7 @@ export function AIPanel(): JSX.Element {
             content = 'AI response received (no content)';
           }
 
-          console.log('AI Response with tools content:', content);
           const codeBlocks = extractCodeBlocks(content);
-          console.log('Extracted code blocks from tools response:', codeBlocks);
 
           addAIMessage({
             id: Date.now().toString(),
@@ -245,7 +241,6 @@ export function AIPanel(): JSX.Element {
                   )}
                   {/* New code blocks with Apply buttons */}
                   {message.codeBlocks && message.codeBlocks.length > 0 && (
-                    console.log(`Rendering ${message.codeBlocks.length} code blocks for message ${message.id}`),
                     message.codeBlocks.map((codeBlock: CodeBlock) => (
                       <CodeBlockWithApply
                         key={codeBlock.id}
