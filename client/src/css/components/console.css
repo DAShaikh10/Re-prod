@@ -1,21 +1,3 @@
-.console-panel {
-  border: none;
-  background: transparent;
-}
-
-.console-panel .panel-header {
-  padding: 0 12px;
-  background: transparent;
-  box-shadow: none;
-}
-
-.console-panel .tabs {
-  flex: 1;
-  margin: 0;
-  padding-left: 0;
-  background: transparent;
-}
-
 .console-content {
   font-family: Monaco, Menlo, Consolas, monospace;
   font-size: 12px;
