@@ -444,10 +444,7 @@ mod tests {
 
     #[test]
     fn test_source_to_string_selection() {
-        assert_eq!(
-            source_to_string(ExecutionSource::Selection),
-            "selection"
-        );
+        assert_eq!(source_to_string(ExecutionSource::Selection), "selection");
     }
 
     #[test]
@@ -804,7 +801,7 @@ mod tests {
             ai_actions: 400_000,
             session_start_time: 1700000000000,
             session_end_time: 1700086400000, // 24 hours later
-            session_duration: 86400000,       // 24 hours in ms
+            session_duration: 86400000,      // 24 hours in ms
         };
 
         let payload: TimelineStatsPayload = stats.into();
@@ -849,7 +846,11 @@ mod tests {
             };
 
             let result: Result<TimelineFilters, _> = payload.try_into();
-            assert!(result.is_err(), "Actor '{}' should be invalid", invalid_actor);
+            assert!(
+                result.is_err(),
+                "Actor '{}' should be invalid",
+                invalid_actor
+            );
         }
     }
 
@@ -869,7 +870,11 @@ mod tests {
             };
 
             let result: Result<TimelineFilters, _> = payload.try_into();
-            assert!(result.is_err(), "Source '{}' should be invalid", invalid_source);
+            assert!(
+                result.is_err(),
+                "Source '{}' should be invalid",
+                invalid_source
+            );
         }
     }
 }
