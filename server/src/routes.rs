@@ -1,13 +1,14 @@
 use crate::handlers::AppState;
+use crate::http::{err_400, err_404, err_500, HttpError, Resp};
 use axum::{
     extract::{Path, State},
     http::StatusCode,
     Json,
 };
-use reprod_core::{ai, ChatMessage, ExecutionRequest, ExecutionResult, ToolExecutionRequest, ToolExecutionResult, ToolManifest};
-use crate::http::{Resp, HttpError, err_400, err_404, err_500};
-
- 
+use reprod_core::{
+    ai, ChatMessage, ExecutionRequest, ExecutionResult, ToolExecutionRequest, ToolExecutionResult,
+    ToolManifest,
+};
 
 pub async fn health() -> &'static str {
     "OK"
@@ -19,11 +20,7 @@ pub async fn execute_r_code(
 ) -> Resp<ExecutionResult> {
     let executor = state.r_executor.lock().await;
 
-    executor
-        .execute(payload)
-        .await
-        .map(Json)
-        .map_err(err_500)
+    executor.execute(payload).await.map(Json).map_err(err_500)
 }
 
 pub async fn send_ai_message(
@@ -70,10 +67,7 @@ pub async fn set_api_key(
         _ => return Err(err_400(format!("Unknown provider: {}", provider))),
     }
 
-    config
-        .save()
-        .map(|_| StatusCode::OK)
-        .map_err(err_500)
+    config.save().map(|_| StatusCode::OK).map_err(err_500)
 }
 
 pub async fn list_tools(State(state): State<AppState>) -> Json<Vec<ToolManifest>> {
@@ -81,9 +75,7 @@ pub async fn list_tools(State(state): State<AppState>) -> Json<Vec<ToolManifest>
     Json(manifests)
 }
 
-pub async fn get_provider(
-    State(state): State<AppState>,
-) -> Resp<GetProviderResponse> {
+pub async fn get_provider(State(state): State<AppState>) -> Resp<GetProviderResponse> {
     let config = state.config.lock().await;
     Ok(Json(GetProviderResponse {
         provider: config.default_ai_provider.clone(),
@@ -104,10 +96,7 @@ pub async fn set_provider(
     let mut config = state.config.lock().await;
     config.default_ai_provider = payload.provider;
 
-    config
-        .save()
-        .map(|_| StatusCode::OK)
-        .map_err(err_500)
+    config.save().map(|_| StatusCode::OK).map_err(err_500)
 }
 
 pub async fn execute_tool(

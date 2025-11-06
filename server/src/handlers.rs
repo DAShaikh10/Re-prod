@@ -6,11 +6,14 @@ use axum::{
     response::Response,
 };
 use reprod_core::{
-    ai::{self, tools::{FileSystemTool, RContextTool, get_filesystem_tools, get_r_context_tools}},
+    ai::{
+        self,
+        tools::{get_filesystem_tools, get_r_context_tools, FileSystemTool, RContextTool},
+    },
     api::timeline::{TimelineQueryPayload, TimelineResponsePayload, TimelineStatsPayload},
     executor::timeline::JsonTimeline,
-    ChatMessage, Config, ExecutionEvent, ExecutionRequest, ExecutionResult, RExecutor,
-    ToolExecutor, ToolManifest, ToolRegistry, AIResponse,
+    AIResponse, ChatMessage, Config, ExecutionEvent, ExecutionRequest, ExecutionResult, RExecutor,
+    ToolExecutor, ToolManifest, ToolRegistry,
 };
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -125,7 +128,10 @@ async fn handle_ws_request(request: WSRequest, state: &AppState) -> Vec<WSRespon
                 }],
             }
         }
-        WSRequest::AIMessage { messages, enable_tools } => {
+        WSRequest::AIMessage {
+            messages,
+            enable_tools,
+        } => {
             let cfg = state.config.lock().await.clone();
             let provider = ai::from_config(&cfg);
 
@@ -135,7 +141,9 @@ async fn handle_ws_request(request: WSRequest, state: &AppState) -> Vec<WSRespon
                 tools.extend(get_r_context_tools());
 
                 // First API call to get tool calls
-                let result = provider.send_message_with_tools(messages.clone(), tools.clone()).await;
+                let result = provider
+                    .send_message_with_tools(messages.clone(), tools.clone())
+                    .await;
 
                 match result {
                     Ok(response) => {
@@ -144,10 +152,7 @@ async fn handle_ws_request(request: WSRequest, state: &AppState) -> Vec<WSRespon
                             let mut tool_results = Vec::new();
 
                             for tool_call in tool_calls {
-                                let tool_result = execute_ai_tool_call(
-                                    tool_call,
-                                    &state,
-                                ).await;
+                                let tool_result = execute_ai_tool_call(tool_call, &state).await;
 
                                 // Log tool execution result
                                 tracing::info!(
@@ -186,7 +191,9 @@ async fn handle_ws_request(request: WSRequest, state: &AppState) -> Vec<WSRespon
                             match provider.send_message(follow_up_messages).await {
                                 Ok(final_response) => {
                                     tracing::info!("Received final response from AI");
-                                    vec![WSResponse::AIResponse { response: final_response }]
+                                    vec![WSResponse::AIResponse {
+                                        response: final_response,
+                                    }]
                                 }
                                 Err(e) => {
                                     tracing::error!("Failed to get final response: {}", e);
