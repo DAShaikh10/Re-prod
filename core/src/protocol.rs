@@ -69,7 +69,6 @@ pub enum ExecutionSource {
     Unknown,
 }
 
-
 /// Actor initiating the execution event (user vs AI).
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -79,7 +78,6 @@ pub enum ExecutionActor {
     User,
     Ai,
 }
-
 
 /// Type of code block captured during execution.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
