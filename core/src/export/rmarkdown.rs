@@ -42,7 +42,6 @@ pub enum ExportMode {
     Document,
 }
 
-
 /// Options for RMarkdown export.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RMarkdownOptions {

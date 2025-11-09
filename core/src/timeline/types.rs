@@ -29,14 +29,12 @@ pub struct TimelineFilters {
 }
 
 /// Sort order for timeline queries
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[derive(Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum SortOrder {
     Asc,
     #[default]
     Desc,
 }
-
 
 /// Response with pagination metadata
 #[derive(Debug, Clone)]
