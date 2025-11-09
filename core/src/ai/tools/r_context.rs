@@ -24,6 +24,12 @@ pub struct GetWorkingDirRequest {}
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GetInstalledPackagesRequest {}
 
+impl Default for RContextTool {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RContextTool {
     pub fn new() -> Self {
         Self

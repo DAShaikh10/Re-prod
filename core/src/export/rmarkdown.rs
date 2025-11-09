@@ -33,18 +33,15 @@ use serde::{Deserialize, Serialize};
 /// Export mode for RMarkdown generation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+#[derive(Default)]
 pub enum ExportMode {
     /// Export from timeline (actual execution history)
+    #[default]
     Timeline,
     /// Export from current document (edited file)
     Document,
 }
 
-impl Default for ExportMode {
-    fn default() -> Self {
-        ExportMode::Timeline
-    }
-}
 
 /// Options for RMarkdown export.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -188,7 +185,7 @@ output:
         if let Some(doc) = &event.context.document_path {
             section.push_str(&format!("**Document**: {}  \n", doc));
         }
-        section.push_str("\n");
+        section.push('\n');
 
         // Code chunks
         for (block_idx, block) in event.blocks.iter().enumerate() {
@@ -400,7 +397,7 @@ fn format_timestamp(ms: u64) -> String {
         duration.num_seconds(),
         (duration.num_milliseconds() % 1000 * 1_000_000) as u32,
     )
-    .unwrap_or_else(|| chrono::Utc::now());
+    .unwrap_or_else(chrono::Utc::now);
 
     datetime.format("%Y-%m-%d %H:%M:%S UTC").to_string()
 }

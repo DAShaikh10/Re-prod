@@ -161,9 +161,7 @@ fn parse_section_label(line: &str, existing_sections: usize) -> Option<String> {
 
     let remainder = trimmed[hash_count..].trim_start();
     let dash_index = remainder.find("----");
-    if dash_index.is_none() {
-        return None;
-    }
+    dash_index?;
 
     let label_part = &remainder[..dash_index.unwrap()];
     let label = label_part.trim();

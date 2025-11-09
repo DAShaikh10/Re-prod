@@ -60,32 +60,26 @@ pub struct FileChangeEvent {
 /// Source of an R execution request.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
+#[derive(Default)]
 pub enum ExecutionSource {
     Selection,
     Cell,
     WholeDocument,
+    #[default]
     Unknown,
 }
 
-impl Default for ExecutionSource {
-    fn default() -> Self {
-        ExecutionSource::Unknown
-    }
-}
 
 /// Actor initiating the execution event (user vs AI).
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
+#[derive(Default)]
 pub enum ExecutionActor {
+    #[default]
     User,
     Ai,
 }
 
-impl Default for ExecutionActor {
-    fn default() -> Self {
-        ExecutionActor::User
-    }
-}
 
 /// Type of code block captured during execution.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
