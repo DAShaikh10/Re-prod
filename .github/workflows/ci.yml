@@ -38,3 +38,10 @@ jobs:
         run: pnpm --filter client build
 
       - run: cargo check --workspace
+
+      - name: Run Rust tests
+        run: cargo test --workspace --all-features
+
+      - name: Run Frontend tests
+        run: pnpm --filter client test -- --run --reporter=basic
+        continue-on-error: true  # Temporary: Timeline tests hang, fix in separate PR
