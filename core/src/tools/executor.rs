@@ -163,7 +163,7 @@ impl ToolExecutor {
             stderr: if stderr.is_empty() {
                 None
             } else {
-                Some(stderr.clone())
+                Some(stderr)
             },
             artifacts,
             execution_time_ms: 0,

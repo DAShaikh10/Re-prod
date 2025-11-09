@@ -30,16 +30,13 @@ pub struct TimelineFilters {
 
 /// Sort order for timeline queries
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Default)]
 pub enum SortOrder {
     Asc,
+    #[default]
     Desc,
 }
 
-impl Default for SortOrder {
-    fn default() -> Self {
-        SortOrder::Desc
-    }
-}
 
 /// Response with pagination metadata
 #[derive(Debug, Clone)]
