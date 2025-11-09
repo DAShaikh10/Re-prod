@@ -37,22 +37,22 @@ export function ExportDialog({ open, onClose }: ExportDialogProps): JSX.Element 
       if (format === 'rmarkdown' || format === 'both') {
         console.log('[ExportDialog] Sending export_rmarkdown request:', {
           mode,
-          output_path: outputPath,
-          document_path: mode === 'document' ? documentPath : undefined,
+          outputPath: outputPath,
+          documentPath: mode === 'document' ? documentPath : undefined,
         });
 
         const success = socketService.send(
           {
             type: 'export_rmarkdown',
             mode,
-            output_path: outputPath,
-            document_path: mode === 'document' ? documentPath : undefined,
-            include_timestamps: options.includeTimestamps,
-            show_actor: options.showActor,
-            embed_plots: options.embedPlots,
-            include_outputs: options.includeOutputs,
-            include_errors: options.includeErrors,
-            include_summary: options.includeSummary,
+            outputPath: outputPath,
+            documentPath: mode === 'document' ? documentPath : undefined,
+            includeTimestamps: options.includeTimestamps,
+            showActor: options.showActor,
+            embedPlots: options.embedPlots,
+            includeOutputs: options.includeOutputs,
+            includeErrors: options.includeErrors,
+            includeSummary: options.includeSummary,
           },
           (response) => {
             clearTimeout(timeout);
@@ -61,7 +61,7 @@ export function ExportDialog({ open, onClose }: ExportDialogProps): JSX.Element 
             if (response.type === 'export_rmarkdown_response') {
               const msg = response as ExtractServerMessage<'export_rmarkdown_response'>;
               if (msg.success) {
-                console.log('✅ RMarkdown exported to:', msg.output_path);
+                console.log('✅ RMarkdown exported to:', msg.outputPath);
                 setExporting(false);
                 onClose();
               } else {
