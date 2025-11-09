@@ -27,14 +27,14 @@ export type ClientMessage =
   | {
       type: 'export_rmarkdown';
       mode: 'timeline' | 'document';
-      output_path: string;
-      document_path?: string;
-      include_timestamps: boolean;
-      show_actor: boolean;
-      embed_plots: boolean;
-      include_outputs: boolean;
-      include_errors: boolean;
-      include_summary: boolean;
+      outputPath: string;
+      documentPath?: string;
+      includeTimestamps: boolean;
+      showActor: boolean;
+      embedPlots: boolean;
+      includeOutputs: boolean;
+      includeErrors: boolean;
+      includeSummary: boolean;
     };
 
 type TimelineEventPush = Extract<TimelineMessage, { type: 'timeline_event_added' }>;
@@ -48,7 +48,7 @@ export type ServerMessage =
   | ({ type: 'tool_execution_result' } & ToolExecutionResponse)
   | { type: 'timeline_response'; data: TimelineResponse }
   | { type: 'timeline_stats_response'; stats: TimelineStats }
-  | { type: 'export_rmarkdown_response'; success: boolean; output_path: string; error?: string }
+  | { type: 'export_rmarkdown_response'; success: boolean; outputPath: string; error?: string }
   | TimelineEventPush;
 
 export type ServerMessageType = ServerMessage['type'];
