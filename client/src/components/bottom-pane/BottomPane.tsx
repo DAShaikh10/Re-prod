@@ -2,6 +2,7 @@ import {
   IconBarChart,
   IconChevronLeft,
   IconChevronRight,
+  IconTrash,
   PanelTabs,
 } from '@/components/shared';
 import { ConsolePanel } from '@/components/console';
@@ -18,9 +19,12 @@ export function BottomPane(): JSX.Element {
     currentPlot,
     selectPreviousPlot,
     selectNextPlot,
+    clearExecutionResults,
   } = useBottomPaneState();
 
   const { selectedPlotIndex, totalPlots } = navigation;
+  const showClear = activeTab === 'console' || activeTab === 'history';
+  const showPlotNav = activeTab === 'plots' && totalPlots > 0;
 
   return (
     <div className="panel panel--transparent bottom-pane">
@@ -31,27 +35,40 @@ export function BottomPane(): JSX.Element {
           onSelect={setActiveTab}
           className="panel-tabs--flush"
         />
-        {activeTab === 'plots' && totalPlots > 0 && (
+        {(showClear || showPlotNav) && (
           <div className="panel-actions panel-actions--compact">
-            <button
-              className="btn btn-icon"
-              onClick={selectPreviousPlot}
-              disabled={selectedPlotIndex === 0}
-              title="Previous plot"
-              aria-label="Previous plot">
-              <IconChevronLeft width={16} height={16} aria-hidden />
-            </button>
-            <span className="plot-counter">
-              {selectedPlotIndex + 1} / {totalPlots}
-            </span>
-            <button
-              className="btn btn-icon"
-              onClick={selectNextPlot}
-              disabled={selectedPlotIndex >= totalPlots - 1}
-              title="Next plot"
-              aria-label="Next plot">
-              <IconChevronRight width={16} height={16} aria-hidden />
-            </button>
+            {showClear && (
+              <button
+                className="btn btn-icon"
+                title="Clear console"
+                aria-label="Clear console"
+                onClick={clearExecutionResults}>
+                <IconTrash width={16} height={16} aria-hidden />
+              </button>
+            )}
+            {showPlotNav && (
+              <>
+                <button
+                  className="btn btn-icon"
+                  onClick={selectPreviousPlot}
+                  disabled={selectedPlotIndex === 0}
+                  title="Previous plot"
+                  aria-label="Previous plot">
+                  <IconChevronLeft width={16} height={16} aria-hidden />
+                </button>
+                <span className="plot-counter">
+                  {selectedPlotIndex + 1} / {totalPlots}
+                </span>
+                <button
+                  className="btn btn-icon"
+                  onClick={selectNextPlot}
+                  disabled={selectedPlotIndex >= totalPlots - 1}
+                  title="Next plot"
+                  aria-label="Next plot">
+                  <IconChevronRight width={16} height={16} aria-hidden />
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>
