@@ -19,6 +19,7 @@ interface UseBottomPaneStateResult {
   currentPlot: ExecutionLogPlot | null;
   selectPreviousPlot: () => void;
   selectNextPlot: () => void;
+  clearExecutionResults: () => void;
 }
 
 const DEFAULT_TAB: BottomPaneTab = 'console';
@@ -26,6 +27,7 @@ const DEFAULT_TAB: BottomPaneTab = 'console';
 export function useBottomPaneState(): UseBottomPaneStateResult {
   const execution = useStore((state) => state.execution);
   const panes = useStore((state) => state.view.panes);
+  const clearExecutionResults = useStore((state) => state.clearExecutionResults);
 
   const [activeTab, setActiveTab] = useState<BottomPaneTab>(DEFAULT_TAB);
   const [selectedPlotIndex, setSelectedPlotIndex] = useState(0);
@@ -41,7 +43,10 @@ export function useBottomPaneState(): UseBottomPaneStateResult {
   const currentPlot = allPlots[selectedPlotIndex] ?? null;
 
   const tabs = useMemo<PanelTabItem<BottomPaneTab>[]>(() => {
-    const list: PanelTabItem<BottomPaneTab>[] = [{ id: 'console', label: 'Console' }];
+    const list: PanelTabItem<BottomPaneTab>[] = [
+      { id: 'console', label: 'Console' },
+      { id: 'history', label: 'History' },
+    ];
     if (plotsVisible) {
       list.push({ id: 'plots', label: 'Plots' });
     }
@@ -123,5 +128,6 @@ export function useBottomPaneState(): UseBottomPaneStateResult {
     currentPlot,
     selectPreviousPlot,
     selectNextPlot,
+    clearExecutionResults,
   };
 }

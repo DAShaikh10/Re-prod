@@ -1,4 +1,4 @@
-import { IconTrash, IconBarChart, IconCheckCircle, IconXCircle } from '@/components/shared';
+import { IconBarChart, IconCheckCircle, IconXCircle } from '@/components/shared';
 import type { ConsoleTabId } from '@/types/panels';
 import { useConsolePanelState } from '@/hooks/useConsolePanelState';
 
@@ -7,20 +7,10 @@ interface ConsolePanelProps {
 }
 
 export function ConsolePanel({ view }: ConsolePanelProps): JSX.Element {
-  const { execution, consoleEndRef, clearExecutionResults } = useConsolePanelState();
+  const { execution, consoleEndRef } = useConsolePanelState();
 
   return (
     <div className="panel panel--transparent console-panel">
-      <div className="console-panel-header">
-        <div className="console-panel-title">{view === 'console' ? 'Console' : 'History'}</div>
-        <button
-          className="btn btn-icon"
-          title="Clear Console"
-          onClick={clearExecutionResults}
-          aria-label="Clear console">
-          <IconTrash width={16} height={16} aria-hidden />
-        </button>
-      </div>
       <div className="panel-content console-content">
         {view === 'console' && (
           <div className="console-output">
