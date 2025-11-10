@@ -4,8 +4,7 @@ import 'allotment/dist/style.css';
 import { MenuBar, StatusBar } from '@/components/menu';
 import { EditorPanel } from '@/components/editor';
 import { AIPanel } from '@/components/ai-panel';
-import { ConsolePanel } from '@/components/console';
-import { UnifiedRightPane } from '@/components/unified-pane';
+import { BottomPane } from '@/components/bottom-pane';
 import { ExportDialog } from '@/components/export';
 import { useStore } from '@/core';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
@@ -40,16 +39,7 @@ function App(): JSX.Element {
             </Allotment>
           </Allotment.Pane>
           <Allotment.Pane minSize={150} preferredSize="30%">
-            <Allotment>
-              {panes.console && (
-                <Allotment.Pane minSize={250} preferredSize="50%">
-                  <ConsolePanel />
-                </Allotment.Pane>
-              )}
-              <Allotment.Pane minSize={250} preferredSize={panes.console ? '50%' : '100%'}>
-                <UnifiedRightPane />
-              </Allotment.Pane>
-            </Allotment>
+            <BottomPane />
           </Allotment.Pane>
         </Allotment>
       </div>

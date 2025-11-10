@@ -1,37 +1,28 @@
-import { IconTrash, IconBarChart, IconCheckCircle, IconXCircle, PanelTabs } from '@/components/shared';
+import { IconTrash, IconBarChart, IconCheckCircle, IconXCircle } from '@/components/shared';
+import type { ConsoleTabId } from '@/types/panels';
 import { useConsolePanelState } from '@/hooks/useConsolePanelState';
 
-export function ConsolePanel(): JSX.Element {
-  const {
-    execution,
-    tabs,
-    activeTab,
-    setActiveTab,
-    consoleEndRef,
-    clearExecutionResults,
-  } = useConsolePanelState();
+interface ConsolePanelProps {
+  view: ConsoleTabId;
+}
+
+export function ConsolePanel({ view }: ConsolePanelProps): JSX.Element {
+  const { execution, consoleEndRef, clearExecutionResults } = useConsolePanelState();
 
   return (
     <div className="panel panel--transparent console-panel">
-      <div className="panel-header panel-header--plain">
-        <PanelTabs
-          items={tabs}
-          activeId={activeTab}
-          onSelect={setActiveTab}
-          className="panel-tabs--flush"
-        />
-        <div className="panel-actions panel-actions--compact">
-          <button
-            className="btn btn-icon"
-            title="Clear Console"
-            onClick={clearExecutionResults}
-            aria-label="Clear console">
-            <IconTrash width={16} height={16} aria-hidden />
-          </button>
-        </div>
+      <div className="console-panel-header">
+        <div className="console-panel-title">{view === 'console' ? 'Console' : 'History'}</div>
+        <button
+          className="btn btn-icon"
+          title="Clear Console"
+          onClick={clearExecutionResults}
+          aria-label="Clear console">
+          <IconTrash width={16} height={16} aria-hidden />
+        </button>
       </div>
       <div className="panel-content console-content">
-        {activeTab === 'console' && (
+        {view === 'console' && (
           <div className="console-output">
             {execution.results.length === 0 ? (
               <div className="console-welcome">
@@ -62,22 +53,19 @@ export function ConsolePanel(): JSX.Element {
                       <div
                         className="console-plots-info clickable"
                         onClick={() => {
-                          // Calculate the global plot index for this result
                           const previousPlots = execution.results
                             .slice(0, index)
                             .reduce((sum, r) => sum + r.plots.length, 0);
 
-                          // Dispatch custom event to focus on this plot
                           window.dispatchEvent(
                             new CustomEvent('focusPlot', {
-                              detail: { plotIndex: previousPlots }
+                              detail: { plotIndex: previousPlots },
                             })
                           );
                         }}
                         role="button"
                         tabIndex={0}
-                        title="Click to view plot"
-                      >
+                        title="Click to view plot">
                         <IconBarChart width={16} height={16} aria-hidden />
                         Generated {result.plots.length} plot{result.plots.length > 1 ? 's' : ''}
                       </div>
@@ -89,7 +77,7 @@ export function ConsolePanel(): JSX.Element {
             )}
           </div>
         )}
-        {activeTab === 'history' && (
+        {view === 'history' && (
           <div className="console-history">
             {execution.history.length === 0 ? (
               <div className="console-welcome">
