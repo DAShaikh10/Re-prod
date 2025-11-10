@@ -25,24 +25,28 @@ function App(): JSX.Element {
     <div className="app">
       <MenuBar />
       <div className="workspace-shell">
-        <Allotment vertical>
-          <Allotment.Pane minSize={300} preferredSize="70%">
-            <Allotment>
-              {panes.editor && (
-                <Allotment.Pane minSize={400} preferredSize="60%">
+        <Allotment>
+          {/* Left side: Editor + Bottom Pane */}
+          {panes.editor && (
+            <Allotment.Pane minSize={400} preferredSize="60%">
+              <Allotment vertical>
+                <Allotment.Pane minSize={300} preferredSize="65%">
                   <EditorPanel />
                 </Allotment.Pane>
-              )}
-              <Allotment.Pane
-                minSize={300}
-                preferredSize={panes.editor ? "40%" : "100%"}
-              >
-                <AIPanel />
-              </Allotment.Pane>
-            </Allotment>
-          </Allotment.Pane>
-          <Allotment.Pane minSize={150} preferredSize="60%">
-            <BottomPane />
+                <Allotment.Pane minSize={150} preferredSize="35%">
+                  <BottomPane />
+                </Allotment.Pane>
+              </Allotment>
+            </Allotment.Pane>
+          )}
+          {/* Right side: AI Assistant (full height) */}
+          <Allotment.Pane
+            minSize={300}
+            preferredSize={panes.editor ? "40%" : "100%"}
+          >
+            <div className="ai-pane-wrapper">
+              <AIPanel />
+            </div>
           </Allotment.Pane>
         </Allotment>
       </div>
