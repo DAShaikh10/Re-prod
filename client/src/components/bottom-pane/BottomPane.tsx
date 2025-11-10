@@ -33,7 +33,7 @@ export function BottomPane(): JSX.Element {
           items={tabs}
           activeId={activeTab}
           onSelect={setActiveTab}
-          className="panel-tabs--flush"
+          className="panel-tabs--flush panel-tabs--equal-width panel-tabs--compact"
         />
         {(showClear || showPlotNav) && (
           <div className="panel-actions panel-actions--compact">
