@@ -1,0 +1,214 @@
+id = "base-stats"
+display_name = "Base R Statistical Functions"
+kind = "r-package"
+description = "Core statistical functions from base R and stats package: descriptive statistics, hypothesis tests, distributions, and linear models."
+version = "4.3.0"
+homepage = "https://stat.ethz.ch/R-manual/R-devel/library/stats/html/00Index.html"
+tags = ["statistics", "base-r", "hypothesis-testing", "regression"]
+
+[runtime]
+r_library = "stats"
+imports = ["stats"]
+cli_binary = ""
+args = []
+
+[validation]
+requires_packages = ["stats"]
+requires_cli = []
+preflight_r = "stopifnot(requireNamespace('stats', quietly = TRUE))"
+preflight_cli = ""
+
+[[capabilities]]
+id = "base-stats::summary"
+display_name = "Compute summary statistics"
+kind = "r-function"
+entrypoint = "summary"
+description = "Calculate descriptive statistics (min, Q1, median, mean, Q3, max) for numeric data."
+input_spec = [
+  { name = "data", type = "string", format = "r-object" }
+]
+output_spec = [
+  { type = "r-object", class = "table", record_as = "artifact" }
+]
+template = """summary({{data}})"""
+post_validation = ""
+
+[[capabilities]]
+id = "base-stats::mean"
+display_name = "Calculate mean"
+kind = "r-function"
+entrypoint = "mean"
+description = "Compute arithmetic mean of numeric vector, with optional NA removal."
+input_spec = [
+  { name = "x", type = "string", format = "r-object" },
+  { name = "na.rm", type = "enum", options = ["TRUE", "FALSE"], default = "FALSE" }
+]
+output_spec = [
+  { type = "r-object", class = "numeric", record_as = "artifact" }
+]
+template = """mean({{x}}, na.rm = {{na.rm}})"""
+post_validation = "stopifnot(is.numeric(.last_value))"
+
+[[capabilities]]
+id = "base-stats::sd"
+display_name = "Calculate standard deviation"
+kind = "r-function"
+entrypoint = "sd"
+description = "Compute sample standard deviation of numeric vector, with optional NA removal."
+input_spec = [
+  { name = "x", type = "string", format = "r-object" },
+  { name = "na.rm", type = "enum", options = ["TRUE", "FALSE"], default = "FALSE" }
+]
+output_spec = [
+  { type = "r-object", class = "numeric", record_as = "artifact" }
+]
+template = """sd({{x}}, na.rm = {{na.rm}})"""
+post_validation = "stopifnot(is.numeric(.last_value))"
+
+[[capabilities]]
+id = "base-stats::cor"
+display_name = "Calculate correlation"
+kind = "r-function"
+entrypoint = "cor"
+description = "Compute correlation coefficient between two numeric vectors or correlation matrix."
+input_spec = [
+  { name = "x", type = "string", format = "r-object" },
+  { name = "y", type = "string", format = "r-object" },
+  { name = "method", type = "enum", options = ["pearson", "kendall", "spearman"], default = "pearson" }
+]
+output_spec = [
+  { type = "r-object", class = "numeric", record_as = "artifact" }
+]
+template = """cor({{x}}, {{y}}, method = "{{method}}", use = "complete.obs")"""
+post_validation = "stopifnot(is.numeric(.last_value))"
+
+[[capabilities]]
+id = "base-stats::t_test"
+display_name = "Student's t-test"
+kind = "r-function"
+entrypoint = "t.test"
+description = "Perform one-sample, two-sample, or paired t-test for comparing means."
+input_spec = [
+  { name = "x", type = "string", format = "r-object" },
+  { name = "y", type = "string", format = "r-object" },
+  { name = "paired", type = "enum", options = ["TRUE", "FALSE"], default = "FALSE" },
+  { name = "alternative", type = "enum", options = ["two.sided", "less", "greater"], default = "two.sided" }
+]
+output_spec = [
+  { type = "r-object", class = "htest", record_as = "artifact" }
+]
+template = """t.test({{x}}, {{y}}, paired = {{paired}}, alternative = "{{alternative}}")"""
+post_validation = "stopifnot(inherits(.last_value, 'htest'))"
+
+[[capabilities]]
+id = "base-stats::wilcox_test"
+display_name = "Wilcoxon rank-sum test"
+kind = "r-function"
+entrypoint = "wilcox.test"
+description = "Perform non-parametric Wilcoxon test for comparing distributions without normality assumption."
+input_spec = [
+  { name = "x", type = "string", format = "r-object" },
+  { name = "y", type = "string", format = "r-object" },
+  { name = "paired", type = "enum", options = ["TRUE", "FALSE"], default = "FALSE" },
+  { name = "alternative", type = "enum", options = ["two.sided", "less", "greater"], default = "two.sided" }
+]
+output_spec = [
+  { type = "r-object", class = "htest", record_as = "artifact" }
+]
+template = """wilcox.test({{x}}, {{y}}, paired = {{paired}}, alternative = "{{alternative}}")"""
+post_validation = "stopifnot(inherits(.last_value, 'htest'))"
+
+[[capabilities]]
+id = "base-stats::chisq_test"
+display_name = "Chi-squared test"
+kind = "r-function"
+entrypoint = "chisq.test"
+description = "Perform chi-squared test of independence for categorical data in contingency tables."
+input_spec = [
+  { name = "x", type = "string", format = "r-object" }
+]
+output_spec = [
+  { type = "r-object", class = "htest", record_as = "artifact" }
+]
+template = """chisq.test({{x}})"""
+post_validation = "stopifnot(inherits(.last_value, 'htest'))"
+
+[[capabilities]]
+id = "base-stats::lm"
+display_name = "Linear regression"
+kind = "r-snippet"
+entrypoint = "lm"
+description = "Fit linear regression model using ordinary least squares with formula interface."
+input_spec = [
+  { name = "formula", type = "string", format = "r-formula" },
+  { name = "data", type = "string", format = "r-object" }
+]
+output_spec = [
+  { type = "r-object", class = "lm", record_as = "artifact" }
+]
+template = """lm({{formula}}, data = {{data}})"""
+post_validation = "stopifnot(inherits(.last_value, 'lm'))"
+
+[[capabilities]]
+id = "base-stats::glm"
+display_name = "Generalized linear model"
+kind = "r-snippet"
+entrypoint = "glm"
+description = "Fit generalized linear model with various families (binomial, poisson, etc.)."
+input_spec = [
+  { name = "formula", type = "string", format = "r-formula" },
+  { name = "data", type = "string", format = "r-object" },
+  { name = "family", type = "string", default = "gaussian" }
+]
+output_spec = [
+  { type = "r-object", class = "glm", record_as = "artifact" }
+]
+template = """glm({{formula}}, data = {{data}}, family = {{family}})"""
+post_validation = "stopifnot(inherits(.last_value, 'glm'))"
+
+[[capabilities]]
+id = "base-stats::anova"
+display_name = "Analysis of variance"
+kind = "r-function"
+entrypoint = "anova"
+description = "Perform analysis of variance (ANOVA) to compare means across multiple groups."
+input_spec = [
+  { name = "model", type = "string", format = "r-object" }
+]
+output_spec = [
+  { type = "r-object", class = "anova", record_as = "artifact" }
+]
+template = """anova({{model}})"""
+post_validation = "stopifnot(inherits(.last_value, 'anova'))"
+
+[[capabilities]]
+id = "base-stats::predict"
+display_name = "Model prediction"
+kind = "r-function"
+entrypoint = "predict"
+description = "Generate predictions from fitted model objects (lm, glm, etc.)."
+input_spec = [
+  { name = "model", type = "string", format = "r-object" },
+  { name = "newdata", type = "string", format = "r-object" }
+]
+output_spec = [
+  { type = "r-object", class = "numeric", record_as = "artifact" }
+]
+template = """predict({{model}}, newdata = {{newdata}})"""
+post_validation = ""
+
+[[capabilities]]
+id = "base-stats::quantile"
+display_name = "Calculate quantiles"
+kind = "r-function"
+entrypoint = "quantile"
+description = "Compute sample quantiles (percentiles) of numeric data."
+input_spec = [
+  { name = "x", type = "string", format = "r-object" },
+  { name = "probs", type = "string", format = "r-code", default = "c(0, 0.25, 0.5, 0.75, 1)" }
+]
+output_spec = [
+  { type = "r-object", class = "numeric", record_as = "artifact" }
+]
+template = """quantile({{x}}, probs = {{probs}}, na.rm = TRUE)"""
+post_validation = "stopifnot(is.numeric(.last_value))"

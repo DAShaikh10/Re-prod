@@ -6,15 +6,14 @@ import {
   useStore,
   parseCells,
   type Cell,
+  type ExecutionTarget,
   getExecutionTarget,
   getExecutionTargetAndNext,
   getAllCode,
+  buildExecutionRequest,
 } from "@/core";
-import { socketService } from "@/services/socket";
-import type {
-  CodeBlock,
-  ExecutionResult,
-} from "../../../../shared/src/types";
+import { executeRequest, ExecutionServiceError } from '@/services/executionService';
+import type { CodeBlock, ExecutionLogEntry } from "@shared/types";
 
 export function EditorPanel(): JSX.Element {
   const editor = useStore((state) => state.editor);
@@ -110,53 +109,65 @@ export function EditorPanel(): JSX.Element {
     }
   };
 
-  const executeCode = (code: string, cellIndex?: number): void => {
+  const executeCode = async (target: ExecutionTarget): Promise<void> => {
     setIsRunning(true);
 
-    if (cellIndex !== undefined) {
-      setExecutingCellIndex(cellIndex);
+    if (target.cellIndex !== undefined) {
+      setExecutingCellIndex(target.cellIndex);
     }
 
-    socketService.send({ type: 'execute', code }, (response) => {
+    const request = buildExecutionRequest({
+      target,
+      cells,
+      documentContent: editor.content,
+      filepath: editor.filepath ?? undefined
+    });
+
+    try {
+      const { result } = await executeRequest(request);
+      const normalized: ExecutionLogEntry = {
+        stdout: result.output,
+        stderr: result.error || "",
+        plots: result.plots.map((plot) => ({
+          id: plot.filename || `plot-${plot.index}`,
+          path: plot.filename,
+          data: `data:image/png;base64,${plot.base64_data}`,
+          timestamp: Date.now(),
+        })),
+        timestamp: Date.now(),
+        duration: result.execution_time_ms,
+        success: result.success,
+      };
+      addExecutionResult(normalized);
+      console.log("Execution completed");
+    } catch (error) {
+      const message =
+        error instanceof ExecutionServiceError
+          ? error.message
+          : 'Execution failed due to an unexpected error.';
+
+      const normalized: ExecutionLogEntry = {
+        stdout: "",
+        stderr: message,
+        plots: [],
+        timestamp: Date.now(),
+        duration: 0,
+        success: false,
+      };
+      addExecutionResult(normalized);
+    } finally {
       setExecutingCellIndex(null);
       setIsRunning(false);
-
-      if (response.type === 'execution_result') {
-        const result = response.result;
-        const normalized: ExecutionResult = {
-          stdout: result.output,
-          stderr: result.error || "",
-          plots: result.plots.map((plot) => ({
-            id: plot.filename || `plot-${plot.index}`,
-            path: plot.filename,
-            data: `data:image/png;base64,${plot.base64_data}`,
-            timestamp: Date.now(),
-          })),
-          timestamp: Date.now(),
-          duration: result.execution_time_ms,
-          success: result.success,
-        };
-        addExecutionResult(normalized);
-      } else if (response.type === 'error') {
-        const normalized: ExecutionResult = {
-          stdout: "",
-          stderr: response.message,
-          plots: [],
-          timestamp: Date.now(),
-          duration: 0,
-          success: false,
-        };
-        addExecutionResult(normalized);
-      }
-
-      console.log("Execution completed");
-    });
+    }
   };
 
   const handleRunAll = (): void => {
     const code = getAllCode(editorRef.current);
     if (code) {
-      executeCode(code);
+      void executeCode({
+        code,
+        source: 'whole-document'
+      });
     }
   };
 
@@ -168,7 +179,7 @@ export function EditorPanel(): JSX.Element {
     );
 
     if (target) {
-      executeCode(target.code, target.cellIndex);
+      void executeCode(target);
     }
   };
 
@@ -182,7 +193,7 @@ export function EditorPanel(): JSX.Element {
     if (!result) return;
 
     // Execute the target (selection, cell, or whole document)
-    executeCode(result.target.code, result.target.cellIndex);
+    void executeCode(result.target);
 
     // Only move to next cell if we executed a cell and there's a next cell
     if (result.nextCell && editorRef.current) {
@@ -251,8 +262,14 @@ export function EditorPanel(): JSX.Element {
     }
   };
 
+  const setRunCurrentCell = useStore((state) => state.setRunCurrentCell);
+  const setRunAll = useStore((state) => state.setRunAll);
+  const setMonacoEditor = useStore((state) => state.setMonacoEditor);
+
   useEffect(() => {
     setApplyCodeChange(applyCodeChange);
+    setRunCurrentCell(handleRunCurrentCell);
+    setRunAll(handleRunAll);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleEditorDidMount = (
@@ -260,6 +277,7 @@ export function EditorPanel(): JSX.Element {
     monaco: Monaco,
   ): void => {
     editorRef.current = monacoEditor;
+    setMonacoEditor(monacoEditor);
 
     // Track cursor position
     monacoEditor.onDidChangeCursorPosition((e) => {

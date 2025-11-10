@@ -1,0 +1,82 @@
+id = "biostrings"
+display_name = "Biostrings - Biological Sequence Manipulation"
+kind = "r-package"
+description = "Efficient manipulation of biological strings (DNA, RNA, amino acid sequences) from Bioconductor."
+version = "2.70.0"
+homepage = "https://bioconductor.org/packages/Biostrings"
+tags = ["sequences", "bioconductor", "dna", "rna", "protein"]
+
+[runtime]
+r_library = "Biostrings"
+imports = ["Biostrings"]
+cli_binary = ""
+args = []
+
+[validation]
+requires_packages = ["Biostrings"]
+requires_cli = []
+preflight_r = "if (!requireNamespace('Biostrings', quietly = TRUE)) stop('Biostrings package is not installed')"
+preflight_cli = ""
+
+[[capabilities]]
+id = "biostrings::read_fasta"
+display_name = "Read FASTA sequences"
+kind = "r-function"
+entrypoint = "Biostrings::readDNAStringSet"
+description = "Load DNA sequences from a FASTA file into a DNAStringSet object."
+input_spec = [
+  { name = "filepath", type = "file", format = "fasta" }
+]
+output_spec = [
+  { type = "r-object", class = "DNAStringSet", record_as = "artifact" }
+]
+template = """Biostrings::readDNAStringSet("{{filepath}}")"""
+post_validation = "stopifnot(inherits(.last_value, 'DNAStringSet'))"
+
+[[capabilities]]
+id = "biostrings::write_fasta"
+display_name = "Write FASTA sequences"
+kind = "r-function"
+entrypoint = "Biostrings::writeXStringSet"
+description = "Write DNA sequences to a FASTA file."
+input_spec = [
+  { name = "sequences", type = "string", format = "r-object" },
+  { name = "filepath", type = "file", format = "fasta", role = "generated" }
+]
+output_spec = [
+  { type = "file", path = "{{filepath}}", record_as = "artifact" }
+]
+template = """Biostrings::writeXStringSet({{sequences}}, "{{filepath}}")"""
+post_validation = "stopifnot(file.exists('{{filepath}}'))"
+
+[[capabilities]]
+id = "biostrings::translate"
+display_name = "Translate DNA to protein"
+kind = "r-snippet"
+entrypoint = "Biostrings::translate"
+description = "Translate DNA sequences to amino acid sequences."
+input_spec = [
+  { name = "dna_sequences", type = "string", format = "r-object" }
+]
+output_spec = [
+  { type = "r-object", class = "AAStringSet", record_as = "artifact" }
+]
+template = """Biostrings::translate({{dna_sequences}})"""
+post_validation = "stopifnot(inherits(.last_value, 'AAStringSet'))"
+
+[[capabilities]]
+id = "biostrings::pairwise_alignment"
+display_name = "Pairwise sequence alignment"
+kind = "r-snippet"
+entrypoint = "Biostrings::pairwiseAlignment"
+description = "Perform pairwise alignment between two sequences."
+input_spec = [
+  { name = "pattern", type = "string", format = "r-object" },
+  { name = "subject", type = "string", format = "r-object" },
+  { name = "type", type = "enum", options = ["global", "local", "overlap"], default = "global" }
+]
+output_spec = [
+  { type = "r-object", class = "PairwiseAlignmentsSingleSubject", record_as = "artifact" }
+]
+template = """Biostrings::pairwiseAlignment({{pattern}}, {{subject}}, type = "{{type}}")"""
+post_validation = "stopifnot(inherits(.last_value, 'PairwiseAlignmentsSingleSubject'))"

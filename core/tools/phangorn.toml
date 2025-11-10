@@ -1,0 +1,98 @@
+id = "phangorn"
+display_name = "phangorn - Phylogenetic Reconstruction and Analysis"
+kind = "r-package"
+description = "Methods for phylogenetic reconstruction: parsimony, maximum likelihood, and distance methods."
+version = "2.11.1"
+homepage = "https://cran.r-project.org/package=phangorn"
+tags = ["phylogenetics", "tree", "maximum-likelihood"]
+
+[runtime]
+r_library = "phangorn"
+imports = ["phangorn", "ape"]
+cli_binary = ""
+args = []
+
+[validation]
+requires_packages = ["phangorn", "ape"]
+requires_cli = []
+preflight_r = "if (!requireNamespace('phangorn', quietly = TRUE)) stop('phangorn package is not installed')"
+preflight_cli = ""
+
+[[capabilities]]
+id = "phangorn::convert_to_phyDat"
+display_name = "Convert to phyDat"
+kind = "r-function"
+entrypoint = "phangorn::as.phyDat"
+description = "Convert sequence data to phyDat format for phylogenetic analysis."
+input_spec = [
+  { name = "data", type = "string", format = "r-object" },
+  { name = "type", type = "enum", options = ["DNA", "AA", "CODON"], default = "DNA" }
+]
+output_spec = [
+  { type = "r-object", class = "phyDat", record_as = "artifact" }
+]
+template = """phangorn::as.phyDat({{data}}, type = "{{type}}")"""
+post_validation = "stopifnot(inherits(.last_value, 'phyDat'))"
+
+[[capabilities]]
+id = "phangorn::parsimony"
+display_name = "Parsimony tree search"
+kind = "r-snippet"
+entrypoint = "phangorn::optim.parsimony"
+description = "Optimize a phylogenetic tree using maximum parsimony."
+input_spec = [
+  { name = "tree", type = "string", format = "r-object" },
+  { name = "data", type = "string", format = "r-object" }
+]
+output_spec = [
+  { type = "r-object", class = "phylo", record_as = "artifact" }
+]
+template = """phangorn::optim.parsimony({{tree}}, {{data}})"""
+post_validation = "stopifnot(inherits(.last_value, 'phylo'))"
+
+[[capabilities]]
+id = "phangorn::ml_tree"
+display_name = "Maximum likelihood tree"
+kind = "r-snippet"
+entrypoint = "phangorn::pml"
+description = "Construct a phylogenetic tree using maximum likelihood."
+input_spec = [
+  { name = "tree", type = "string", format = "r-object" },
+  { name = "data", type = "string", format = "r-object" }
+]
+output_spec = [
+  { type = "r-object", class = "pml", record_as = "artifact" }
+]
+template = """phangorn::pml({{tree}}, {{data}})"""
+post_validation = "stopifnot(inherits(.last_value, 'pml'))"
+
+[[capabilities]]
+id = "phangorn::bootstrap"
+display_name = "Bootstrap analysis"
+kind = "r-snippet"
+entrypoint = "phangorn::bootstrap.pml"
+description = "Perform bootstrap analysis on a phylogenetic tree."
+input_spec = [
+  { name = "pml_object", type = "string", format = "r-object" },
+  { name = "bs", type = "integer", min = 10, max = 1000, default = 100 }
+]
+output_spec = [
+  { type = "r-object", class = "multiPhylo", record_as = "artifact" }
+]
+template = """phangorn::bootstrap.pml({{pml_object}}, bs = {{bs}})"""
+post_validation = "stopifnot(inherits(.last_value, 'multiPhylo'))"
+
+[[capabilities]]
+id = "phangorn::distance_matrix"
+display_name = "Compute distance matrix"
+kind = "r-function"
+entrypoint = "phangorn::dist.ml"
+description = "Compute pairwise distances using maximum likelihood."
+input_spec = [
+  { name = "data", type = "string", format = "r-object" }
+]
+output_spec = [
+  { type = "r-object", class = "dist", record_as = "artifact" }
+]
+template = """phangorn::dist.ml({{data}})"""
+post_validation = "stopifnot(inherits(.last_value, 'dist'))"

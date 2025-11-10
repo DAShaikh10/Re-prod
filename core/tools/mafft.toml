@@ -1,0 +1,38 @@
+id = "mafft"
+display_name = "MAFFT Multiple Sequence Alignment"
+kind = "cli"
+description = "High-throughput multiple sequence alignment for nucleotide and protein sequences."
+version = "7"
+homepage = "https://mafft.cbrc.jp/alignment/software/"
+tags = ["alignment", "phylogenetics"]
+
+[runtime]
+r_library = ""
+imports = []
+cli_binary = "mafft"
+args = []
+
+[validation]
+requires_packages = []
+requires_cli = ["mafft"]
+preflight_r = ""
+preflight_cli = "mafft --version"
+
+[[capabilities]]
+id = "mafft::align"
+display_name = "Multiple sequence alignment"
+kind = "cli-command"
+entrypoint = "mafft --thread {{threads}} {{input}}"
+description = "Align FASTA sequences with configurable threading."
+input_spec = [
+  { name = "input", type = "file", format = "fasta" },
+  { name = "threads", type = "integer", min = 1, max = 16, default = 4 },
+  { name = "output", type = "file", format = "fasta", role = "generated" }
+]
+output_spec = [
+  { type = "file", path = "{{output}}", record_as = "artifact" },
+  { type = "stdout" },
+  { type = "stderr" }
+]
+template = """mafft --thread {{threads}} {{input}} > {{output}}"""
+post_validation = "if (!file.exists('{{output}}')) stop('mafft output not generated')"

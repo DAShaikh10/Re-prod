@@ -11,9 +11,6 @@ path = "src/lib.rs"
 workspace = true
 
 [dependencies]
-reprod-protocol = { workspace = true }
-reprod-common = { workspace = true }
-
 tokio = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -26,5 +23,9 @@ reqwest = { workspace = true }
 dirs = { workspace = true }
 async-trait = { workspace = true }
 base64 = { workspace = true }
+toml = { workspace = true }
+tar = "0.4"
+flate2 = "1.0"
+chrono = { version = "0.4", features = ["serde"] }
 
 # NO Tauri dependencies - platform-agnostic!
