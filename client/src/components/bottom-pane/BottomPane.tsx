@@ -4,12 +4,12 @@ import {
   IconChevronRight,
   PanelTabs,
 } from '@/components/shared';
+import { ConsolePanel } from '@/components/console';
 import { TimelinePanel } from '@/components/timeline';
-import { useUnifiedRightPaneState } from '@/hooks/useUnifiedRightPaneState';
+import { useBottomPaneState } from '@/hooks/useBottomPaneState';
 
-export function UnifiedRightPane(): JSX.Element {
+export function BottomPane(): JSX.Element {
   const {
-    panes,
     tabs,
     activeTab,
     setActiveTab,
@@ -18,14 +18,12 @@ export function UnifiedRightPane(): JSX.Element {
     currentPlot,
     selectPreviousPlot,
     selectNextPlot,
-  } = useUnifiedRightPaneState();
+  } = useBottomPaneState();
 
-  const plotsVisible = panes.plots;
-  const timelineVisible = panes.timeline;
   const { selectedPlotIndex, totalPlots } = navigation;
 
   return (
-    <div className="panel panel--transparent unified-right-pane">
+    <div className="panel panel--transparent bottom-pane">
       <div className="panel-header panel-header--plain">
         <PanelTabs
           items={tabs}
@@ -33,7 +31,7 @@ export function UnifiedRightPane(): JSX.Element {
           onSelect={setActiveTab}
           className="panel-tabs--flush"
         />
-        {allPlots.length > 0 && activeTab === 'plots' && (
+        {activeTab === 'plots' && totalPlots > 0 && (
           <div className="panel-actions panel-actions--compact">
             <button
               className="btn btn-icon"
@@ -58,7 +56,14 @@ export function UnifiedRightPane(): JSX.Element {
         )}
       </div>
       <div className="panel-content">
-        {activeTab === 'plots' && plotsVisible && (
+        {activeTab === 'console' && <ConsolePanel view="console" />}
+        {activeTab === 'history' && <ConsolePanel view="history" />}
+        {activeTab === 'timeline' && (
+          <div className="timeline-container">
+            <TimelinePanel />
+          </div>
+        )}
+        {activeTab === 'plots' && (
           <div className="plots-container">
             {allPlots.length === 0 ? (
               <div className="empty-state">
@@ -79,11 +84,6 @@ export function UnifiedRightPane(): JSX.Element {
                 )}
               </div>
             )}
-          </div>
-        )}
-        {activeTab === 'timeline' && timelineVisible && (
-          <div className="timeline-container">
-            <TimelinePanel />
           </div>
         )}
         {activeTab === 'help' && (
