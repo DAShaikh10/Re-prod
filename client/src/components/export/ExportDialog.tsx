@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { socketService } from '@/services/socket';
-import type { ExtractServerMessage } from 'shared';
+import type { ExtractServerMessage, ExportRMarkdownRequestPayload } from 'shared';
 
 interface ExportDialogProps {
   open: boolean;
@@ -35,24 +35,32 @@ export function ExportDialog({ open, onClose }: ExportDialogProps): JSX.Element 
 
     try {
       if (format === 'rmarkdown' || format === 'both') {
-        console.log('[ExportDialog] Sending export_rmarkdown request:', {
+        const trimmedDocumentPath = documentPath.trim();
+        if (mode === 'document' && !trimmedDocumentPath) {
+          clearTimeout(timeout);
+          setError('Document path is required for document-based export');
+          setExporting(false);
+          return;
+        }
+
+        const requestPayload: ExportRMarkdownRequestPayload = {
           mode,
-          outputPath: outputPath,
-          documentPath: mode === 'document' ? documentPath : undefined,
-        });
+          outputPath,
+          documentPath: mode === 'document' ? trimmedDocumentPath : undefined,
+          includeTimestamps: options.includeTimestamps,
+          showActor: options.showActor,
+          embedPlots: options.embedPlots,
+          includeOutputs: options.includeOutputs,
+          includeErrors: options.includeErrors,
+          includeSummary: options.includeSummary,
+        };
+
+        console.log('[ExportDialog] Sending export_rmarkdown request:', requestPayload);
 
         const success = socketService.send(
           {
             type: 'export_rmarkdown',
-            mode,
-            outputPath: outputPath,
-            documentPath: mode === 'document' ? documentPath : undefined,
-            includeTimestamps: options.includeTimestamps,
-            showActor: options.showActor,
-            embedPlots: options.embedPlots,
-            includeOutputs: options.includeOutputs,
-            includeErrors: options.includeErrors,
-            includeSummary: options.includeSummary,
+            request: requestPayload,
           },
           (response) => {
             clearTimeout(timeout);
@@ -60,13 +68,14 @@ export function ExportDialog({ open, onClose }: ExportDialogProps): JSX.Element 
 
             if (response.type === 'export_rmarkdown_response') {
               const msg = response as ExtractServerMessage<'export_rmarkdown_response'>;
-              if (msg.success) {
-                console.log('✅ RMarkdown exported to:', msg.outputPath);
+              const payload = msg.response;
+              if (payload.success) {
+                console.log('✅ RMarkdown exported to:', payload.outputPath);
                 setExporting(false);
                 onClose();
               } else {
-                console.error('❌ Export failed:', msg.error);
-                setError(msg.error || 'Export failed');
+                console.error('❌ Export failed:', payload.error);
+                setError(payload.error || 'Export failed');
                 setExporting(false);
               }
             } else if (response.type === 'error') {

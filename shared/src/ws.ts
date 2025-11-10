@@ -17,6 +17,26 @@ type ToolExecutionResponse = {
   error?: string | null;
 };
 
+export type ExportMode = 'timeline' | 'document';
+
+export interface ExportRMarkdownRequestPayload {
+  mode: ExportMode;
+  outputPath: string;
+  documentPath?: string;
+  includeTimestamps: boolean;
+  showActor: boolean;
+  embedPlots: boolean;
+  includeOutputs: boolean;
+  includeErrors: boolean;
+  includeSummary: boolean;
+}
+
+export interface ExportRMarkdownResponsePayload {
+  success: boolean;
+  outputPath: string;
+  error?: string | null;
+}
+
 export type ClientMessage =
   | { type: 'execute'; request: ExecutionRequestPayload }
   | { type: 'ai_message'; messages: ChatMessagePayload[]; enable_tools?: boolean }
@@ -26,15 +46,7 @@ export type ClientMessage =
   | { type: 'timeline_stats_query' }
   | {
       type: 'export_rmarkdown';
-      mode: 'timeline' | 'document';
-      outputPath: string;
-      documentPath?: string;
-      includeTimestamps: boolean;
-      showActor: boolean;
-      embedPlots: boolean;
-      includeOutputs: boolean;
-      includeErrors: boolean;
-      includeSummary: boolean;
+      request: ExportRMarkdownRequestPayload;
     };
 
 type TimelineEventPush = Extract<TimelineMessage, { type: 'timeline_event_added' }>;
@@ -48,7 +60,7 @@ export type ServerMessage =
   | ({ type: 'tool_execution_result' } & ToolExecutionResponse)
   | { type: 'timeline_response'; data: TimelineResponse }
   | { type: 'timeline_stats_response'; stats: TimelineStats }
-  | { type: 'export_rmarkdown_response'; success: boolean; outputPath: string; error?: string }
+  | { type: 'export_rmarkdown_response'; response: ExportRMarkdownResponsePayload }
   | TimelineEventPush;
 
 export type ServerMessageType = ServerMessage['type'];
