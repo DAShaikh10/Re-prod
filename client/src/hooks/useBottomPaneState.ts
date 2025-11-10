@@ -2,34 +2,34 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useStore, type StoreState } from '@/core';
 import type { PanelTabItem } from '@/components/shared';
 import type {
-  UnifiedRightPaneTab,
-  PlotNavigationState,
+  BottomPanePlotTab,
+  BottomPaneTab,
   PlotFocusCustomEvent,
+  PlotNavigationState,
 } from '@/types/panels';
 import type { ExecutionLogPlot } from '@shared/types';
 
-interface UseUnifiedRightPaneStateResult {
+interface UseBottomPaneStateResult {
   panes: StoreState['view']['panes'];
-  tabs: PanelTabItem<UnifiedRightPaneTab>[];
-  activeTab: UnifiedRightPaneTab;
-  setActiveTab: (tab: UnifiedRightPaneTab) => void;
+  tabs: PanelTabItem<BottomPaneTab>[];
+  activeTab: BottomPaneTab;
+  setActiveTab: (tab: BottomPaneTab) => void;
   navigation: PlotNavigationState;
   allPlots: ExecutionLogPlot[];
   currentPlot: ExecutionLogPlot | null;
   selectPreviousPlot: () => void;
   selectNextPlot: () => void;
+  clearExecutionResults: () => void;
 }
 
-/**
- * Encapsulates the data plumbing and interaction logic for the unified right
- * pane. Consumers receive a list of tabs, navigation helpers for plots, and
- * derived UI state without re-implementing the event subscriptions.
- */
-export function useUnifiedRightPaneState(): UseUnifiedRightPaneStateResult {
+const DEFAULT_TAB: BottomPaneTab = 'console';
+
+export function useBottomPaneState(): UseBottomPaneStateResult {
   const execution = useStore((state) => state.execution);
   const panes = useStore((state) => state.view.panes);
+  const clearExecutionResults = useStore((state) => state.clearExecutionResults);
 
-  const [activeTab, setActiveTab] = useState<UnifiedRightPaneTab>('plots');
+  const [activeTab, setActiveTab] = useState<BottomPaneTab>(DEFAULT_TAB);
   const [selectedPlotIndex, setSelectedPlotIndex] = useState(0);
   const previousPlotCount = useRef(0);
 
@@ -42,8 +42,11 @@ export function useUnifiedRightPaneState(): UseUnifiedRightPaneStateResult {
   const timelineVisible = panes.timeline;
   const currentPlot = allPlots[selectedPlotIndex] ?? null;
 
-  const tabs = useMemo<PanelTabItem<UnifiedRightPaneTab>[]>(() => {
-    const list: PanelTabItem<UnifiedRightPaneTab>[] = [];
+  const tabs = useMemo<PanelTabItem<BottomPaneTab>[]>(() => {
+    const list: PanelTabItem<BottomPaneTab>[] = [
+      { id: 'console', label: 'Console' },
+      { id: 'history', label: 'History' },
+    ];
     if (plotsVisible) {
       list.push({ id: 'plots', label: 'Plots' });
     }
@@ -73,7 +76,7 @@ export function useUnifiedRightPaneState(): UseUnifiedRightPaneStateResult {
     return () => {
       window.removeEventListener('focusPlot', handleFocusPlot);
     };
-  }, [plotsVisible, allPlots.length]);
+  }, [allPlots.length, plotsVisible]);
 
   useEffect(() => {
     const previousCount = previousPlotCount.current;
@@ -107,7 +110,10 @@ export function useUnifiedRightPaneState(): UseUnifiedRightPaneStateResult {
   }, [allPlots.length]);
 
   const navigation: PlotNavigationState = {
-    activeTab,
+    activeTab:
+      activeTab === 'plots' || activeTab === 'timeline' || activeTab === 'help'
+        ? (activeTab as BottomPanePlotTab)
+        : 'help',
     selectedPlotIndex,
     totalPlots: allPlots.length,
   };
@@ -122,5 +128,6 @@ export function useUnifiedRightPaneState(): UseUnifiedRightPaneStateResult {
     currentPlot,
     selectPreviousPlot,
     selectNextPlot,
+    clearExecutionResults,
   };
 }
