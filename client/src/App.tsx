@@ -1,14 +1,14 @@
-import { useState } from 'react';
-import { Allotment } from 'allotment';
-import 'allotment/dist/style.css';
-import { MenuBar, StatusBar } from '@/components/menu';
-import { EditorPanel } from '@/components/editor';
-import { AIPanel } from '@/components/ai-panel';
-import { BottomPane } from '@/components/bottom-pane';
-import { ExportDialog } from '@/components/export';
-import { useStore } from '@/core';
-import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
-import { useSocketConnection } from '@/hooks/useSocketConnection';
+import { useState } from "react";
+import { Allotment } from "allotment";
+import "allotment/dist/style.css";
+import { MenuBar, StatusBar } from "@/components/menu";
+import { EditorPanel } from "@/components/editor";
+import { AIPanel } from "@/components/ai-panel";
+import { BottomPane } from "@/components/bottom-pane";
+import { ExportDialog } from "@/components/export";
+import { useStore } from "@/core";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { useSocketConnection } from "@/hooks/useSocketConnection";
 
 function App(): JSX.Element {
   const panes = useStore((state) => state.view.panes);
@@ -33,18 +33,24 @@ function App(): JSX.Element {
                   <EditorPanel />
                 </Allotment.Pane>
               )}
-              <Allotment.Pane minSize={300} preferredSize={panes.editor ? '40%' : '100%'}>
+              <Allotment.Pane
+                minSize={300}
+                preferredSize={panes.editor ? "40%" : "100%"}
+              >
                 <AIPanel />
               </Allotment.Pane>
             </Allotment>
           </Allotment.Pane>
-          <Allotment.Pane minSize={150} preferredSize="30%">
+          <Allotment.Pane minSize={150} preferredSize="60%">
             <BottomPane />
           </Allotment.Pane>
         </Allotment>
       </div>
       <StatusBar />
-      <ExportDialog open={exportDialogOpen} onClose={() => setExportDialogOpen(false)} />
+      <ExportDialog
+        open={exportDialogOpen}
+        onClose={() => setExportDialogOpen(false)}
+      />
     </div>
   );
 }

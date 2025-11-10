@@ -210,6 +210,22 @@
   cursor: not-allowed;
 }
 
+.panel-tabs--compact {
+  gap: 4px;
+  padding: 0 8px;
+}
+
+.panel-tabs--compact .tab {
+  padding: 4px 10px;
+  font-size: 11px;
+}
+
+.panel-tabs--equal-width .tab {
+  flex: 1;
+  justify-content: center;
+  min-width: 0;
+}
+
 .panel-content .tab-panel {
   flex: 1;
   display: flex;
