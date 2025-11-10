@@ -1,5 +1,5 @@
 import type { StateCreator } from 'zustand';
-import type { CodeBlock } from '../../../../../shared/src/types';
+import type { CodeBlock } from '@shared/types';
 
 export interface EditorState {
   editor: {
@@ -11,12 +11,18 @@ export interface EditorState {
       column: number;
     };
   };
+  monacoEditor: any | null;
   applyCodeChange: ((codeBlock: CodeBlock) => void) | null;
+  runCurrentCell: (() => void) | null;
+  runAll: (() => void) | null;
   setEditorContent: (content: string) => void;
   setEditorFilepath: (filepath: string) => void;
   setEditorCursorPosition: (position: { line: number; column: number }) => void;
   setEditorIsDirty: (isDirty: boolean) => void;
+  setMonacoEditor: (editor: any) => void;
   setApplyCodeChange: (handler: (codeBlock: CodeBlock) => void) => void;
+  setRunCurrentCell: (handler: () => void) => void;
+  setRunAll: (handler: () => void) => void;
 }
 
 export const createEditorSlice: StateCreator<EditorState> = (set) => ({
@@ -47,7 +53,10 @@ abline(lm(hp ~ mpg, data = mtcars), col = "red", lwd = 2)
     isDirty: false,
     cursorPosition: { line: 1, column: 1 }
   },
+  monacoEditor: null,
   applyCodeChange: null,
+  runCurrentCell: null,
+  runAll: null,
   setEditorContent: (content) =>
     set((state) => ({
       editor: { ...state.editor, content, isDirty: true }
@@ -64,5 +73,8 @@ abline(lm(hp ~ mpg, data = mtcars), col = "red", lwd = 2)
     set((state) => ({
       editor: { ...state.editor, isDirty }
     })),
-  setApplyCodeChange: (handler) => set({ applyCodeChange: handler })
+  setMonacoEditor: (monacoEditor) => set({ monacoEditor }),
+  setApplyCodeChange: (handler) => set({ applyCodeChange: handler }),
+  setRunCurrentCell: (handler) => set({ runCurrentCell: handler }),
+  setRunAll: (handler) => set({ runAll: handler })
 });

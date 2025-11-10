@@ -1,0 +1,83 @@
+id = "seqinr"
+display_name = "seqinr - Biological Sequences Retrieval and Analysis"
+kind = "r-package"
+description = "Tools for exploratory data analysis and data visualization of biological sequence data."
+version = "4.2-36"
+homepage = "https://cran.r-project.org/package=seqinr"
+tags = ["sequences", "analysis", "statistics"]
+
+[runtime]
+r_library = "seqinr"
+imports = ["seqinr"]
+cli_binary = ""
+args = []
+
+[validation]
+requires_packages = ["seqinr"]
+requires_cli = []
+preflight_r = "if (!requireNamespace('seqinr', quietly = TRUE)) stop('seqinr package is not installed')"
+preflight_cli = ""
+
+[[capabilities]]
+id = "seqinr::read_fasta"
+display_name = "Read FASTA file"
+kind = "r-function"
+entrypoint = "seqinr::read.fasta"
+description = "Read sequences from a FASTA file."
+input_spec = [
+  { name = "file", type = "file", format = "fasta" },
+  { name = "seqtype", type = "enum", options = ["DNA", "AA"], default = "DNA" }
+]
+output_spec = [
+  { type = "r-object", class = "list", record_as = "artifact" }
+]
+template = """seqinr::read.fasta(file = "{{file}}", seqtype = "{{seqtype}}")"""
+post_validation = "stopifnot(is.list(.last_value))"
+
+[[capabilities]]
+id = "seqinr::gc_content"
+display_name = "Calculate GC content"
+kind = "r-snippet"
+entrypoint = "seqinr::GC"
+description = "Calculate the GC content of DNA sequences."
+input_spec = [
+  { name = "sequence", type = "string", format = "r-object" }
+]
+output_spec = [
+  { type = "r-object", class = "numeric", record_as = "artifact" }
+]
+template = """seqinr::GC({{sequence}})"""
+post_validation = "stopifnot(is.numeric(.last_value))"
+
+[[capabilities]]
+id = "seqinr::count_codons"
+display_name = "Count codons"
+kind = "r-snippet"
+entrypoint = "seqinr::count"
+description = "Count the occurrence of codons in a DNA sequence."
+input_spec = [
+  { name = "sequence", type = "string", format = "r-object" },
+  { name = "wordsize", type = "integer", min = 1, max = 10, default = 3 }
+]
+output_spec = [
+  { type = "r-object", class = "numeric", record_as = "artifact" }
+]
+template = """seqinr::count({{sequence}}, wordsize = {{wordsize}})"""
+post_validation = "stopifnot(is.numeric(.last_value))"
+
+[[capabilities]]
+id = "seqinr::dotplot"
+display_name = "Create sequence dotplot"
+kind = "r-snippet"
+entrypoint = "seqinr::dotPlot"
+description = "Create a dotplot comparison of two sequences."
+input_spec = [
+  { name = "seq1", type = "string", format = "r-object" },
+  { name = "seq2", type = "string", format = "r-object" },
+  { name = "wsize", type = "integer", min = 1, max = 20, default = 1 }
+]
+output_spec = [
+  { type = "stdout", record_as = "preview" }
+]
+template = """seqinr::dotPlot({{seq1}}, {{seq2}}, wsize = {{wsize}})"""
+post_validation = ""

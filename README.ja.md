@@ -4,184 +4,138 @@
 
 # Re-prod
 
-AI駆動のR分析IDE - RStudioに代わる、AI-nativeな次世代統合開発環境
+AI 駆動の R 分析 IDE — RStudio に代わる AI ネイティブな次世代統合開発環境
 
 ## ミッション
 
-データアナリストや研究者が、たった一つの分析を行うためにRパッケージのドキュメントを半日かけて読んだり、断片化されたツール間を行き来する必要はありません。この非効率性は、生物学者、統計学者、データサイエンティストを問わず、科学コミュニティ全体にとって大きな機会損失です。
+研究者やデータアナリストが、単なる分析のために R パッケージのドキュメントを何時間も読み込み、ツール間を行き来する必要はありません。Re-prod は **R や補助ツールを自然言語に変換** し、AI が複雑な部分を引き受けることで、ユーザーは洞察に集中できる未来を目指しています。
 
-Re-prodは**Rと散在するツールを自然言語に変換**し、AIが複雑さを処理する間、あなたは洞察に集中できます。
-
-従来のIDEとは異なり、Re-prodは完全な実行履歴による**完璧な再現性を保証し**、常にコンテキストを切り替える必要のない**エンドツーエンドのプラットフォームを提供します**（将来的に）。私たちは、R分析が誰にとってもアクセス可能で、再現可能で、効率的な未来を構築しています。
+さらに Re-prod は、完全な実行履歴による **再現性の担保** と、継続的なコンテキストスイッチを排除する **エンドツーエンドのワークフロー** を提供します。
 
 ---
 
 ## 特徴
 
-- 🤖 **AIエージェント統合**: LLM APIによるインテリジェントなRプログラミング支援
-- 🔄 **ファイル監視**: chokidarによるリアルタイムファイルモニタリング
-- 📝 **実行履歴**: すべてのR実行の完全なログ
+- 🤖 **AI エージェント統合**: Anthropic / OpenAI プロバイダーを備えたインテリジェントなコード支援
+- 📝 **実行履歴**: すべての R 実行を保存してタイムライン表示
+- 📊 **プロット管理**: 自動的にプロットをキャプチャし、UI で閲覧
 
 ## アーキテクチャ
 
-### バックエンド
-- Node.js + Express + TypeScript
-- Socket.ioによるWebSocket通信
-- child_processを介した実際のR実行
-- LLM API統合
-  - OpenAIのGPT
-  - AnthropicのClaude
-- chokidarによるファイル監視
+### バックエンド (Rust)
+- Cargo ワークスペース構成
+- Tauri デスクトップアプリケーション
+- Axum WebSocket サーバー (オプション)
+- Tokio による R 実行
+- AI プロバイダー統合 (Anthropic / OpenAI)
+- プラットフォーム非依存のコアライブラリ
 
 ### フロントエンド
 - React + TypeScript + Vite
-- Monacoエディタによるコード編集
-- RStudioにインスパイアされたカラーパレット
+- Monaco Editor によるコード編集
+- Tauri / Web の両方から利用可能
 
 ## 前提条件
 
-- Node.js 18+
-- npm
-- R (4.0+)、`Rscript`がPATHに含まれていること
-- **OpenAI APIキー**（デフォルト）または **Anthropic APIキー**（代替）
+- **Rust** (最新の安定版) — [rustup.rs](https://rustup.rs/) からインストール
+- **Node.js** 18 以上
+- **pnpm** 9 以上 (`corepack enable pnpm` または `npm install -g pnpm`)
+- **R** 4.0+ (`Rscript` が PATH に含まれていること)
+- **Anthropic API キー** (任意、AI 機能用)
 
-## インストール
+## インストール手順
 
-```bash
-# すべてのワークスペースの依存関係をインストール
-npm install
-```
-
-以下の依存関係がインストールされます：
-- ルートワークスペース
-- `client/`（Reactフロントエンド）
-- `server/`（Node.jsバックエンド）
-- `shared/`（TypeScript型定義）
-
-## アプリケーションの実行
-
-### フロントエンドとバックエンドを同時に起動
+### 1. Rust をインストール
 
 ```bash
-npm run dev
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ```
 
-以下が起動します：
-- バックエンド: `http://localhost:4000`
-- フロントエンド: `http://localhost:5173`
-
-### 個別に実行
+### 2. Tauri CLI をインストール
 
 ```bash
-# ターミナル1: バックエンド
-npm run dev:server
-
-# ターミナル2: フロントエンド
-npm run dev:client
+cargo install tauri-cli --version "^2.0"
 ```
+
+### 3. JavaScript 依存をインストール (pnpm)
+
+```bash
+pnpm install
+```
+
+### 4. (任意) AI 設定
+
+`~/.reprod/auth.json` を作成し、Anthropic API キーや R のパスを設定します。
+
+```bash
+mkdir -p ~/.reprod
+cat > ~/.reprod/auth.json <<'EOF'
+{
+  "anthropic_api_key": "your-api-key-here",
+  "r_path": "Rscript"
+}
+EOF
+```
+
+## アプリケーションの起動
+
+### オプション 1: デスクトップアプリ (推奨)
+
+```bash
+cd desktop
+cargo tauri dev
+```
+
+Tauri ウィンドウが起動し、フロントエンドとバックエンドが自動で立ち上がります。
+
+### オプション 2: Web 版
+
+```bash
+pnpm dev
+```
+
+- Axum サーバー: `http://localhost:3001`
+- Vite 開発サーバー: `http://localhost:5173`
+
+ブラウザで `http://localhost:5173` にアクセスします。
+
+### オプション 3: フロントエンドのみ
+
+```bash
+pnpm --filter client dev
+```
+
+バックエンドを起動せずに Vite 開発サーバーのみを利用します。
 
 ## プロジェクト構成
 
 ```
 Re-prod/
-├── client/                    # Reactフロントエンド
-│   ├── src/
-│   │   ├── components/        # 機能別UIコンポーネント
-│   │   │   ├── ai-panel/
-│   │   │   ├── console/
-│   │   │   ├── editor/
-│   │   │   ├── menu/
-│   │   │   ├── plots/
-│   │   │   └── shared/        # アイコンなどの共通部品
-│   │   ├── core/              # Zustandストアと実行ロジック
-│   │   │   ├── execution/
-│   │   │   └── state/
-│   │   ├── css/               # グローバル/コンポーネントスタイル
-│   │   │   ├── globals.css
-│   │   │   ├── index.css
-│   │   │   └── components/
-│   │   ├── services/
-│   │   │   └── socket.ts      # WebSocketクライアント
-│   │   ├── utils/
-│   │   │   └── cn.ts          # クラス名ヘルパー
-│   │   ├── App.tsx
-│   │   └── main.tsx
-│   └── package.json
-├── server/                    # Node.jsバックエンド
-│   ├── src/
-│   │   ├── services/
-│   │   │   └── ...
-│   │   └── server.ts          # メインサーバー
-│   ├── .env                   # 環境設定（APIキーを含む）
-│   └── package.json
-├── shared/                    # 共有TypeScript型定義
-│   └── src/
-│       └── types.ts
-├── AGENTS.md                  # コーディングガイドライン
-└── package.json               # ルートワークスペース設定
+├── Cargo.toml                # Rust ワークスペース
+├── core/                     # 共通ビジネスロジック
+├── desktop/                  # Tauri デスクトップアプリ
+├── server/                   # Axum Web サーバー
+├── client/                   # React + TypeScript フロントエンド
+└── shared/                   # 共有 TypeScript 型
 ```
 
-## 使い方
+## 開発ワークフロー
 
-1. **Re-prodを開く**: ブラウザで `http://localhost:5173` にアクセス
-2. **Rコードを書く**: Monacoエディタ（左ペイン）
-3. **コードを実行**: 「▶ Run」ボタンをクリック
-4. **出力を確認**: Consoleパネル（下部）
-5. **プロットを表示**: Plotsパネル（右下）
-6. **AIに質問**: AI Assistantパネル（右上）
-
-### AIアシスタント
-
-AIアシスタントは**OpenAI**（デフォルト）と**Claude**の両方をサポートしています：
-
-**OpenAI (GPT-4o)** - デフォルト：
-- 高速なレスポンス
-- 優れたRプログラミング知識
-- `server/.env`の`OPENAI_API_KEY`で設定
-
-**Claude (3.5 Sonnet)** - 代替：
-- 強力なコーディング能力
-- `server/.env`で`AI_PROVIDER=anthropic`を設定
-
-**プロバイダーの切り替え：**
-```env
-# server/.env内
-AI_PROVIDER=openai        # または "anthropic"
-OPENAI_API_KEY=sk-...     # OpenAI用
-ANTHROPIC_API_KEY=sk-...  # Claude用
-```
-
-### キーボードショートカット
-
-- `Cmd/Ctrl + Enter`: 現在のセル/セクションを実行
-- `Shift + Enter`: 現在のセルを実行して次へ移動
-- `Cmd/Ctrl + Shift + Enter`: すべてのコードを実行
-
-### Rのパス
-
-`Rscript`がPATHに含まれていない場合、フルパスを設定してください：
-
-```env
-R_PATH=/usr/local/bin/Rscript
-```
-
-## 開発
-
-### 型チェック
+### TypeScript 型チェック
 
 ```bash
-npm run lint
+pnpm -r lint
 ```
 
-### 本番ビルド
+### ビルド
 
 ```bash
-npm run build
+pnpm -r build
 ```
 
-### 一時ファイルのクリーンアップ
+### 一時ファイルの削除
 
-一時的なRプロットとスクリプトは`server/temp/`に保存されます。1時間ごとに自動クリーンアップされますが、手動で削除することもできます：
+一時的な R プロットやスクリプトは OS によりクリーンアップされますが、手動で削除も可能です。
 
 ```bash
 rm -rf server/temp/*
@@ -189,52 +143,19 @@ rm -rf server/temp/*
 
 ## トラブルシューティング
 
-### Rが見つからない
-```
-Error: Failed to start R process
-```
+### R が見つからない場合
+- `Rscript` が PATH に含まれているか確認
+- `~/.reprod/auth.json` の `r_path` を設定
 
-**解決策**: Rがインストールされ、`Rscript`がPATHに含まれていることを確認するか、`.env`で`R_PATH`を設定してください
+### WebSocket 接続に失敗する場合
+- バックエンドがポート 3001 で起動しているか確認
+- 他のプロセスがポート 3001 を使用していないか (`lsof -i :3001`)
+- フロントエンドが `ws://localhost:3001/ws` に接続しているか確認
 
-### WebSocket接続失敗
-```
-Socket connection error
-```
-
-**解決策**:
-1. バックエンドがポート4000で動作していることを確認
-2. server/.envの`CLIENT_URL`がフロントエンドのURLと一致することを確認
-3. ブラウザコンソールでCORSエラーを確認
-
-### AIが応答しない
-
-**解決策**:
-1. `server/.env`で`OPENAI_API_KEY`または`ANTHROPIC_API_KEY`のいずれかが設定されていることを確認
-2. サーバーログでAPIエラーを確認
-3. APIクレジットがあることを確認
-
-## 実装ノート
-
-AGENTS.mdガイドラインに従っています：
-- ✅ ダミー実装なし - すべてのサービスは実際に機能
-- ✅ 本物のClaude API統合
-- ✅ child_processを介した本物のR実行
-- ✅ chokidarによる本物のファイル監視
-- ✅ RStudioにインスパイアされたUI（ライトグレー、ミュートブルー）
-- ✅ TypeScriptストリクトモードと明示的な型
-- ✅ 関数型Reactコンポーネント
-- ✅ 2スペースインデント
-
-## 今後の機能強化
-
-- ファイルブラウザとプロジェクト管理
-- キーボードショートカット
-- ダークテーマサポート
-- 複数ファイルタブ
-- Rパッケージ管理
-- PDF/HTMLエクスポート
-- 共同編集
-- Electronデスクトップアプリ
+### AI が応答しない場合
+- `~/.reprod/auth.json` もしくは環境変数で API キーを設定
+- サーバー / デスクトップのログを確認
+- API の利用制限に達していないか確認
 
 ## ライセンス
 
@@ -242,5 +163,5 @@ MIT
 
 ## 謝辞
 
-- RStudioの優れたUI/UXにインスパイアされました
-- React、Monaco Editor、Socket.ioで構築されています
+- RStudio の UI/UX にインスパイアされています
+- React, Monaco Editor, Axum, Tauri などの OSS に感謝します

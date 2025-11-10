@@ -4,16 +4,38 @@ import { useStore } from '@/core';
 import { socketService } from '@/services/socket';
 import type { WSResponse } from '@/services/socket';
 import { CodeBlockWithApply } from './CodeBlockWithApply';
-import type { CodeBlock } from '../../../../shared/src/types';
+import type { CodeBlock } from '@shared/types';
+
+// Extract code blocks from markdown text
+function extractCodeBlocks(text: string): CodeBlock[] {
+  const codeBlocks: CodeBlock[] = [];
+  const codeBlockRegex = /```(?:r|R)?\n([\s\S]*?)\n```/g;
+  let match;
+  let index = 0;
+
+  while ((match = codeBlockRegex.exec(text)) !== null) {
+    const code = match[1];
+    codeBlocks.push({
+      id: `code-${Date.now()}-${index}`,
+      code,
+      language: 'r',
+      action: 'replace-all', // Default action
+    });
+    index++;
+  }
+
+  return codeBlocks;
+}
 
 export function AIPanel(): JSX.Element {
   const ai = useStore((state) => state.ai);
   const addAIMessage = useStore((state) => state.addAIMessage);
   const setAILoading = useStore((state) => state.setAILoading);
   const applyCodeChange = useStore((state) => state.applyCodeChange);
+  const editorContent = useStore((state) => state.editor.content);
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const timeoutIdRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutIdRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -29,12 +51,17 @@ export function AIPanel(): JSX.Element {
       timestamp: Date.now()
     };
 
+    // Include editor content as context in the first message
+    const userMessageWithContext = ai.messages.length === 0
+      ? `Current R code in editor:\n\`\`\`r\n${editorContent}\n\`\`\`\n\n${input}`
+      : input;
+
     const messages = [
       ...ai.messages.map((message) => ({
         role: message.role,
         content: message.content
       })),
-      { role: 'user' as const, content: input }
+      { role: 'user' as const, content: userMessageWithContext }
     ];
 
     addAIMessage(userMessage);
@@ -55,10 +82,16 @@ export function AIPanel(): JSX.Element {
     // Store timeout ID for stop functionality
     timeoutIdRef.current = timeoutId;
 
-    socketService.send(
+    const matcher = (message: WSResponse) =>
+      message.type === 'ai_response' ||
+      message.type === 'ai_response_with_tools' ||
+      message.type === 'error';
+
+    const sent = socketService.send(
       {
         type: 'ai_message',
-        messages
+        messages,
+        enable_tools: true
       },
       (response: WSResponse) => {
         if (timeoutIdRef.current) {
@@ -67,10 +100,39 @@ export function AIPanel(): JSX.Element {
         }
 
         if (response.type === 'ai_response') {
+          const codeBlocks = extractCodeBlocks(response.response);
           addAIMessage({
             id: Date.now().toString(),
             role: 'assistant',
             content: response.response,
+            codeBlocks: codeBlocks.length > 0 ? codeBlocks : undefined,
+            timestamp: Date.now()
+          });
+        } else if (response.type === 'ai_response_with_tools') {
+          // Handle AI response with tool calls
+          let content: string;
+
+          if (typeof response.response === 'string') {
+            content = response.response;
+          } else if (response.response.content) {
+            content = response.response.content;
+          } else if (response.response.tool_calls && response.response.tool_calls.length > 0) {
+            // Format tool calls in a user-friendly way
+            const toolCallsFormatted = response.response.tool_calls
+              .map((tc, idx) => `${idx + 1}. **${tc.name}**\n   Input: \`${JSON.stringify(tc.input)}\``)
+              .join('\n\n');
+            content = `🔧 Executing tools:\n\n${toolCallsFormatted}`;
+          } else {
+            content = 'AI response received (no content)';
+          }
+
+          const codeBlocks = extractCodeBlocks(content);
+
+          addAIMessage({
+            id: Date.now().toString(),
+            role: 'assistant',
+            content,
+            codeBlocks: codeBlocks.length > 0 ? codeBlocks : undefined,
             timestamp: Date.now()
           });
         } else if (response.type === 'error') {
@@ -83,8 +145,24 @@ export function AIPanel(): JSX.Element {
         }
 
         setAILoading(false);
-      }
+      },
+      matcher
     );
+
+    if (!sent) {
+      if (timeoutIdRef.current) {
+        clearTimeout(timeoutIdRef.current);
+        timeoutIdRef.current = null;
+      }
+
+      setAILoading(false);
+      addAIMessage({
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: 'AI request failed: not connected to backend service.',
+        timestamp: Date.now()
+      });
+    }
 
     setInput('');
   };
@@ -162,13 +240,15 @@ export function AIPanel(): JSX.Element {
                     </div>
                   )}
                   {/* New code blocks with Apply buttons */}
-                  {message.codeBlocks?.map((codeBlock: CodeBlock) => (
-                    <CodeBlockWithApply
-                      key={codeBlock.id}
-                      codeBlock={codeBlock}
-                      onApply={handleApplyCode}
-                    />
-                  ))}
+                  {message.codeBlocks && message.codeBlocks.length > 0 && (
+                    message.codeBlocks.map((codeBlock: CodeBlock) => (
+                      <CodeBlockWithApply
+                        key={codeBlock.id}
+                        codeBlock={codeBlock}
+                        onApply={handleApplyCode}
+                      />
+                    ))
+                  )}
                 </div>
               ))}
               {ai.isLoading && (

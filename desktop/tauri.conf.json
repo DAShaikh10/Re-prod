@@ -4,9 +4,9 @@
   "version": "0.1.0",
   "identifier": "com.reprod.app",
   "build": {
-    "beforeDevCommand": "(cd .. && npm run dev:client)",
+    "beforeDevCommand": "pnpm --dir .. --filter client dev",
     "devUrl": "http://localhost:5173",
-    "beforeBuildCommand": "(cd .. && npm run build:client)",
+    "beforeBuildCommand": "pnpm --dir .. --filter client build",
     "frontendDist": "../client/dist"
   },
   "app": {

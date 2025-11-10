@@ -1,30 +1,26 @@
-import { useEffect } from 'react';
+import { useState } from 'react';
 import { Allotment } from 'allotment';
 import 'allotment/dist/style.css';
 import { MenuBar, StatusBar } from '@/components/menu';
 import { EditorPanel } from '@/components/editor';
 import { AIPanel } from '@/components/ai-panel';
-import { PlotsPanel } from '@/components/plots';
 import { ConsolePanel } from '@/components/console';
-import { socketService } from './services/socket';
+import { UnifiedRightPane } from '@/components/unified-pane';
+import { ExportDialog } from '@/components/export';
 import { useStore } from '@/core';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { useSocketConnection } from '@/hooks/useSocketConnection';
 
 function App(): JSX.Element {
-  const setConnected = useStore((state) => state.setConnected);
+  const panes = useStore((state) => state.view.panes);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
 
-  useEffect(() => {
-    socketService.connect();
+  // Enable global keyboard shortcuts
+  useKeyboardShortcuts();
+  useSocketConnection();
 
-    // Check connection status
-    const checkConnection = setInterval(() => {
-      setConnected(socketService.isConnected());
-    }, 1000);
-
-    return () => {
-      clearInterval(checkConnection);
-      socketService.disconnect();
-    };
-  }, [setConnected]);
+  // Expose export dialog handler globally for menu actions
+  (window as any).openExportDialog = () => setExportDialogOpen(true);
 
   return (
     <div className="app">
@@ -33,27 +29,32 @@ function App(): JSX.Element {
         <Allotment vertical>
           <Allotment.Pane minSize={300} preferredSize="70%">
             <Allotment>
-              <Allotment.Pane minSize={400} preferredSize="60%">
-                <EditorPanel />
-              </Allotment.Pane>
-              <Allotment.Pane minSize={300} preferredSize="40%">
+              {panes.editor && (
+                <Allotment.Pane minSize={400} preferredSize="60%">
+                  <EditorPanel />
+                </Allotment.Pane>
+              )}
+              <Allotment.Pane minSize={300} preferredSize={panes.editor ? '40%' : '100%'}>
                 <AIPanel />
               </Allotment.Pane>
             </Allotment>
           </Allotment.Pane>
           <Allotment.Pane minSize={150} preferredSize="30%">
             <Allotment>
-              <Allotment.Pane minSize={300} preferredSize="60%">
-                <ConsolePanel />
-              </Allotment.Pane>
-              <Allotment.Pane minSize={300} preferredSize="40%">
-                <PlotsPanel />
+              {panes.console && (
+                <Allotment.Pane minSize={250} preferredSize="50%">
+                  <ConsolePanel />
+                </Allotment.Pane>
+              )}
+              <Allotment.Pane minSize={250} preferredSize={panes.console ? '50%' : '100%'}>
+                <UnifiedRightPane />
               </Allotment.Pane>
             </Allotment>
           </Allotment.Pane>
         </Allotment>
       </div>
       <StatusBar />
+      <ExportDialog open={exportDialogOpen} onClose={() => setExportDialogOpen(false)} />
     </div>
   );
 }

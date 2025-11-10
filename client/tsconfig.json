@@ -14,7 +14,11 @@
       "@/core/*": ["src/core/*"],
       "@/hooks/*": ["src/hooks/*"],
       "@/utils/*": ["src/utils/*"],
-      "@/css/*": ["src/css/*"]
+      "@/css/*": ["src/css/*"],
+      "@shared": ["../shared/src/index.ts"],
+      "@shared/*": ["../shared/src/*"],
+      "shared": ["../shared/src/index.ts"],
+      "shared/*": ["../shared/src/*"]
     },
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
@@ -28,5 +32,6 @@
     "noFallthroughCasesInSwitch": true
   },
   "include": ["src"],
+  "exclude": ["src/**/__tests__", "src/**/*.test.ts", "src/**/*.test.tsx"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

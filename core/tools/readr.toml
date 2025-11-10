@@ -1,0 +1,128 @@
+id = "readr"
+display_name = "readr: Fast and Friendly Data Reading"
+kind = "r-package"
+description = "Fast and user-friendly tools for reading rectangular data (CSV, TSV, fixed-width files) with automatic type detection."
+version = "2.1.5"
+homepage = "https://readr.tidyverse.org/"
+tags = ["data-import", "csv", "tsv", "tidyverse"]
+
+[runtime]
+r_library = "readr"
+imports = ["readr"]
+cli_binary = ""
+args = []
+
+[validation]
+requires_packages = ["readr"]
+requires_cli = []
+preflight_r = "if (!requireNamespace('readr', quietly = TRUE)) stop('readr package is not installed')"
+preflight_cli = ""
+
+[[capabilities]]
+id = "readr::read_csv"
+display_name = "Read CSV file"
+kind = "r-function"
+entrypoint = "readr::read_csv"
+description = "Read comma-separated values (CSV) file with automatic type parsing and tibble output."
+input_spec = [
+  { name = "path", type = "file", format = "csv" },
+  { name = "col_names", type = "enum", options = ["TRUE", "FALSE"], default = "TRUE" },
+  { name = "skip", type = "integer", default = 0, min = 0 }
+]
+output_spec = [
+  { type = "r-object", class = "tbl_df", record_as = "artifact" }
+]
+template = """library(readr)
+read_csv("{{path}}", col_names = {{col_names}}, skip = {{skip}}, show_col_types = FALSE)"""
+post_validation = "stopifnot(inherits(.last_value, 'tbl_df'))"
+
+[[capabilities]]
+id = "readr::read_tsv"
+display_name = "Read TSV file"
+kind = "r-function"
+entrypoint = "readr::read_tsv"
+description = "Read tab-separated values (TSV) file with automatic type parsing and tibble output."
+input_spec = [
+  { name = "path", type = "file", format = "tsv" },
+  { name = "col_names", type = "enum", options = ["TRUE", "FALSE"], default = "TRUE" },
+  { name = "skip", type = "integer", default = 0, min = 0 }
+]
+output_spec = [
+  { type = "r-object", class = "tbl_df", record_as = "artifact" }
+]
+template = """library(readr)
+read_tsv("{{path}}", col_names = {{col_names}}, skip = {{skip}}, show_col_types = FALSE)"""
+post_validation = "stopifnot(inherits(.last_value, 'tbl_df'))"
+
+[[capabilities]]
+id = "readr::read_delim"
+display_name = "Read delimited file"
+kind = "r-function"
+entrypoint = "readr::read_delim"
+description = "Read file with custom delimiter character, supporting various text formats."
+input_spec = [
+  { name = "path", type = "file", format = "txt" },
+  { name = "delim", type = "string", default = "," },
+  { name = "col_names", type = "enum", options = ["TRUE", "FALSE"], default = "TRUE" },
+  { name = "skip", type = "integer", default = 0, min = 0 }
+]
+output_spec = [
+  { type = "r-object", class = "tbl_df", record_as = "artifact" }
+]
+template = """library(readr)
+read_delim("{{path}}", delim = "{{delim}}", col_names = {{col_names}}, skip = {{skip}}, show_col_types = FALSE)"""
+post_validation = "stopifnot(inherits(.last_value, 'tbl_df'))"
+
+[[capabilities]]
+id = "readr::write_csv"
+display_name = "Write CSV file"
+kind = "r-function"
+entrypoint = "readr::write_csv"
+description = "Write data frame to comma-separated values (CSV) file with UTF-8 encoding."
+input_spec = [
+  { name = "data", type = "string", format = "r-object" },
+  { name = "path", type = "file", format = "csv", role = "generated" },
+  { name = "col_names", type = "enum", options = ["TRUE", "FALSE"], default = "TRUE" }
+]
+output_spec = [
+  { type = "file", path = "{{path}}", record_as = "artifact" }
+]
+template = """library(readr)
+write_csv({{data}}, "{{path}}", col_names = {{col_names}})"""
+post_validation = "if (!file.exists('{{path}}')) stop('CSV file not written')"
+
+[[capabilities]]
+id = "readr::write_tsv"
+display_name = "Write TSV file"
+kind = "r-function"
+entrypoint = "readr::write_tsv"
+description = "Write data frame to tab-separated values (TSV) file with UTF-8 encoding."
+input_spec = [
+  { name = "data", type = "string", format = "r-object" },
+  { name = "path", type = "file", format = "tsv", role = "generated" },
+  { name = "col_names", type = "enum", options = ["TRUE", "FALSE"], default = "TRUE" }
+]
+output_spec = [
+  { type = "file", path = "{{path}}", record_as = "artifact" }
+]
+template = """library(readr)
+write_tsv({{data}}, "{{path}}", col_names = {{col_names}})"""
+post_validation = "if (!file.exists('{{path}}')) stop('TSV file not written')"
+
+[[capabilities]]
+id = "readr::read_lines"
+display_name = "Read file as text lines"
+kind = "r-function"
+entrypoint = "readr::read_lines"
+description = "Read file as character vector with one element per line, useful for unstructured text."
+input_spec = [
+  { name = "path", type = "file", format = "txt" },
+  { name = "skip", type = "integer", default = 0, min = 0 },
+  { name = "n_max", type = "integer", default = -1 }
+]
+output_spec = [
+  { type = "r-object", class = "character", record_as = "artifact" }
+]
+template = """library(readr)
+read_lines("{{path}}", skip = {{skip}}, n_max = {{n_max}})"""
+post_validation = "stopifnot(is.character(.last_value))"

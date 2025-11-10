@@ -5,8 +5,10 @@ import { createExecutionSlice, type ExecutionState } from './slices/executionSli
 import { createAISlice, type AIState } from './slices/aiSlice';
 import { createSettingsSlice, type SettingsState } from './slices/settingsSlice';
 import { createConnectionSlice, type ConnectionState } from './slices/connectionSlice';
+import { createTimelineSlice, type TimelineState } from './slices/timelineSlice';
+import { createViewSlice, type ViewState } from './slices/viewSlice';
 
-export type StoreState = EditorState & ExecutionState & AIState & SettingsState & ConnectionState;
+export type StoreState = EditorState & ExecutionState & AIState & SettingsState & ConnectionState & TimelineState & ViewState;
 
 export const useStore = create<StoreState>()(
   devtools(
@@ -15,7 +17,9 @@ export const useStore = create<StoreState>()(
       ...createExecutionSlice(...args),
       ...createAISlice(...args),
       ...createSettingsSlice(...args),
-      ...createConnectionSlice(...args)
+      ...createConnectionSlice(...args),
+      ...createTimelineSlice(...args),
+      ...createViewSlice(...args)
     }),
     { name: 'Re-prod Store' }
   )

@@ -1,6 +1,7 @@
 {
   "name": "re-prod",
   "version": "0.1.0",
+  "packageManager": "pnpm@9.12.1",
   "private": true,
   "description": "AI-Powered R Analysis IDE",
   "workspaces": [
@@ -8,11 +9,11 @@
     "shared"
   ],
   "scripts": {
-    "dev": "concurrently \"cargo run -p reprod-server\" \"npm run dev:client\"",
-    "dev:client": "npm run dev --workspace=client",
-    "build": "npm run build --workspaces",
-    "build:client": "npm run build --workspace=client",
-    "lint": "npm run lint --workspaces --if-present"
+    "dev": "concurrently \"RUST_LOG=info cargo run -p reprod-server\" \"pnpm --filter client dev\"",
+    "dev:client": "pnpm --filter client dev",
+    "build": "pnpm -r build",
+    "build:client": "pnpm --filter client build",
+    "lint": "pnpm -r --if-present lint"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.9.1",
