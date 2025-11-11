@@ -82,3 +82,6 @@ docs/.obsidian/
 # Git worktrees
 wt-*/
 
+# MCP server configuration (contains environment-specific settings)
+.mcp.json
+
