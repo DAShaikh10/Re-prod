@@ -10,7 +10,7 @@ import {
 } from '@/core';
 import { executeRequest, ExecutionServiceError } from '@/services/executionService';
 import { useStore } from '@/core';
-import type { MonacoEditor } from 'monaco-editor';
+import type { editor as MonacoEditor } from 'monaco-editor';
 import type { ExecutionLogEntry, ExecutionResultPayload } from '@shared/types';
 
 interface UseEditorExecutionProps {

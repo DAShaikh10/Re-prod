@@ -5,7 +5,7 @@ import { useStore } from "@/core";
 import { useEditorCells } from "@/hooks/useEditorCells";
 import { useEditorDecorations } from "@/hooks/useEditorDecorations";
 import { useEditorExecution } from "@/hooks/useEditorExecution";
-import type { MonacoEditor } from "monaco-editor";
+import type { editor as MonacoEditor } from "monaco-editor";
 import type { CodeBlock } from "@shared/types";
 
 export function EditorPanel(): JSX.Element {
@@ -18,178 +18,25 @@ export function EditorPanel(): JSX.Element {
   const setRunCurrentCell = useStore((state) => state.setRunCurrentCell);
   const setRunAll = useStore((state) => state.setRunAll);
   const setMonacoEditor = useStore((state) => state.setMonacoEditor);
-  const [executionTarget, setExecutionTarget] = useState<null>(null); // placeholder
   const editorRef = useRef<MonacoEditor.IStandaloneCodeEditor | null>(null);
 
-  // Parse cells when content changes
-  useEffect(() => {
-    const filename = editor.filepath || "Untitled.R";
-    const parsedCells = parseCells(editor.content, filename);
-    setCells(parsedCells);
-  }, [editor.content, editor.filepath]);
-
-  // Update decorations when cells change or settings change
-  useEffect(() => {
-    if (!editorRef.current) return;
-
-    const monacoEditor = editorRef.current;
-
-    // Clear old decorations
-    decorationsRef.current = monacoEditor.deltaDecorations(
-      decorationsRef.current,
-      [],
-    );
-
-    // Only show decorations if enabled
-    if (!settings.showCellDecorations) return;
-
-    const newDecorations: MonacoEditor.IModelDeltaDecoration[] = [];
-
-    cells.forEach((cell, index) => {
-      // Add line decoration at section boundaries
-      if (cell.startLine > 1) {
-        newDecorations.push({
-          range: {
-            startLineNumber: cell.startLine,
-            startColumn: 1,
-            endLineNumber: cell.startLine,
-            endColumn: 1,
-          },
-          options: {
-            isWholeLine: true,
-            linesDecorationsClassName: "cell-boundary-decoration",
-            overviewRuler: {
-              color: "#4285f4",
-              position: 4,
-            },
-          },
-        });
-      }
-
-      // Highlight executing cell
-      if (settings.highlightExecutingCell && executingCellIndex === index) {
-        newDecorations.push({
-          range: {
-            startLineNumber: cell.startLine,
-            startColumn: 1,
-            endLineNumber: cell.endLine,
-            endColumn: 1,
-          },
-          options: {
-            isWholeLine: true,
-            className: "executing-cell-background",
-          },
-        });
-      }
-    });
-
-    decorationsRef.current = monacoEditor.deltaDecorations([], newDecorations);
-  }, [
-    cells,
-    settings.showCellDecorations,
-    settings.highlightExecutingCell,
+  const cells = useEditorCells(editor.content, editor.filepath);
+  const {
     executingCellIndex,
-  ]);
+    handleRunAll,
+    handleRunCurrentCell,
+    handleRunCellAndMoveNext,
+  } = useEditorExecution({ editorRef, cells });
+
+  useEditorDecorations(editorRef, cells, {
+    showCellDecorations: settings.showCellDecorations,
+    highlightExecutingCell: settings.highlightExecutingCell,
+    executingCellIndex,
+  });
 
   const handleEditorChange = (value: string | undefined): void => {
     if (value !== undefined) {
       setEditorContent(value);
-    }
-  };
-
-  const executeCode = async (target: ExecutionTarget): Promise<void> => {
-    setIsRunning(true);
-
-    if (target.cellIndex !== undefined) {
-      setExecutingCellIndex(target.cellIndex);
-    }
-
-    const request = buildExecutionRequest({
-      target,
-      cells,
-      documentContent: editor.content,
-      filepath: editor.filepath ?? undefined
-    });
-
-    try {
-      const { result } = await executeRequest(request);
-      const normalized: ExecutionLogEntry = {
-        stdout: result.output,
-        stderr: result.error || "",
-        plots: result.plots.map((plot) => ({
-          id: plot.filename || `plot-${plot.index}`,
-          path: plot.filename,
-          data: `data:image/png;base64,${plot.base64_data}`,
-          timestamp: Date.now(),
-        })),
-        timestamp: Date.now(),
-        duration: result.execution_time_ms,
-        success: result.success,
-      };
-      addExecutionResult(normalized);
-      console.log("Execution completed");
-    } catch (error) {
-      const message =
-        error instanceof ExecutionServiceError
-          ? error.message
-          : 'Execution failed due to an unexpected error.';
-
-      const normalized: ExecutionLogEntry = {
-        stdout: "",
-        stderr: message,
-        plots: [],
-        timestamp: Date.now(),
-        duration: 0,
-        success: false,
-      };
-      addExecutionResult(normalized);
-    } finally {
-      setExecutingCellIndex(null);
-      setIsRunning(false);
-    }
-  };
-
-  const handleRunAll = (): void => {
-    const code = getAllCode(editorRef.current);
-    if (code) {
-      void executeCode({
-        code,
-        source: 'whole-document'
-      });
-    }
-  };
-
-  const handleRunCurrentCell = (): void => {
-    const target = getExecutionTarget(
-      editorRef.current,
-      cells,
-      editor.cursorPosition.line,
-    );
-
-    if (target) {
-      void executeCode(target);
-    }
-  };
-
-  const handleRunCellAndMoveNext = (): void => {
-    const result = getExecutionTargetAndNext(
-      editorRef.current,
-      cells,
-      editor.cursorPosition.line,
-    );
-
-    if (!result) return;
-
-    // Execute the target (selection, cell, or whole document)
-    void executeCode(result.target);
-
-    // Only move to next cell if we executed a cell and there's a next cell
-    if (result.nextCell && editorRef.current) {
-      editorRef.current.setPosition({
-        lineNumber: result.nextCell.startLine,
-        column: 1,
-      });
-      editorRef.current.revealLineInCenter(result.nextCell.startLine);
     }
   };
 
@@ -250,15 +97,14 @@ export function EditorPanel(): JSX.Element {
     }
   };
 
-  const setRunCurrentCell = useStore((state) => state.setRunCurrentCell);
-  const setRunAll = useStore((state) => state.setRunAll);
-  const setMonacoEditor = useStore((state) => state.setMonacoEditor);
-
   useEffect(() => {
     setApplyCodeChange(applyCodeChange);
+  }, [applyCodeChange, setApplyCodeChange]);
+
+  useEffect(() => {
     setRunCurrentCell(handleRunCurrentCell);
     setRunAll(handleRunAll);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [handleRunCurrentCell, handleRunAll, setRunCurrentCell, setRunAll]);
 
   const handleEditorDidMount = (
     monacoEditor: MonacoEditor.IStandaloneCodeEditor,
