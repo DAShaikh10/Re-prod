@@ -55,7 +55,7 @@
 
 /* Section */
 .export-section {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .export-section:last-child {
@@ -71,72 +71,28 @@
   letter-spacing: var(--letter-spacing-base);
 }
 
-/* Radio Group */
-.export-radio-group {
+/* Export Tab panels */
+.export-panel-tabs .tab {
+  padding: 8px 12px;
+}
+
+.export-tab-content {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 2px;
 }
 
-.export-radio {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  min-height: 44px;
-  padding: 12px 14px;
-  background: var(--bg-primary);
-  border: 2px solid var(--border-color);
-  border-left: 3px solid var(--border-color);
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.export-radio:hover {
-  border-color: var(--accent-blue);
-  border-left-color: var(--accent-blue);
-  box-shadow: 0 2px 8px rgba(47, 111, 237, 0.08);
-}
-
-.export-radio:has(input[type="radio"]:checked) {
-  border-color: var(--accent-blue);
-  border-left-color: var(--accent-blue);
-  border-left-width: 4px;
-  background: var(--accent-blue-light);
-}
-
-.export-radio:has(input[type="radio"]:focus-visible) {
-  outline: 2px solid var(--accent-blue);
-  outline-offset: 2px;
-}
-
-.export-radio input[type="radio"] {
-  margin-top: 2px;
-  cursor: pointer;
-  accent-color: var(--accent-blue);
-}
-
-.export-radio span {
+.export-tab-title {
   font-size: 13px;
+  font-weight: 600;
   color: var(--text-primary);
+  line-height: 1.2;
 }
 
-.export-radio-content {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.export-radio-title {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-primary);
-}
-
-.export-radio-description {
+.export-tab-description {
   font-size: 11px;
   color: var(--text-muted);
-  line-height: 1.5;
+  line-height: 1.4;
 }
 
 /* Checkbox Group */
