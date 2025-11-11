@@ -15,7 +15,6 @@
 /// - Plot capture
 /// - Tool manifests (ape, ggtree, etc.)
 /// - Export functionality
-
 use reprod_core::executor::timeline::{JsonTimeline, TimelineQuery};
 use reprod_core::executor::RExecutor;
 use reprod_core::export::{BundleWriter, ReproductionBundle};
@@ -416,9 +415,7 @@ async fn test_step6_report_generation_full_workflow() {
     );
 
     // Write tarball
-    let output_path = temp_dir
-        .path()
-        .join("viral_phylogenomics_workflow.tar.gz");
+    let output_path = temp_dir.path().join("viral_phylogenomics_workflow.tar.gz");
     let writer = BundleWriter::new(bundle);
     let write_result = writer.write_tarball(&output_path);
 
@@ -471,7 +468,8 @@ fn test_workflow_tool_manifests_present() {
         assert!(
             tool.is_some(),
             "Tool '{}' ({}) should be present for workflow",
-            tool_id, description
+            tool_id,
+            description
         );
 
         if let Some(manifest) = tool {
