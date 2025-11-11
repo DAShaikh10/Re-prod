@@ -1,0 +1,55 @@
+import { describe, expect, it } from 'vitest';
+import { extractCodeBlocks } from '../codeBlockUtils';
+
+describe('extractCodeBlocks', () => {
+  it('parses structured JSON metadata blocks', () => {
+    const structured = `
+Here is the patch:
+
+```json
+{
+  "id": "fix-target",
+  "filepath": "analysis.R",
+  "action": "replace-range",
+  "targetRange": {
+    "startLine": 5,
+    "startColumn": 1,
+    "endLine": 7,
+    "endColumn": 1
+  },
+  "code": "print(\'fixed\')",
+  "explanation": "Fixes edge case"
+}
+```
+`;
+
+    const [block] = extractCodeBlocks(structured);
+
+    expect(block).toMatchObject({
+      id: 'fix-target',
+      action: 'replace-range',
+      filepath: 'analysis.R',
+      code: "print('fixed')",
+      explanation: 'Fixes edge case',
+    });
+    expect(block.targetRange).toEqual({
+      startLine: 5,
+      startColumn: 1,
+      endLine: 7,
+      endColumn: 1,
+    });
+  });
+
+  it('falls back to replace-all for plain R code fences', () => {
+    const script = `
+```r
+cat('hello world')
+```
+`;
+
+    const [block] = extractCodeBlocks(script);
+
+    expect(block.action).toBe('replace-all');
+    expect(block.code.trim()).toBe("cat('hello world')");
+  });
+});
