@@ -3,7 +3,7 @@ import { useStore } from '@/core';
 import { socketService } from '@/services/socket';
 import type { WSResponse } from '@/services/socket';
 import { extractCodeBlocks } from '@/core/ai/codeBlockUtils';
-import type { CodeBlock } from '@shared/types';
+import type { AIMessage, CodeBlock } from '@shared/types';
 
 const aiResponseMatcher = (message: WSResponse): boolean =>
   message.type === 'ai_response' ||
@@ -35,6 +35,20 @@ export function useAIConversation() {
     };
   }, [clearTimeoutRef]);
 
+  const postAssistantMessage = useCallback(
+    (content: string, extras?: Partial<AIMessage>) => {
+      const timestamp = Date.now();
+      addAIMessage({
+        id: timestamp.toString(),
+        role: 'assistant',
+        content,
+        timestamp,
+        ...extras,
+      });
+    },
+    [addAIMessage],
+  );
+
   const handleApplyCode = useCallback((codeBlock: CodeBlock): void => {
     if (applyCodeChange) {
       applyCodeChange(codeBlock);
@@ -48,13 +62,8 @@ export function useAIConversation() {
     clearTimeoutRef();
     setAILoading(false);
 
-    addAIMessage({
-      id: Date.now().toString(),
-      role: 'assistant',
-      content: 'Request stopped by user.',
-      timestamp: Date.now(),
-    });
-  }, [addAIMessage, clearTimeoutRef, setAILoading]);
+    postAssistantMessage('Request stopped by user.');
+  }, [clearTimeoutRef, postAssistantMessage, setAILoading]);
 
   const handleAsk = useCallback((): void => {
     if (!input.trim()) {
@@ -88,12 +97,7 @@ export function useAIConversation() {
 
     timeoutIdRef.current = setTimeout(() => {
       setAILoading(false);
-      addAIMessage({
-        id: Date.now().toString(),
-        role: 'assistant',
-        content: 'Request timed out. The AI service took too long to respond. Please try again.',
-        timestamp: Date.now(),
-      });
+      postAssistantMessage('Request timed out. The AI service took too long to respond. Please try again.');
       timeoutIdRef.current = null;
     }, 30000);
 
@@ -111,12 +115,8 @@ export function useAIConversation() {
 
         if (response.type === 'ai_response') {
           const codeBlocks = extractCodeBlocks(response.response);
-          addAIMessage({
-            id: Date.now().toString(),
-            role: 'assistant',
-            content: response.response,
+          postAssistantMessage(response.response, {
             codeBlocks: codeBlocks.length > 0 ? codeBlocks : undefined,
-            timestamp: Date.now(),
           });
         } else if (response.type === 'ai_response_with_tools') {
           let content: string;
@@ -139,20 +139,11 @@ export function useAIConversation() {
           }
 
           const codeBlocks = extractCodeBlocks(content);
-          addAIMessage({
-            id: Date.now().toString(),
-            role: 'assistant',
-            content,
+          postAssistantMessage(content, {
             codeBlocks: codeBlocks.length > 0 ? codeBlocks : undefined,
-            timestamp: Date.now(),
           });
         } else if (response.type === 'error') {
-          addAIMessage({
-            id: Date.now().toString(),
-            role: 'assistant',
-            content: `AI request failed: ${response.message}`,
-            timestamp: Date.now(),
-          });
+          postAssistantMessage(`AI request failed: ${response.message}`);
         }
 
         setAILoading(false);
@@ -166,16 +157,11 @@ export function useAIConversation() {
         timeoutIdRef.current = null;
       }
       setAILoading(false);
-      addAIMessage({
-        id: Date.now().toString(),
-        role: 'assistant',
-        content: 'AI request failed: not connected to backend service.',
-        timestamp: Date.now(),
-      });
+      postAssistantMessage('AI request failed: not connected to backend service.');
     }
 
     setInput('');
-  }, [addAIMessage, clearTimeoutRef, editorContent, input, messages, setAILoading]);
+  }, [addAIMessage, clearTimeoutRef, editorContent, input, messages, postAssistantMessage, setAILoading]);
 
   return {
     input,
