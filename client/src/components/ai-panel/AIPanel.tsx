@@ -1,209 +1,31 @@
-import { useState, useRef, useEffect } from 'react';
+import { useRef, useEffect } from 'react';
 import { IconSend, IconSquare } from '@/components/shared';
-import { useStore } from '@/core';
-import { socketService } from '@/services/socket';
-import type { WSResponse } from '@/services/socket';
 import { CodeBlockWithApply } from './CodeBlockWithApply';
 import type { CodeBlock } from '@shared/types';
-
-// Extract code blocks from markdown text
-function extractCodeBlocks(text: string): CodeBlock[] {
-  const codeBlocks: CodeBlock[] = [];
-  const codeBlockRegex = /```(?:r|R)?\n([\s\S]*?)\n```/g;
-  let match;
-  let index = 0;
-
-  while ((match = codeBlockRegex.exec(text)) !== null) {
-    const code = match[1];
-    codeBlocks.push({
-      id: `code-${Date.now()}-${index}`,
-      code,
-      language: 'r',
-      action: 'replace-all', // Default action
-    });
-    index++;
-  }
-
-  return codeBlocks;
-}
+import { useAIConversation } from '@/hooks/useAIConversation';
 
 export function AIPanel(): JSX.Element {
-  const ai = useStore((state) => state.ai);
-  const addAIMessage = useStore((state) => state.addAIMessage);
-  const setAILoading = useStore((state) => state.setAILoading);
-  const applyCodeChange = useStore((state) => state.applyCodeChange);
-  const editorContent = useStore((state) => state.editor.content);
-  const [input, setInput] = useState('');
+  const {
+    input,
+    setInput,
+    messages,
+    isLoading,
+    handleAsk,
+    handleStop,
+    handleApplyCode,
+  } = useAIConversation();
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const timeoutIdRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [ai.messages]);
-
-  const handleAsk = (): void => {
-    if (!input.trim()) return;
-
-    const userMessage = {
-      id: Date.now().toString(),
-      role: 'user' as const,
-      content: input,
-      timestamp: Date.now()
-    };
-
-    // Include editor content as context in the first message
-    const userMessageWithContext = ai.messages.length === 0
-      ? `Current R code in editor:\n\`\`\`r\n${editorContent}\n\`\`\`\n\n${input}`
-      : input;
-
-    const messages = [
-      ...ai.messages.map((message) => ({
-        role: message.role,
-        content: message.content
-      })),
-      { role: 'user' as const, content: userMessageWithContext }
-    ];
-
-    addAIMessage(userMessage);
-    setAILoading(true);
-
-    // Safety timeout - clear loading state if no response in 30 seconds
-    const timeoutId = setTimeout(() => {
-      setAILoading(false);
-      addAIMessage({
-        id: Date.now().toString(),
-        role: 'assistant',
-        content: 'Request timed out. The AI service took too long to respond. Please try again.',
-        timestamp: Date.now()
-      });
-      timeoutIdRef.current = null;
-    }, 30000);
-
-    // Store timeout ID for stop functionality
-    timeoutIdRef.current = timeoutId;
-
-    const matcher = (message: WSResponse) =>
-      message.type === 'ai_response' ||
-      message.type === 'ai_response_with_tools' ||
-      message.type === 'error';
-
-    const sent = socketService.send(
-      {
-        type: 'ai_message',
-        messages,
-        enable_tools: true
-      },
-      (response: WSResponse) => {
-        if (timeoutIdRef.current) {
-          clearTimeout(timeoutIdRef.current);
-          timeoutIdRef.current = null;
-        }
-
-        if (response.type === 'ai_response') {
-          const codeBlocks = extractCodeBlocks(response.response);
-          addAIMessage({
-            id: Date.now().toString(),
-            role: 'assistant',
-            content: response.response,
-            codeBlocks: codeBlocks.length > 0 ? codeBlocks : undefined,
-            timestamp: Date.now()
-          });
-        } else if (response.type === 'ai_response_with_tools') {
-          // Handle AI response with tool calls
-          let content: string;
-
-          if (typeof response.response === 'string') {
-            content = response.response;
-          } else if (response.response.content) {
-            content = response.response.content;
-          } else if (response.response.tool_calls && response.response.tool_calls.length > 0) {
-            // Format tool calls in a user-friendly way
-            const toolCallsFormatted = response.response.tool_calls
-              .map((tc, idx) => `${idx + 1}. **${tc.name}**\n   Input: \`${JSON.stringify(tc.input)}\``)
-              .join('\n\n');
-            content = `🔧 Executing tools:\n\n${toolCallsFormatted}`;
-          } else {
-            content = 'AI response received (no content)';
-          }
-
-          const codeBlocks = extractCodeBlocks(content);
-
-          addAIMessage({
-            id: Date.now().toString(),
-            role: 'assistant',
-            content,
-            codeBlocks: codeBlocks.length > 0 ? codeBlocks : undefined,
-            timestamp: Date.now()
-          });
-        } else if (response.type === 'error') {
-          addAIMessage({
-            id: Date.now().toString(),
-            role: 'assistant',
-            content: `AI request failed: ${response.message}`,
-            timestamp: Date.now()
-          });
-        }
-
-        setAILoading(false);
-      },
-      matcher
-    );
-
-    if (!sent) {
-      if (timeoutIdRef.current) {
-        clearTimeout(timeoutIdRef.current);
-        timeoutIdRef.current = null;
-      }
-
-      setAILoading(false);
-      addAIMessage({
-        id: Date.now().toString(),
-        role: 'assistant',
-        content: 'AI request failed: not connected to backend service.',
-        timestamp: Date.now()
-      });
-    }
-
-    setInput('');
-  };
-
-  const handleStop = (): void => {
-    // Clear timeout
-    if (timeoutIdRef.current) {
-      clearTimeout(timeoutIdRef.current);
-      timeoutIdRef.current = null;
-    }
-
-    // Stop loading
-    setAILoading(false);
-
-    // Add stopped message
-    addAIMessage({
-      id: Date.now().toString(),
-      role: 'assistant',
-      content: 'Request stopped by user.',
-      timestamp: Date.now()
-    });
-  };
-
-  const handleApplyCode = (codeBlock: CodeBlock): void => {
-    // This will be connected to EditorPanel's applyCodeChange method
-    if (applyCodeChange) {
-      applyCodeChange(codeBlock);
-    } else {
-      // Fallback: just append to end for now
-      console.warn('applyCodeChange not available, using fallback');
-    }
-  };
+  }, [messages]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>): void => {
-    // Enter without modifiers -> Send
-    // Shift + Enter or Alt/Option + Enter -> New line
     if (e.key === 'Enter' && !e.shiftKey && !e.altKey && !e.metaKey) {
       e.preventDefault();
       handleAsk();
     }
-    // Shift+Enter or Alt+Enter -> allow default (new line)
   };
 
   return (
@@ -213,14 +35,14 @@ export function AIPanel(): JSX.Element {
       </div>
       <div className="panel-content">
         <div className="ai-messages">
-          {ai.messages.length === 0 ? (
+          {messages.length === 0 ? (
             <div className="ai-welcome">
               <h3>AI Assistant</h3>
               <p>Ask me anything about R programming, data analysis, or visualization.</p>
             </div>
           ) : (
             <>
-              {ai.messages.map((message) => (
+              {messages.map((message) => (
                 <div key={message.id} className={`message message-${message.role}`}>
                   <div className="message-header">
                     <span className="message-role">
@@ -248,7 +70,7 @@ export function AIPanel(): JSX.Element {
                   )}
                 </div>
               ))}
-              {ai.isLoading && (
+              {isLoading && (
                 <div className="message message-assistant">
                   <div className="message-header">
                     <span className="message-role">AI</span>
@@ -270,10 +92,10 @@ export function AIPanel(): JSX.Element {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            disabled={ai.isLoading}
+            disabled={isLoading}
             rows={3}
           />
-          {ai.isLoading ? (
+          {isLoading ? (
             <button
               className="btn btn-stop"
               onClick={handleStop}
