@@ -1,28 +1,39 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useReducer } from 'react';
 import { exportRMarkdown, ExportServiceError } from '@/services/exportService';
+import type {
+  ExportDialogAction,
+  ExportDialogOptions,
+  ExportFormat,
+  ExportDialogState,
+  ExportOptionKey,
+} from '@/types/exportDialog';
+import { exportDialogInitialState } from '@/types/exportDialog';
 import type { ExportRMarkdownRequestPayload } from 'shared';
 
-export type ExportDialogOptions = Pick<
-  ExportRMarkdownRequestPayload,
-  'includeTimestamps' | 'showActor' | 'embedPlots' | 'includeOutputs' | 'includeErrors' | 'includeSummary'
->;
-
-export type ExportOptionKey = keyof ExportDialogOptions;
-
-const defaultOptions: ExportDialogOptions = {
-  includeTimestamps: true,
-  showActor: true,
-  embedPlots: true,
-  includeOutputs: true,
-  includeErrors: false,
-  includeSummary: true,
-};
-
-type ExportFormat = 'bundle' | 'rmarkdown' | 'both';
-
-interface UseExportDialogProps {
-  open: boolean;
-  onClose: () => void;
+function reducer(state: ExportDialogState, action: ExportDialogAction): ExportDialogState {
+  switch (action.type) {
+    case 'set-format':
+      return { ...state, format: action.payload };
+    case 'set-mode':
+      return { ...state, mode: action.payload };
+    case 'set-option':
+      return {
+        ...state,
+        options: { ...state.options, [action.key]: action.value },
+      };
+    case 'set-document-path':
+      return { ...state, documentPath: action.payload };
+    case 'set-output-path':
+      return { ...state, outputPath: action.payload };
+    case 'set-exporting':
+      return { ...state, exporting: action.payload };
+    case 'set-error':
+      return { ...state, error: action.payload };
+    case 'reset':
+      return { ...exportDialogInitialState };
+    default:
+      return state;
+  }
 }
 
 interface UseExportDialogReturn {
@@ -41,25 +52,20 @@ interface UseExportDialogReturn {
   handleExport: () => Promise<void>;
 }
 
-export function useExportDialog({ open, onClose }: UseExportDialogProps): UseExportDialogReturn {
-  const [format, setFormat] = useState<ExportFormat>('rmarkdown');
-  const [mode, setMode] = useState<ExportRMarkdownRequestPayload['mode']>('timeline');
-  const [options, setOptions] = useState<ExportDialogOptions>(defaultOptions);
-  const [documentPath, setDocumentPath] = useState('');
-  const [outputPath, setOutputPath] = useState('analysis_report.Rmd');
-  const [exporting, setExporting] = useState(false);
-  const [error, setError] = useState('');
+interface UseExportDialogProps {
+  open: boolean;
+  onClose: () => void;
+}
 
-  const resetError = useCallback(() => {
-    setError('');
-  }, []);
+export function useExportDialog({ open, onClose }: UseExportDialogProps): UseExportDialogReturn {
+  const [state, dispatch] = useReducer(reducer, exportDialogInitialState);
+  const { format, mode, options, documentPath, outputPath, exporting, error } = state;
 
   useEffect(() => {
     if (!open) {
-      resetError();
-      setExporting(false);
+      dispatch({ type: 'reset' });
     }
-  }, [open, resetError]);
+  }, [open]);
 
   useEffect(() => {
     if (!open || exporting || typeof document === 'undefined') {
@@ -79,24 +85,24 @@ export function useExportDialog({ open, onClose }: UseExportDialogProps): UseExp
   }, [open, exporting, onClose]);
 
   const setOption = useCallback((key: ExportOptionKey, value: boolean) => {
-    setOptions((prev) => ({ ...prev, [key]: value }));
+    dispatch({ type: 'set-option', key, value });
   }, []);
 
   const handleExport = useCallback(async (): Promise<void> => {
-    setExporting(true);
-    setError('');
+    dispatch({ type: 'set-exporting', payload: true });
+    dispatch({ type: 'set-error', payload: '' });
 
     if (format === 'bundle') {
-      setError('Bundle export is not supported yet.');
-      setExporting(false);
+      dispatch({ type: 'set-error', payload: 'Bundle export is not supported yet.' });
+      dispatch({ type: 'set-exporting', payload: false });
       return;
     }
 
     const trimmedDocumentPath = documentPath.trim();
 
     if (mode === 'document' && !trimmedDocumentPath) {
-      setError('Document path is required for document-based export');
-      setExporting(false);
+      dispatch({ type: 'set-error', payload: 'Document path is required for document-based export' });
+      dispatch({ type: 'set-exporting', payload: false });
       return;
     }
 
@@ -117,26 +123,26 @@ export function useExportDialog({ open, onClose }: UseExportDialogProps): UseExp
       onClose();
     } catch (err) {
       if (err instanceof ExportServiceError || err instanceof Error) {
-        setError(err.message);
+        dispatch({ type: 'set-error', payload: err.message });
       } else {
-        setError('Export failed');
+        dispatch({ type: 'set-error', payload: 'Export failed' });
       }
     } finally {
-      setExporting(false);
+      dispatch({ type: 'set-exporting', payload: false });
     }
   }, [format, mode, options, documentPath, outputPath, onClose]);
 
   return {
     format,
-    setFormat,
+    setFormat: (next) => dispatch({ type: 'set-format', payload: next }),
     mode,
-    setMode,
+    setMode: (next) => dispatch({ type: 'set-mode', payload: next }),
     options,
     setOption,
     documentPath,
-    setDocumentPath,
+    setDocumentPath: (value) => dispatch({ type: 'set-document-path', payload: value }),
     outputPath,
-    setOutputPath,
+    setOutputPath: (value) => dispatch({ type: 'set-output-path', payload: value }),
     exporting,
     error,
     handleExport,
