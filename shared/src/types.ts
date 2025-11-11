@@ -50,16 +50,30 @@ export interface ExecutionLogEntry {
   success: boolean;
 }
 
+export type CodeChangeAction =
+  | 'replace-all'
+  | 'replace-range'
+  | 'insert-at-cursor'
+  | 'create-file'
+  | 'delete-range';
+
+export interface CodeRange {
+  startLine: number;
+  startColumn: number;
+  endLine: number;
+  endColumn: number;
+}
+
 export interface CodeBlock {
   id: string;
   code: string;
   language: 'r';
-  action: 'replace-all' | 'replace-lines' | 'insert-at-cursor';
-  targetLines?: {
-    start: number;
-    end: number;
-  };
+  action: CodeChangeAction;
+  targetRange?: CodeRange;
+  filepath?: string;
+  checksum?: string;
   explanation?: string;
+  originalCode?: string;
 }
 
 export interface AIResponse {
