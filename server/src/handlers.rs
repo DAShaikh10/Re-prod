@@ -282,7 +282,10 @@ async fn handle_ws_request(request: WSRequest, state: &AppState) -> Vec<WSRespon
             }],
         },
         WSRequest::ExportRMarkdown { request } => {
-            eprintln!("[handlers] Processing export_rmarkdown request: mode={:?}", request.mode());
+            eprintln!(
+                "[handlers] Processing export_rmarkdown request: mode={:?}",
+                request.mode()
+            );
             match handle_export_rmarkdown(request, &state).await {
                 Ok(response) => {
                     eprintln!("[handlers] Export successful: {}", response.output_path());
