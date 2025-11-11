@@ -11,7 +11,7 @@
   /* Typography */
   --text-primary: #1f2937;
   --text-secondary: #4b5565;
-  --text-muted: #8a93a4;
+  --text-muted: #6b7280; /* Improved contrast for accessibility (was #8a93a4) */
 
   /* Borders & depth */
   --border-color: rgba(30, 41, 59, 0.12);
@@ -22,7 +22,7 @@
   --shadow-md: 0 18px 40px rgba(15, 23, 42, 0.12);
   --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.65);
   --panel-header-min-height: 38px;
-  --panel-header-padding: 0 18px;
+  --panel-header-padding: 0 16px; /* Standardized padding (was 0 18px) */
   --panel-header-shadow: var(--shadow-inset);
   --panel-actions-gap: 8px;
   --panel-title-font-size: 13px;
@@ -55,7 +55,7 @@
   /* Button system */
   --btn-padding: 6px 14px;
   --btn-font-size: 12px;
-  --btn-radius: 999px;
+  --btn-radius: 6px; /* Standard border radius (was 999px pill shape) */
   --btn-border: 1px solid rgba(148, 163, 184, 0.4);
   --btn-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.85), rgba(244, 246, 251, 0.85));
   --btn-color: var(--text-primary);
@@ -86,10 +86,10 @@
   --tabs-background: transparent;
   --tabs-border-bottom: none;
   --tab-padding: 6px 14px;
-  --tab-font-size: 12px;
+  --tab-font-size: 14px; /* Improved readability (was 12px) */
   --tab-color: var(--text-secondary);
   --tab-bg: rgba(255, 255, 255, 0.65);
-  --tab-radius: 10px 10px 0 0;
+  --tab-radius: 0; /* Standard tabs without border radius (was 10px 10px 0 0) */
   --tab-border: 1px solid transparent;
   --tab-divider: none;
   --tab-transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
@@ -97,7 +97,7 @@
   --tab-active-color: var(--accent-blue);
   --tab-active-bg: rgba(47, 111, 237, 0.16);
   --tab-active-border: rgba(47, 111, 237, 0.32);
-  --tab-active-shadow: 0 10px 24px rgba(47, 111, 237, 0.18);
+  --tab-active-shadow: none; /* Removed shadow for cleaner look (was 0 10px 24px rgba(47, 111, 237, 0.18)) */
   --tab-active-underline: none;
 
   /* Menu system */
