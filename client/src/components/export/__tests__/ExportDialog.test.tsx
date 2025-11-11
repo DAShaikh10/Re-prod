@@ -296,7 +296,7 @@ describe('ExportDialog', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Export' }));
 
     await waitFor(() => {
-      expect(screen.getByText('Error: Document path is required for document-based export')).toBeInTheDocument();
+      expect(screen.getByText('Document path is required for document-based export')).toBeInTheDocument();
     });
 
     expect(sendMock).not.toHaveBeenCalled();
@@ -313,7 +313,7 @@ describe('ExportDialog', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Export' }));
 
     await waitFor(() => {
-      expect(screen.getByText('Error: WebSocket not connected')).toBeInTheDocument();
+      expect(screen.getByText('WebSocket not connected')).toBeInTheDocument();
     });
 
     expect(onClose).not.toHaveBeenCalled();

@@ -1,6 +1,4 @@
-import { useState, useEffect } from 'react';
-import { socketService } from '@/services/socket';
-import type { ExtractServerMessage, ExportRMarkdownRequestPayload } from 'shared';
+import { useExportDialog } from '@/hooks/useExportDialog';
 
 interface ExportDialogProps {
   open: boolean;
@@ -8,112 +6,21 @@ interface ExportDialogProps {
 }
 
 export function ExportDialog({ open, onClose }: ExportDialogProps): JSX.Element | null {
-  const [format, setFormat] = useState<'bundle' | 'rmarkdown' | 'both'>('rmarkdown');
-  const [mode, setMode] = useState<'timeline' | 'document'>('timeline');
-  const [options, setOptions] = useState({
-    includeTimestamps: true,
-    showActor: true,
-    embedPlots: true,
-    includeOutputs: true,
-    includeErrors: false,
-    includeSummary: true,
-  });
-  const [outputPath, setOutputPath] = useState('analysis_report.Rmd');
-  const [documentPath, setDocumentPath] = useState('');
-  const [exporting, setExporting] = useState(false);
-  const [error, setError] = useState<string>('');
-
-  // Handle Escape key to close dialog
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && open && !exporting) {
-        onClose();
-      }
-    };
-
-    if (open) {
-      document.addEventListener('keydown', handleKeyDown);
-      return () => document.removeEventListener('keydown', handleKeyDown);
-    }
-  }, [open, exporting, onClose]);
-
-  const handleExport = async (): Promise<void> => {
-    setExporting(true);
-    setError('');
-
-    // Set timeout to prevent hanging
-    const timeout = setTimeout(() => {
-      setError('Export timeout - please check server logs');
-      setExporting(false);
-    }, 30000); // 30 second timeout
-
-    try {
-      if (format === 'rmarkdown' || format === 'both') {
-        const trimmedDocumentPath = documentPath.trim();
-        if (mode === 'document' && !trimmedDocumentPath) {
-          clearTimeout(timeout);
-          setError('Document path is required for document-based export');
-          setExporting(false);
-          return;
-        }
-
-        const requestPayload: ExportRMarkdownRequestPayload = {
-          mode,
-          outputPath,
-          documentPath: mode === 'document' ? trimmedDocumentPath : undefined,
-          includeTimestamps: options.includeTimestamps,
-          showActor: options.showActor,
-          embedPlots: options.embedPlots,
-          includeOutputs: options.includeOutputs,
-          includeErrors: options.includeErrors,
-          includeSummary: options.includeSummary,
-        };
-
-        console.log('[ExportDialog] Sending export_rmarkdown request:', requestPayload);
-
-        const success = socketService.send(
-          {
-            type: 'export_rmarkdown',
-            request: requestPayload,
-          },
-          (response) => {
-            clearTimeout(timeout);
-            console.log('[ExportDialog] Received response:', response);
-
-            if (response.type === 'export_rmarkdown_response') {
-              const msg = response as ExtractServerMessage<'export_rmarkdown_response'>;
-              const payload = msg.response;
-              if (payload.success) {
-                console.log('✅ RMarkdown exported to:', payload.outputPath);
-                setExporting(false);
-                onClose();
-              } else {
-                console.error('❌ Export failed:', payload.error);
-                setError(payload.error || 'Export failed');
-                setExporting(false);
-              }
-            } else if (response.type === 'error') {
-              console.error('❌ Server error:', response);
-              setError((response as any).message || 'Export failed');
-              setExporting(false);
-            }
-          },
-          (msg) => msg.type === 'export_rmarkdown_response' || msg.type === 'error'
-        );
-
-        if (!success) {
-          clearTimeout(timeout);
-          setError('WebSocket not connected');
-          setExporting(false);
-        }
-      }
-    } catch (err) {
-      clearTimeout(timeout);
-      console.error('[ExportDialog] Export error:', err);
-      setError(err instanceof Error ? err.message : 'Export failed');
-      setExporting(false);
-    }
-  };
+  const {
+    format,
+    setFormat,
+    mode,
+    setMode,
+    options,
+    setOption,
+    documentPath,
+    setDocumentPath,
+    outputPath,
+    setOutputPath,
+    exporting,
+    error,
+    handleExport,
+  } = useExportDialog({ open, onClose });
 
   if (!open) return null;
 
@@ -272,9 +179,7 @@ export function ExportDialog({ open, onClose }: ExportDialogProps): JSX.Element 
                     <input
                       type="checkbox"
                       checked={options.includeTimestamps}
-                      onChange={(e) =>
-                        setOptions({ ...options, includeTimestamps: e.target.checked })
-                      }
+                      onChange={(e) => setOption('includeTimestamps', e.target.checked)}
                       disabled={exporting}
                       aria-label="Include timestamps in export"
                     />
@@ -284,7 +189,7 @@ export function ExportDialog({ open, onClose }: ExportDialogProps): JSX.Element 
                     <input
                       type="checkbox"
                       checked={options.showActor}
-                      onChange={(e) => setOptions({ ...options, showActor: e.target.checked })}
+                      onChange={(e) => setOption('showActor', e.target.checked)}
                       disabled={exporting}
                       aria-label="Show actor for each chunk"
                     />
@@ -294,7 +199,7 @@ export function ExportDialog({ open, onClose }: ExportDialogProps): JSX.Element 
                     <input
                       type="checkbox"
                       checked={options.embedPlots}
-                      onChange={(e) => setOptions({ ...options, embedPlots: e.target.checked })}
+                      onChange={(e) => setOption('embedPlots', e.target.checked)}
                       disabled={exporting}
                       aria-label="Embed plot images inline"
                     />
@@ -304,9 +209,7 @@ export function ExportDialog({ open, onClose }: ExportDialogProps): JSX.Element 
                     <input
                       type="checkbox"
                       checked={options.includeOutputs}
-                      onChange={(e) =>
-                        setOptions({ ...options, includeOutputs: e.target.checked })
-                      }
+                      onChange={(e) => setOption('includeOutputs', e.target.checked)}
                       disabled={exporting}
                       aria-label="Include execution outputs"
                     />
@@ -316,9 +219,7 @@ export function ExportDialog({ open, onClose }: ExportDialogProps): JSX.Element 
                     <input
                       type="checkbox"
                       checked={options.includeErrors}
-                      onChange={(e) =>
-                        setOptions({ ...options, includeErrors: e.target.checked })
-                      }
+                      onChange={(e) => setOption('includeErrors', e.target.checked)}
                       disabled={exporting}
                       aria-label="Include error messages"
                     />
@@ -328,9 +229,7 @@ export function ExportDialog({ open, onClose }: ExportDialogProps): JSX.Element 
                     <input
                       type="checkbox"
                       checked={options.includeSummary}
-                      onChange={(e) =>
-                        setOptions({ ...options, includeSummary: e.target.checked })
-                      }
+                      onChange={(e) => setOption('includeSummary', e.target.checked)}
                       disabled={exporting}
                       aria-label="Add session statistics summary"
                     />
