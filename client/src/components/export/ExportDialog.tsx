@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { PanelTabs, type PanelTabItem } from '@/components/shared';
 import { socketService } from '@/services/socket';
 import type { ExtractServerMessage, ExportRMarkdownRequestPayload } from 'shared';
 
@@ -36,6 +37,57 @@ export function ExportDialog({ open, onClose }: ExportDialogProps): JSX.Element 
       return () => document.removeEventListener('keydown', handleKeyDown);
     }
   }, [open, exporting, onClose]);
+
+  const formatTabs: PanelTabItem<'bundle' | 'rmarkdown' | 'both'>[] = [
+    {
+      id: 'bundle',
+      label: (
+        <div className="export-tab-content">
+          <span className="export-tab-title">Reproduction Bundle (.tar.gz)</span>
+          <span className="export-tab-description">Download timeline bundle, scripts, and README.</span>
+        </div>
+      ),
+    },
+    {
+      id: 'rmarkdown',
+      label: (
+        <div className="export-tab-content">
+          <span className="export-tab-title">RMarkdown Document (.Rmd)</span>
+          <span className="export-tab-description">Publication-ready narrative of your session.</span>
+        </div>
+      ),
+    },
+    {
+      id: 'both',
+      label: (
+        <div className="export-tab-content">
+          <span className="export-tab-title">Both</span>
+          <span className="export-tab-description">Get the bundle plus RMarkdown in one go.</span>
+        </div>
+      ),
+    },
+  ] as const;
+
+  const modeTabs: PanelTabItem<'timeline' | 'document'>[] = [
+    {
+      id: 'timeline',
+      label: (
+        <div className="export-tab-content">
+          <span className="export-tab-title">Timeline-Based</span>
+          <span className="export-tab-description">Export everything that actually ran.</span>
+        </div>
+      ),
+    },
+    {
+      id: 'document',
+      label: (
+        <div className="export-tab-content">
+          <span className="export-tab-title">Document-Based</span>
+          <span className="export-tab-description">Export the cleaned document in the editor.</span>
+        </div>
+      ),
+    },
+  ] as const;
 
   const handleExport = async (): Promise<void> => {
     setExporting(true);
@@ -149,44 +201,12 @@ export function ExportDialog({ open, onClose }: ExportDialogProps): JSX.Element 
             <label className="export-label" id="format-label">
               Format
             </label>
-            <div className="export-radio-group" role="radiogroup" aria-labelledby="format-label">
-              <label className="export-radio">
-                <input
-                  type="radio"
-                  name="format"
-                  value="bundle"
-                  checked={format === 'bundle'}
-                  onChange={(e) => setFormat(e.target.value as typeof format)}
-                  disabled={exporting}
-                  aria-label="Reproduction Bundle"
-                />
-                <span>Reproduction Bundle (.tar.gz)</span>
-              </label>
-              <label className="export-radio">
-                <input
-                  type="radio"
-                  name="format"
-                  value="rmarkdown"
-                  checked={format === 'rmarkdown'}
-                  onChange={(e) => setFormat(e.target.value as typeof format)}
-                  disabled={exporting}
-                  aria-label="RMarkdown Document"
-                />
-                <span>RMarkdown Document (.Rmd)</span>
-              </label>
-              <label className="export-radio">
-                <input
-                  type="radio"
-                  name="format"
-                  value="both"
-                  checked={format === 'both'}
-                  onChange={(e) => setFormat(e.target.value as typeof format)}
-                  disabled={exporting}
-                  aria-label="Both formats"
-                />
-                <span>Both</span>
-              </label>
-            </div>
+            <PanelTabs
+              items={formatTabs}
+              activeId={format}
+              onSelect={(id) => setFormat(id as typeof format)}
+              className="panel-tabs--flush panel-tabs--equal-width panel-tabs--compact export-panel-tabs"
+            />
           </div>
 
           {(format === 'rmarkdown' || format === 'both') && (
@@ -196,43 +216,12 @@ export function ExportDialog({ open, onClose }: ExportDialogProps): JSX.Element 
                 <label className="export-label" id="mode-label">
                   Export Mode
                 </label>
-                <div className="export-radio-group" role="radiogroup" aria-labelledby="mode-label">
-                  <label className="export-radio">
-                    <input
-                      type="radio"
-                      name="mode"
-                      value="timeline"
-                      checked={mode === 'timeline'}
-                      onChange={(e) => setMode(e.target.value as typeof mode)}
-                      disabled={exporting}
-                      aria-label="Timeline-Based mode"
-                    />
-                    <div className="export-radio-content">
-                      <span className="export-radio-title">Timeline-Based (Actual Execution)</span>
-                      <span className="export-radio-description">
-                        Export what actually ran in console, including AI suggestions and exploration
-                        attempts
-                      </span>
-                    </div>
-                  </label>
-                  <label className="export-radio">
-                    <input
-                      type="radio"
-                      name="mode"
-                      value="document"
-                      checked={mode === 'document'}
-                      onChange={(e) => setMode(e.target.value as typeof mode)}
-                      disabled={exporting}
-                      aria-label="Document-Based mode"
-                    />
-                    <div className="export-radio-content">
-                      <span className="export-radio-title">Document-Based (Current File)</span>
-                      <span className="export-radio-description">
-                        Export the currently open .R file with cleaned, curated code
-                      </span>
-                    </div>
-                  </label>
-                </div>
+                <PanelTabs
+                  items={modeTabs}
+                  activeId={mode}
+                  onSelect={(id) => setMode(id as typeof mode)}
+                  className="panel-tabs--flush panel-tabs--equal-width panel-tabs--compact export-panel-tabs"
+                />
               </div>
 
               {/* Document Path (for Document mode) */}
