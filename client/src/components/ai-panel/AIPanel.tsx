@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { IconRobot, IconSend, IconSquare } from '@/components/shared';
+import { IconSend, IconSquare } from '@/components/shared';
 import { useStore } from '@/core';
 import { socketService } from '@/services/socket';
 import type { WSResponse } from '@/services/socket';
@@ -215,9 +215,6 @@ export function AIPanel(): JSX.Element {
         <div className="ai-messages">
           {ai.messages.length === 0 ? (
             <div className="ai-welcome">
-              <div className="ai-welcome-icon">
-                <IconRobot width={48} height={48} aria-hidden />
-              </div>
               <h3>AI Assistant</h3>
               <p>Ask me anything about R programming, data analysis, or visualization.</p>
             </div>

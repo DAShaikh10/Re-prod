@@ -1,7 +1,8 @@
 .ai-panel .panel-content {
   display: flex;
   flex-direction: column;
-  background: var(--bg-primary);
+  background: inherit;
+  border: none;
 }
 
 .ai-messages {
@@ -11,7 +12,7 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
-  background: linear-gradient(180deg, rgba(248, 249, 253, 0.9), rgba(244, 246, 251, 0.9));
+  background: transparent;
 }
 
 .ai-welcome {
@@ -26,16 +27,6 @@
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.65);
   border: 1px dashed rgba(148, 163, 184, 0.28);
-}
-
-.ai-welcome-icon {
-  margin-bottom: 12px;
-  color: var(--accent-blue);
-}
-
-.ai-welcome-icon svg {
-  width: 48px;
-  height: 48px;
 }
 
 .ai-welcome h3 {
