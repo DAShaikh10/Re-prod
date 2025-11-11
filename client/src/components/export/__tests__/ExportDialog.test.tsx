@@ -70,7 +70,7 @@ describe('ExportDialog', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Export' }));
 
     await waitFor(() => {
-      expect(screen.getByText('Error: Export failed')).toBeInTheDocument();
+      expect(screen.getByText('Export failed')).toBeInTheDocument();
     });
 
     expect(onClose).not.toHaveBeenCalled();
