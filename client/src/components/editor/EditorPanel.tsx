@@ -1,37 +1,25 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef } from "react";
 import Editor, { Monaco } from "@monaco-editor/react";
 import { IconPlay, IconPlayCircle } from "@/components/shared";
-import type { editor as MonacoEditor } from "monaco-editor";
-import {
-  useStore,
-  parseCells,
-  type Cell,
-  type ExecutionTarget,
-  getExecutionTarget,
-  getExecutionTargetAndNext,
-  getAllCode,
-  buildExecutionRequest,
-} from "@/core";
-import { executeRequest, ExecutionServiceError } from '@/services/executionService';
-import type { CodeBlock, ExecutionLogEntry } from "@shared/types";
+import { useStore } from "@/core";
+import { useEditorCells } from "@/hooks/useEditorCells";
+import { useEditorDecorations } from "@/hooks/useEditorDecorations";
+import { useEditorExecution } from "@/hooks/useEditorExecution";
+import type { MonacoEditor } from "monaco-editor";
+import type { CodeBlock } from "@shared/types";
 
 export function EditorPanel(): JSX.Element {
   const editor = useStore((state) => state.editor);
   const execution = useStore((state) => state.execution);
   const settings = useStore((state) => state.settings);
   const setEditorContent = useStore((state) => state.setEditorContent);
-  const setEditorCursorPosition = useStore(
-    (state) => state.setEditorCursorPosition,
-  );
-  const setIsRunning = useStore((state) => state.setIsRunning);
+  const setEditorCursorPosition = useStore((state) => state.setEditorCursorPosition);
   const setApplyCodeChange = useStore((state) => state.setApplyCodeChange);
-  const addExecutionResult = useStore((state) => state.addExecutionResult);
-  const [cells, setCells] = useState<Cell[]>([]);
-  const [executingCellIndex, setExecutingCellIndex] = useState<number | null>(
-    null,
-  );
+  const setRunCurrentCell = useStore((state) => state.setRunCurrentCell);
+  const setRunAll = useStore((state) => state.setRunAll);
+  const setMonacoEditor = useStore((state) => state.setMonacoEditor);
+  const [executionTarget, setExecutionTarget] = useState<null>(null); // placeholder
   const editorRef = useRef<MonacoEditor.IStandaloneCodeEditor | null>(null);
-  const decorationsRef = useRef<string[]>([]);
 
   // Parse cells when content changes
   useEffect(() => {
