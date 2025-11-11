@@ -1,7 +1,4 @@
-import { useEffect, useState } from 'react';
-import { PanelTabs, type PanelTabItem } from '@/components/shared';
-import { socketService } from '@/services/socket';
-import type { ExtractServerMessage, ExportRMarkdownRequestPayload } from 'shared';
+import { useExportDialog } from '@/hooks/useExportDialog';
 
 interface ExportDialogProps {
   open: boolean;
@@ -9,163 +6,21 @@ interface ExportDialogProps {
 }
 
 export function ExportDialog({ open, onClose }: ExportDialogProps): JSX.Element | null {
-  const [format, setFormat] = useState<'bundle' | 'rmarkdown' | 'both'>('rmarkdown');
-  const [mode, setMode] = useState<'timeline' | 'document'>('timeline');
-  const [options, setOptions] = useState({
-    includeTimestamps: true,
-    showActor: true,
-    embedPlots: true,
-    includeOutputs: true,
-    includeErrors: false,
-    includeSummary: true,
-  });
-  const [outputPath, setOutputPath] = useState('analysis_report.Rmd');
-  const [documentPath, setDocumentPath] = useState('');
-  const [exporting, setExporting] = useState(false);
-  const [error, setError] = useState<string>('');
-
-  // Handle Escape key to close dialog
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && open && !exporting) {
-        onClose();
-      }
-    };
-
-    if (open) {
-      document.addEventListener('keydown', handleKeyDown);
-      return () => document.removeEventListener('keydown', handleKeyDown);
-    }
-  }, [open, exporting, onClose]);
-
-  const formatTabs: PanelTabItem<'bundle' | 'rmarkdown' | 'both'>[] = [
-    {
-      id: 'bundle',
-      label: (
-        <div className="export-tab-content">
-          <span className="export-tab-title">Reproduction Bundle (.tar.gz)</span>
-          <span className="export-tab-description">Download timeline bundle, scripts, and README.</span>
-        </div>
-      ),
-    },
-    {
-      id: 'rmarkdown',
-      label: (
-        <div className="export-tab-content">
-          <span className="export-tab-title">RMarkdown Document (.Rmd)</span>
-          <span className="export-tab-description">Publication-ready narrative of your session.</span>
-        </div>
-      ),
-    },
-    {
-      id: 'both',
-      label: (
-        <div className="export-tab-content">
-          <span className="export-tab-title">Both</span>
-          <span className="export-tab-description">Get the bundle plus RMarkdown in one go.</span>
-        </div>
-      ),
-    },
-  ] as const;
-
-  const modeTabs: PanelTabItem<'timeline' | 'document'>[] = [
-    {
-      id: 'timeline',
-      label: (
-        <div className="export-tab-content">
-          <span className="export-tab-title">Timeline-Based</span>
-          <span className="export-tab-description">Export everything that actually ran.</span>
-        </div>
-      ),
-    },
-    {
-      id: 'document',
-      label: (
-        <div className="export-tab-content">
-          <span className="export-tab-title">Document-Based</span>
-          <span className="export-tab-description">Export the cleaned document in the editor.</span>
-        </div>
-      ),
-    },
-  ] as const;
-
-  const handleExport = async (): Promise<void> => {
-    setExporting(true);
-    setError('');
-
-    // Set timeout to prevent hanging
-    const timeout = setTimeout(() => {
-      setError('Export timeout - please check server logs');
-      setExporting(false);
-    }, 30000); // 30 second timeout
-
-    try {
-      if (format === 'rmarkdown' || format === 'both') {
-        const trimmedDocumentPath = documentPath.trim();
-        if (mode === 'document' && !trimmedDocumentPath) {
-          clearTimeout(timeout);
-          setError('Document path is required for document-based export');
-          setExporting(false);
-          return;
-        }
-
-        const requestPayload: ExportRMarkdownRequestPayload = {
-          mode,
-          outputPath,
-          documentPath: mode === 'document' ? trimmedDocumentPath : undefined,
-          includeTimestamps: options.includeTimestamps,
-          showActor: options.showActor,
-          embedPlots: options.embedPlots,
-          includeOutputs: options.includeOutputs,
-          includeErrors: options.includeErrors,
-          includeSummary: options.includeSummary,
-        };
-
-        console.log('[ExportDialog] Sending export_rmarkdown request:', requestPayload);
-
-        const success = socketService.send(
-          {
-            type: 'export_rmarkdown',
-            request: requestPayload,
-          },
-          (response) => {
-            clearTimeout(timeout);
-            console.log('[ExportDialog] Received response:', response);
-
-            if (response.type === 'export_rmarkdown_response') {
-              const msg = response as ExtractServerMessage<'export_rmarkdown_response'>;
-              const payload = msg.response;
-              if (payload.success) {
-                console.log('✅ RMarkdown exported to:', payload.outputPath);
-                setExporting(false);
-                onClose();
-              } else {
-                console.error('❌ Export failed:', payload.error);
-                setError(payload.error || 'Export failed');
-                setExporting(false);
-              }
-            } else if (response.type === 'error') {
-              console.error('❌ Server error:', response);
-              setError((response as any).message || 'Export failed');
-              setExporting(false);
-            }
-          },
-          (msg) => msg.type === 'export_rmarkdown_response' || msg.type === 'error'
-        );
-
-        if (!success) {
-          clearTimeout(timeout);
-          setError('WebSocket not connected');
-          setExporting(false);
-        }
-      }
-    } catch (err) {
-      clearTimeout(timeout);
-      console.error('[ExportDialog] Export error:', err);
-      setError(err instanceof Error ? err.message : 'Export failed');
-      setExporting(false);
-    }
-  };
+  const {
+    format,
+    setFormat,
+    mode,
+    setMode,
+    options,
+    setOption,
+    documentPath,
+    setDocumentPath,
+    outputPath,
+    setOutputPath,
+    exporting,
+    error,
+    handleExport,
+  } = useExportDialog({ open, onClose });
 
   if (!open) return null;
 
@@ -196,35 +51,95 @@ export function ExportDialog({ open, onClose }: ExportDialogProps): JSX.Element 
         </div>
 
         <div className={`export-dialog-content ${exporting ? 'loading' : ''}`}>
-          {/* Format Selection */}
           <div className="export-section">
             <label className="export-label" id="format-label">
               Format
             </label>
-            <PanelTabs
-              items={formatTabs}
-              activeId={format}
-              onSelect={(id) => setFormat(id as typeof format)}
-              className="panel-tabs--flush panel-tabs--equal-width panel-tabs--compact export-panel-tabs"
-            />
+            <div className="export-radio-group" role="radiogroup" aria-labelledby="format-label">
+              <label className="export-radio">
+                <input
+                  type="radio"
+                  name="format"
+                  value="bundle"
+                  checked={format === 'bundle'}
+                  onChange={(e) => setFormat(e.target.value as typeof format)}
+                  disabled={exporting}
+                  aria-label="Reproduction Bundle"
+                />
+                <span>Reproduction Bundle (.tar.gz)</span>
+              </label>
+              <label className="export-radio">
+                <input
+                  type="radio"
+                  name="format"
+                  value="rmarkdown"
+                  checked={format === 'rmarkdown'}
+                  onChange={(e) => setFormat(e.target.value as typeof format)}
+                  disabled={exporting}
+                  aria-label="RMarkdown Document"
+                />
+                <span>RMarkdown Document (.Rmd)</span>
+              </label>
+              <label className="export-radio">
+                <input
+                  type="radio"
+                  name="format"
+                  value="both"
+                  checked={format === 'both'}
+                  onChange={(e) => setFormat(e.target.value as typeof format)}
+                  disabled={exporting}
+                  aria-label="Both formats"
+                />
+                <span>Both</span>
+              </label>
+            </div>
           </div>
 
           {(format === 'rmarkdown' || format === 'both') && (
             <>
-              {/* Export Mode */}
               <div className="export-section">
                 <label className="export-label" id="mode-label">
                   Export Mode
                 </label>
-                <PanelTabs
-                  items={modeTabs}
-                  activeId={mode}
-                  onSelect={(id) => setMode(id as typeof mode)}
-                  className="panel-tabs--flush panel-tabs--equal-width panel-tabs--compact export-panel-tabs"
-                />
+                <div className="export-radio-group" role="radiogroup" aria-labelledby="mode-label">
+                  <label className="export-radio">
+                    <input
+                      type="radio"
+                      name="mode"
+                      value="timeline"
+                      checked={mode === 'timeline'}
+                      onChange={(e) => setMode(e.target.value as typeof mode)}
+                      disabled={exporting}
+                      aria-label="Timeline-Based mode"
+                    />
+                    <div className="export-radio-content">
+                      <span className="export-radio-title">Timeline-Based (Actual Execution)</span>
+                      <span className="export-radio-description">
+                        Export what actually ran in console, including AI suggestions and exploration
+                        attempts
+                      </span>
+                    </div>
+                  </label>
+                  <label className="export-radio">
+                    <input
+                      type="radio"
+                      name="mode"
+                      value="document"
+                      checked={mode === 'document'}
+                      onChange={(e) => setMode(e.target.value as typeof mode)}
+                      disabled={exporting}
+                      aria-label="Document-Based mode"
+                    />
+                    <div className="export-radio-content">
+                      <span className="export-radio-title">Document-Based (Current File)</span>
+                      <span className="export-radio-description">
+                        Export the currently open .R file with cleaned, curated code
+                      </span>
+                    </div>
+                  </label>
+                </div>
               </div>
 
-              {/* Document Path (for Document mode) */}
               {mode === 'document' && (
                 <div className="export-section">
                   <label className="export-label" htmlFor="documentPath">
@@ -247,7 +162,6 @@ export function ExportDialog({ open, onClose }: ExportDialogProps): JSX.Element 
                 </div>
               )}
 
-              {/* Options */}
               <div className="export-section">
                 <label className="export-label" id="options-label">
                   Options
@@ -261,9 +175,7 @@ export function ExportDialog({ open, onClose }: ExportDialogProps): JSX.Element 
                     <input
                       type="checkbox"
                       checked={options.includeTimestamps}
-                      onChange={(e) =>
-                        setOptions({ ...options, includeTimestamps: e.target.checked })
-                      }
+                      onChange={(e) => setOption('includeTimestamps', e.target.checked)}
                       disabled={exporting}
                       aria-label="Include timestamps in export"
                     />
@@ -273,7 +185,7 @@ export function ExportDialog({ open, onClose }: ExportDialogProps): JSX.Element 
                     <input
                       type="checkbox"
                       checked={options.showActor}
-                      onChange={(e) => setOptions({ ...options, showActor: e.target.checked })}
+                      onChange={(e) => setOption('showActor', e.target.checked)}
                       disabled={exporting}
                       aria-label="Show actor for each chunk"
                     />
@@ -283,7 +195,7 @@ export function ExportDialog({ open, onClose }: ExportDialogProps): JSX.Element 
                     <input
                       type="checkbox"
                       checked={options.embedPlots}
-                      onChange={(e) => setOptions({ ...options, embedPlots: e.target.checked })}
+                      onChange={(e) => setOption('embedPlots', e.target.checked)}
                       disabled={exporting}
                       aria-label="Embed plot images inline"
                     />
@@ -293,9 +205,7 @@ export function ExportDialog({ open, onClose }: ExportDialogProps): JSX.Element 
                     <input
                       type="checkbox"
                       checked={options.includeOutputs}
-                      onChange={(e) =>
-                        setOptions({ ...options, includeOutputs: e.target.checked })
-                      }
+                      onChange={(e) => setOption('includeOutputs', e.target.checked)}
                       disabled={exporting}
                       aria-label="Include execution outputs"
                     />
@@ -305,9 +215,7 @@ export function ExportDialog({ open, onClose }: ExportDialogProps): JSX.Element 
                     <input
                       type="checkbox"
                       checked={options.includeErrors}
-                      onChange={(e) =>
-                        setOptions({ ...options, includeErrors: e.target.checked })
-                      }
+                      onChange={(e) => setOption('includeErrors', e.target.checked)}
                       disabled={exporting}
                       aria-label="Include error messages"
                     />
@@ -317,9 +225,7 @@ export function ExportDialog({ open, onClose }: ExportDialogProps): JSX.Element 
                     <input
                       type="checkbox"
                       checked={options.includeSummary}
-                      onChange={(e) =>
-                        setOptions({ ...options, includeSummary: e.target.checked })
-                      }
+                      onChange={(e) => setOption('includeSummary', e.target.checked)}
                       disabled={exporting}
                       aria-label="Add session statistics summary"
                     />
@@ -328,7 +234,6 @@ export function ExportDialog({ open, onClose }: ExportDialogProps): JSX.Element 
                 </div>
               </div>
 
-              {/* Output Path */}
               <div className="export-section">
                 <label className="export-label" htmlFor="outputPath">
                   Output Path
@@ -350,7 +255,6 @@ export function ExportDialog({ open, onClose }: ExportDialogProps): JSX.Element 
             </>
           )}
 
-          {/* Error Message */}
           {error && (
             <div className="export-error" role="alert" aria-live="polite">
               <span>{error}</span>
