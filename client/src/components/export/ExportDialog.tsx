@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { socketService } from '@/services/socket';
 import type { ExtractServerMessage, ExportRMarkdownRequestPayload } from 'shared';
 
@@ -22,6 +22,20 @@ export function ExportDialog({ open, onClose }: ExportDialogProps): JSX.Element 
   const [documentPath, setDocumentPath] = useState('');
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string>('');
+
+  // Handle Escape key to close dialog
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && open && !exporting) {
+        onClose();
+      }
+    };
+
+    if (open) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [open, exporting, onClose]);
 
   const handleExport = async (): Promise<void> => {
     setExporting(true);
@@ -104,20 +118,38 @@ export function ExportDialog({ open, onClose }: ExportDialogProps): JSX.Element 
   if (!open) return null;
 
   return (
-    <div className="export-dialog-overlay" onClick={onClose}>
-      <div className="export-dialog" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="export-dialog-overlay"
+      onClick={exporting ? undefined : onClose}
+      role="presentation"
+    >
+      <div
+        className="export-dialog"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="export-dialog-title"
+        aria-describedby="export-dialog-description"
+      >
         <div className="export-dialog-header">
-          <h2>Export Analysis</h2>
-          <button className="btn btn-icon" onClick={onClose} aria-label="Close">
+          <h2 id="export-dialog-title">Export Analysis</h2>
+          <button
+            className="btn btn-icon"
+            onClick={onClose}
+            disabled={exporting}
+            aria-label="Close dialog"
+          >
             ×
           </button>
         </div>
 
-        <div className="export-dialog-content">
+        <div className={`export-dialog-content ${exporting ? 'loading' : ''}`}>
           {/* Format Selection */}
           <div className="export-section">
-            <label className="export-label">Format</label>
-            <div className="export-radio-group">
+            <label className="export-label" id="format-label">
+              Format
+            </label>
+            <div className="export-radio-group" role="radiogroup" aria-labelledby="format-label">
               <label className="export-radio">
                 <input
                   type="radio"
@@ -125,6 +157,8 @@ export function ExportDialog({ open, onClose }: ExportDialogProps): JSX.Element 
                   value="bundle"
                   checked={format === 'bundle'}
                   onChange={(e) => setFormat(e.target.value as typeof format)}
+                  disabled={exporting}
+                  aria-label="Reproduction Bundle"
                 />
                 <span>Reproduction Bundle (.tar.gz)</span>
               </label>
@@ -135,6 +169,8 @@ export function ExportDialog({ open, onClose }: ExportDialogProps): JSX.Element 
                   value="rmarkdown"
                   checked={format === 'rmarkdown'}
                   onChange={(e) => setFormat(e.target.value as typeof format)}
+                  disabled={exporting}
+                  aria-label="RMarkdown Document"
                 />
                 <span>RMarkdown Document (.Rmd)</span>
               </label>
@@ -145,6 +181,8 @@ export function ExportDialog({ open, onClose }: ExportDialogProps): JSX.Element 
                   value="both"
                   checked={format === 'both'}
                   onChange={(e) => setFormat(e.target.value as typeof format)}
+                  disabled={exporting}
+                  aria-label="Both formats"
                 />
                 <span>Both</span>
               </label>
@@ -155,8 +193,10 @@ export function ExportDialog({ open, onClose }: ExportDialogProps): JSX.Element 
             <>
               {/* Export Mode */}
               <div className="export-section">
-                <label className="export-label">Export Mode</label>
-                <div className="export-radio-group">
+                <label className="export-label" id="mode-label">
+                  Export Mode
+                </label>
+                <div className="export-radio-group" role="radiogroup" aria-labelledby="mode-label">
                   <label className="export-radio">
                     <input
                       type="radio"
@@ -164,6 +204,8 @@ export function ExportDialog({ open, onClose }: ExportDialogProps): JSX.Element 
                       value="timeline"
                       checked={mode === 'timeline'}
                       onChange={(e) => setMode(e.target.value as typeof mode)}
+                      disabled={exporting}
+                      aria-label="Timeline-Based mode"
                     />
                     <div className="export-radio-content">
                       <span className="export-radio-title">Timeline-Based (Actual Execution)</span>
@@ -180,6 +222,8 @@ export function ExportDialog({ open, onClose }: ExportDialogProps): JSX.Element 
                       value="document"
                       checked={mode === 'document'}
                       onChange={(e) => setMode(e.target.value as typeof mode)}
+                      disabled={exporting}
+                      aria-label="Document-Based mode"
                     />
                     <div className="export-radio-content">
                       <span className="export-radio-title">Document-Based (Current File)</span>
@@ -204,14 +248,26 @@ export function ExportDialog({ open, onClose }: ExportDialogProps): JSX.Element 
                     value={documentPath}
                     onChange={(e) => setDocumentPath(e.target.value)}
                     placeholder="analysis.R"
+                    disabled={exporting}
+                    aria-required="true"
+                    aria-describedby="documentPath-hint"
                   />
+                  <p id="documentPath-hint" className="export-hint">
+                    Path to the R file to export
+                  </p>
                 </div>
               )}
 
               {/* Options */}
               <div className="export-section">
-                <label className="export-label">Options</label>
-                <div className="export-checkbox-group">
+                <label className="export-label" id="options-label">
+                  Options
+                </label>
+                <div
+                  className="export-checkbox-group"
+                  role="group"
+                  aria-labelledby="options-label"
+                >
                   <label className="export-checkbox">
                     <input
                       type="checkbox"
@@ -219,6 +275,8 @@ export function ExportDialog({ open, onClose }: ExportDialogProps): JSX.Element 
                       onChange={(e) =>
                         setOptions({ ...options, includeTimestamps: e.target.checked })
                       }
+                      disabled={exporting}
+                      aria-label="Include timestamps in export"
                     />
                     <span>Include timestamps</span>
                   </label>
@@ -227,6 +285,8 @@ export function ExportDialog({ open, onClose }: ExportDialogProps): JSX.Element 
                       type="checkbox"
                       checked={options.showActor}
                       onChange={(e) => setOptions({ ...options, showActor: e.target.checked })}
+                      disabled={exporting}
+                      aria-label="Show actor for each chunk"
                     />
                     <span>Show actor (User/AI) for each chunk</span>
                   </label>
@@ -235,6 +295,8 @@ export function ExportDialog({ open, onClose }: ExportDialogProps): JSX.Element 
                       type="checkbox"
                       checked={options.embedPlots}
                       onChange={(e) => setOptions({ ...options, embedPlots: e.target.checked })}
+                      disabled={exporting}
+                      aria-label="Embed plot images inline"
                     />
                     <span>Embed plot images inline</span>
                   </label>
@@ -245,6 +307,8 @@ export function ExportDialog({ open, onClose }: ExportDialogProps): JSX.Element 
                       onChange={(e) =>
                         setOptions({ ...options, includeOutputs: e.target.checked })
                       }
+                      disabled={exporting}
+                      aria-label="Include execution outputs"
                     />
                     <span>Include execution outputs</span>
                   </label>
@@ -255,6 +319,8 @@ export function ExportDialog({ open, onClose }: ExportDialogProps): JSX.Element 
                       onChange={(e) =>
                         setOptions({ ...options, includeErrors: e.target.checked })
                       }
+                      disabled={exporting}
+                      aria-label="Include error messages"
                     />
                     <span>Include error messages</span>
                   </label>
@@ -265,6 +331,8 @@ export function ExportDialog({ open, onClose }: ExportDialogProps): JSX.Element 
                       onChange={(e) =>
                         setOptions({ ...options, includeSummary: e.target.checked })
                       }
+                      disabled={exporting}
+                      aria-label="Add session statistics summary"
                     />
                     <span>Add session statistics summary</span>
                   </label>
@@ -282,16 +350,21 @@ export function ExportDialog({ open, onClose }: ExportDialogProps): JSX.Element 
                   className="export-input"
                   value={outputPath}
                   onChange={(e) => setOutputPath(e.target.value)}
+                  disabled={exporting}
+                  aria-required="true"
+                  aria-describedby="outputPath-hint"
                 />
-                <p className="export-hint">File path where the RMarkdown will be saved</p>
+                <p id="outputPath-hint" className="export-hint">
+                  File path where the RMarkdown will be saved
+                </p>
               </div>
             </>
           )}
 
           {/* Error Message */}
           {error && (
-            <div className="export-error">
-              <span>Error: {error}</span>
+            <div className="export-error" role="alert" aria-live="polite">
+              <span>{error}</span>
             </div>
           )}
         </div>
