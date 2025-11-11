@@ -128,7 +128,7 @@ export function EditorPanel(): JSX.Element {
       default:
         console.warn("Unknown code block action", codeBlock.action);
     }
-  }, [setEditorContent]);
+  };
 
   useEffect(() => {
     setApplyCodeChange(applyCodeChange);
