@@ -51,7 +51,6 @@ export function ExportDialog({ open, onClose }: ExportDialogProps): JSX.Element 
         </div>
 
         <div className={`export-dialog-content ${exporting ? 'loading' : ''}`}>
-          {/* Format Selection */}
           <div className="export-section">
             <label className="export-label" id="format-label">
               Format
@@ -98,7 +97,6 @@ export function ExportDialog({ open, onClose }: ExportDialogProps): JSX.Element 
 
           {(format === 'rmarkdown' || format === 'both') && (
             <>
-              {/* Export Mode */}
               <div className="export-section">
                 <label className="export-label" id="mode-label">
                   Export Mode
@@ -142,7 +140,6 @@ export function ExportDialog({ open, onClose }: ExportDialogProps): JSX.Element 
                 </div>
               </div>
 
-              {/* Document Path (for Document mode) */}
               {mode === 'document' && (
                 <div className="export-section">
                   <label className="export-label" htmlFor="documentPath">
@@ -165,7 +162,6 @@ export function ExportDialog({ open, onClose }: ExportDialogProps): JSX.Element 
                 </div>
               )}
 
-              {/* Options */}
               <div className="export-section">
                 <label className="export-label" id="options-label">
                   Options
@@ -238,7 +234,6 @@ export function ExportDialog({ open, onClose }: ExportDialogProps): JSX.Element 
                 </div>
               </div>
 
-              {/* Output Path */}
               <div className="export-section">
                 <label className="export-label" htmlFor="outputPath">
                   Output Path
@@ -260,7 +255,6 @@ export function ExportDialog({ open, onClose }: ExportDialogProps): JSX.Element 
             </>
           )}
 
-          {/* Error Message */}
           {error && (
             <div className="export-error" role="alert" aria-live="polite">
               <span>{error}</span>
