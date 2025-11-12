@@ -2,14 +2,15 @@ import {
   IconBarChart,
   IconChevronLeft,
   IconChevronRight,
+  IconTrash,
   PanelTabs,
 } from '@/components/shared';
+import { ConsolePanel } from '@/components/console';
 import { TimelinePanel } from '@/components/timeline';
-import { useUnifiedRightPaneState } from '@/hooks/useUnifiedRightPaneState';
+import { useBottomPaneState } from '@/hooks/useBottomPaneState';
 
-export function UnifiedRightPane(): JSX.Element {
+export function BottomPane(): JSX.Element {
   const {
-    panes,
     tabs,
     activeTab,
     setActiveTab,
@@ -18,47 +19,68 @@ export function UnifiedRightPane(): JSX.Element {
     currentPlot,
     selectPreviousPlot,
     selectNextPlot,
-  } = useUnifiedRightPaneState();
+    clearExecutionResults,
+  } = useBottomPaneState();
 
-  const plotsVisible = panes.plots;
-  const timelineVisible = panes.timeline;
   const { selectedPlotIndex, totalPlots } = navigation;
+  const showClear = activeTab === 'console' || activeTab === 'history';
+  const showPlotNav = activeTab === 'plots' && totalPlots > 0;
 
   return (
-    <div className="panel panel--transparent unified-right-pane">
+    <div className="panel panel--transparent bottom-pane">
       <div className="panel-header panel-header--plain">
         <PanelTabs
           items={tabs}
           activeId={activeTab}
           onSelect={setActiveTab}
-          className="panel-tabs--flush"
+          className="panel-tabs--flush panel-tabs--equal-width panel-tabs--compact"
         />
-        {allPlots.length > 0 && activeTab === 'plots' && (
+        {(showClear || showPlotNav) && (
           <div className="panel-actions panel-actions--compact">
-            <button
-              className="btn btn-icon"
-              onClick={selectPreviousPlot}
-              disabled={selectedPlotIndex === 0}
-              title="Previous plot"
-              aria-label="Previous plot">
-              <IconChevronLeft width={16} height={16} aria-hidden />
-            </button>
-            <span className="plot-counter">
-              {selectedPlotIndex + 1} / {totalPlots}
-            </span>
-            <button
-              className="btn btn-icon"
-              onClick={selectNextPlot}
-              disabled={selectedPlotIndex >= totalPlots - 1}
-              title="Next plot"
-              aria-label="Next plot">
-              <IconChevronRight width={16} height={16} aria-hidden />
-            </button>
+            {showClear && (
+              <button
+                className="btn btn-icon"
+                title="Clear console"
+                aria-label="Clear console"
+                onClick={clearExecutionResults}>
+                <IconTrash width={16} height={16} aria-hidden />
+              </button>
+            )}
+            {showPlotNav && (
+              <>
+                <button
+                  className="btn btn-icon"
+                  onClick={selectPreviousPlot}
+                  disabled={selectedPlotIndex === 0}
+                  title="Previous plot"
+                  aria-label="Previous plot">
+                  <IconChevronLeft width={16} height={16} aria-hidden />
+                </button>
+                <span className="plot-counter">
+                  {selectedPlotIndex + 1} / {totalPlots}
+                </span>
+                <button
+                  className="btn btn-icon"
+                  onClick={selectNextPlot}
+                  disabled={selectedPlotIndex >= totalPlots - 1}
+                  title="Next plot"
+                  aria-label="Next plot">
+                  <IconChevronRight width={16} height={16} aria-hidden />
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>
       <div className="panel-content">
-        {activeTab === 'plots' && plotsVisible && (
+        {activeTab === 'console' && <ConsolePanel view="console" />}
+        {activeTab === 'history' && <ConsolePanel view="history" />}
+        {activeTab === 'timeline' && (
+          <div className="timeline-container">
+            <TimelinePanel />
+          </div>
+        )}
+        {activeTab === 'plots' && (
           <div className="plots-container">
             {allPlots.length === 0 ? (
               <div className="empty-state">
@@ -79,11 +101,6 @@ export function UnifiedRightPane(): JSX.Element {
                 )}
               </div>
             )}
-          </div>
-        )}
-        {activeTab === 'timeline' && timelineVisible && (
-          <div className="timeline-container">
-            <TimelinePanel />
           </div>
         )}
         {activeTab === 'help' && (

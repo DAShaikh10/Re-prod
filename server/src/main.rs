@@ -1,3 +1,6 @@
+// Allow expect for critical initialization failures where panic is appropriate
+#![allow(clippy::expect_used)]
+
 mod conversions;
 mod handlers;
 mod http;

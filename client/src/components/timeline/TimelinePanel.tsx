@@ -1,56 +1,10 @@
-import { useEffect, useState } from 'react';
-import {
-  type ExecutionEventPayload,
-  type TimelineStats as TimelineStatsType,
-  type TimelineQuery,
-} from 'shared';
-import { useStore } from '@/core';
-import { queryTimeline, getTimelineStats, subscribeToTimelineEvents } from '@/services/timelineService';
+import type { ExecutionEventPayload } from 'shared';
+
 import { Timeline } from './Timeline';
 import { TimelineStats } from './TimelineStats';
 import { TimelineFilters } from './TimelineFilters';
 import { TimelineSort } from './TimelineSort';
-
-const matchesFilters = (
-  event: ExecutionEventPayload,
-  filters: TimelineQuery['filters'] | undefined,
-): boolean => {
-  if (!filters) return true;
-
-  if (filters.actor && event.context.actor !== filters.actor) {
-    return false;
-  }
-
-  if (filters.source && event.context.source !== filters.source) {
-    return false;
-  }
-
-  if (filters.startTime && event.created_at_ms < filters.startTime) {
-    return false;
-  }
-
-  if (filters.endTime && event.created_at_ms > filters.endTime) {
-    return false;
-  }
-
-  if (filters.hasPlots && event.result.plots.length === 0) {
-    return false;
-  }
-
-  if (filters.hasErrors && !event.result.error) {
-    return false;
-  }
-
-  if (filters.codeContains) {
-    const search = filters.codeContains.toLowerCase();
-    const hasMatch = event.blocks.some((block) => block.code.toLowerCase().includes(search));
-    if (!hasMatch) {
-      return false;
-    }
-  }
-
-  return true;
-};
+import { useTimelineData } from '@/hooks/useTimelineData';
 
 export function TimelinePanel(): JSX.Element {
   const {
@@ -61,149 +15,12 @@ export function TimelinePanel(): JSX.Element {
     error,
     filters,
     sort,
-    limit,
-    offset,
-    setEvents,
     setFilters,
     setSort,
-    setLoading,
-    setError,
     loadMore,
-    addEvent,
-  } = useStore();
-  const isConnected = useStore((state) => state.isConnected);
-
-  const [stats, setStats] = useState<TimelineStatsType | null>(null);
-  const [statsLoading, setStatsLoading] = useState(false);
-
-  // Fetch events when filters, sort, or offset changes
-  useEffect(() => {
-    if (!isConnected) {
-      setLoading(false);
-      return;
-    }
-
-    const fetchEvents = async () => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        const response = await queryTimeline({
-          filters,
-          sort,
-          limit,
-          offset: 0, // Always start from 0 when filters/sort change
-        });
-
-        setEvents(response.events, response.total, response.hasMore);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load timeline');
-      }
-    };
-
-    fetchEvents();
-  }, [filters, sort, isConnected]); // Only trigger on filter/sort changes when connected
-
-  // Fetch more events when offset changes (for "Load More")
-  useEffect(() => {
-    if (!isConnected || offset === 0) return; // Skip until connection established
-
-    const fetchMoreEvents = async () => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        const response = await queryTimeline({
-          filters,
-          sort,
-          limit,
-          offset,
-        });
-
-        // Append new events to existing ones
-        setEvents([...events, ...response.events], response.total, response.hasMore);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load more events');
-      }
-    };
-
-    fetchMoreEvents();
-  }, [offset, isConnected]); // Only trigger on offset changes once connected
-
-  // Fetch stats on mount
-  useEffect(() => {
-    if (!isConnected) return;
-
-    const fetchStats = async () => {
-      setStatsLoading(true);
-      try {
-        const statsData = await getTimelineStats();
-        console.log('[TimelinePanel] Stats fetched:', statsData);
-        setStats(statsData);
-      } catch (err) {
-        console.error('Failed to load timeline stats:', err);
-      } finally {
-        setStatsLoading(false);
-      }
-    };
-
-    fetchStats();
-  }, [isConnected]);
-
-  useEffect(() => {
-    if (!isConnected) {
-      return;
-    }
-
-    const unsubscribe = subscribeToTimelineEvents((event) => {
-      console.log('[TimelinePanel] New event received:', event.event_id);
-
-      if (!matchesFilters(event, filters)) {
-        console.log('[TimelinePanel] Event filtered out');
-        return;
-      }
-
-      addEvent(event);
-
-      setStats((prev) => {
-        console.log('[TimelinePanel] Updating stats, prev:', prev);
-        // If no previous stats, create initial stats from this first event
-        if (!prev) {
-          const newStats = {
-            totalEvents: 1,
-            totalPlots: event.result.plots.length,
-            totalErrors: event.result.error ? 1 : 0,
-            userActions: event.context.actor === 'user' ? 1 : 0,
-            aiActions: event.context.actor === 'ai' ? 1 : 0,
-            sessionStartTime: event.created_at_ms,
-            sessionEndTime: event.created_at_ms,
-            sessionDuration: 0,
-          };
-          console.log('[TimelinePanel] Created initial stats:', newStats);
-          return newStats;
-        }
-
-        const nextStart = Math.min(prev.sessionStartTime, event.created_at_ms);
-        const nextEnd = Math.max(prev.sessionEndTime, event.created_at_ms);
-
-        const updatedStats = {
-          ...prev,
-          totalEvents: prev.totalEvents + 1,
-          totalPlots: prev.totalPlots + event.result.plots.length,
-          totalErrors: prev.totalErrors + (event.result.error ? 1 : 0),
-          userActions: prev.userActions + (event.context.actor === 'user' ? 1 : 0),
-          aiActions: prev.aiActions + (event.context.actor === 'ai' ? 1 : 0),
-          sessionStartTime: nextStart,
-          sessionEndTime: nextEnd,
-          sessionDuration: nextEnd - nextStart,
-        };
-        console.log('[TimelinePanel] Updated stats:', updatedStats);
-        return updatedStats;
-      });
-    });
-
-    return unsubscribe;
-  }, [isConnected, filters, addEvent]);
+    stats,
+    statsLoading,
+  } = useTimelineData();
 
   const handleNavigate = (event: ExecutionEventPayload) => {
     // TODO: Implement navigation to code location
