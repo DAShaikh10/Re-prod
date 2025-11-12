@@ -30,6 +30,55 @@ const makeCodeRange = (raw?: Partial<CodeRange>): CodeRange | undefined => {
   return range;
 };
 
+const parsePatchSnippet = (value: string): { originalCode: string; newCode: string } | null => {
+  const lines = value.split(/\r?\n/);
+  const hasDiffMarkers = lines.some((line) => line.startsWith('+') || line.startsWith('-'));
+  if (!hasDiffMarkers) {
+    return null;
+  }
+
+  const originalLines: string[] = [];
+  const newLines: string[] = [];
+
+  for (const line of lines) {
+    if (line.startsWith('@@')) {
+      continue;
+    }
+    if (line.startsWith('---') || line.startsWith('+++')) {
+      continue;
+    }
+
+    if (line.startsWith('-')) {
+      originalLines.push(line.slice(1));
+      continue;
+    }
+
+    if (line.startsWith('+')) {
+      newLines.push(line.slice(1));
+      continue;
+    }
+
+    if (line.startsWith(' ')) {
+      const context = line.slice(1);
+      originalLines.push(context);
+      newLines.push(context);
+      continue;
+    }
+
+    originalLines.push(line);
+    newLines.push(line);
+  }
+
+  if (originalLines.length === 0 && newLines.length === 0) {
+    return null;
+  }
+
+  return {
+    originalCode: originalLines.join('\n').trimEnd(),
+    newCode: newLines.join('\n').trimEnd(),
+  };
+};
+
 const normalizeCodeBlock = (raw: Record<string, unknown>): CodeBlock | null => {
   const action = typeof raw.action === 'string' && codeChangeActions.includes(raw.action as CodeChangeAction)
     ? (raw.action as CodeChangeAction)
@@ -54,6 +103,14 @@ const normalizeCodeBlock = (raw: Record<string, unknown>): CodeBlock | null => {
   const targetRange = makeCodeRange(raw.targetRange as Partial<CodeRange>);
   if (targetRange) {
     codeBlock.targetRange = targetRange;
+  }
+
+  const diff = parsePatchSnippet(code);
+  if (diff) {
+    if (!codeBlock.originalCode && diff.originalCode) {
+      codeBlock.originalCode = diff.originalCode;
+    }
+    codeBlock.code = diff.newCode;
   }
 
   return codeBlock;

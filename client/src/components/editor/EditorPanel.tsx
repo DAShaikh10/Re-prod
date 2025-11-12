@@ -8,6 +8,49 @@ import { useEditorExecution } from "@/hooks/useEditorExecution";
 import type { editor as MonacoEditor } from "monaco-editor";
 import type { CodeBlock, CodeRange } from "@shared/types";
 
+type Position = { line: number; column: number };
+
+const computePosition = (text: string): Position => {
+  const lines = text.split(/\r?\n/);
+  const line = lines.length;
+  const column = (lines[line - 1]?.length ?? 0) + 1;
+  return { line, column };
+};
+
+const findRangeForSnippet = (content: string, snippet: string): CodeRange | undefined => {
+  if (!snippet) {
+    return undefined;
+  }
+
+  const normalizedContent = content;
+  const startIndex = normalizedContent.indexOf(snippet);
+  if (startIndex === -1) {
+    return undefined;
+  }
+
+  const startPos = computePosition(normalizedContent.slice(0, startIndex));
+  const endPos = computePosition(normalizedContent.slice(0, startIndex + snippet.length));
+
+  return {
+    startLine: startPos.line,
+    startColumn: startPos.column,
+    endLine: endPos.line,
+    endColumn: endPos.column,
+  };
+};
+
+const confirmReplaceAll = (filepath?: string): boolean => {
+  if (typeof window === "undefined") {
+    return true;
+  }
+
+  const target = filepath ? `file ${filepath}` : "current editor";
+  return window.confirm(
+    `This AI suggestion will replace the entire ${target}. ` +
+      "Proceed only if you understand the change.",
+  );
+};
+
 export function EditorPanel(): JSX.Element {
   const editor = useStore((state) => state.editor);
   const execution = useStore((state) => state.execution);
@@ -63,6 +106,20 @@ export function EditorPanel(): JSX.Element {
         return Math.min(Math.max(requested, 1), maxColumn);
       };
 
+      const editorContent = monacoEditor.getValue();
+
+      const resolveTargetRange = (): CodeRange | undefined => {
+        if (codeBlock.targetRange) {
+          return codeBlock.targetRange;
+        }
+
+        if (codeBlock.originalCode) {
+          return findRangeForSnippet(editorContent, codeBlock.originalCode);
+        }
+
+        return undefined;
+      };
+
       const applyRange = (range: CodeRange, text: string): void => {
         monacoEditor.executeEdits("ai-apply", [
           {
@@ -78,24 +135,43 @@ export function EditorPanel(): JSX.Element {
         setEditorContent(monacoEditor.getValue());
       };
 
-      switch (codeBlock.action) {
-        case "replace-all":
-          monacoEditor.setValue(codeBlock.code);
-          setEditorContent(codeBlock.code);
-          break;
-        case "replace-range":
-          if (codeBlock.targetRange) {
-            applyRange(codeBlock.targetRange, codeBlock.code);
-          } else {
-            console.warn("Missing target range for replace-range");
+      const applyRangeChange = (text: string, alertOnFail = true): boolean => {
+        const range = resolveTargetRange();
+        if (!range) {
+          if (alertOnFail) {
+            console.warn("Missing target range for AI apply action", codeBlock.action);
+            if (typeof window !== "undefined") {
+              window.alert(
+                "Unable to locate the suggested context in the current editor. " +
+                  "Try running the suggestion again after scrolling the intended section into view.",
+              );
+            }
           }
+          return false;
+        }
+
+        applyRange(range, text);
+        return true;
+      };
+
+      switch (codeBlock.action) {
+        case "replace-all": {
+          const appliedRange = applyRangeChange(codeBlock.code, false);
+          if (appliedRange) {
+            break;
+          }
+
+          if (confirmReplaceAll(codeBlock.filepath)) {
+            monacoEditor.setValue(codeBlock.code);
+            setEditorContent(codeBlock.code);
+          }
+          break;
+        }
+        case "replace-range":
+          applyRangeChange(codeBlock.code);
           break;
         case "delete-range":
-          if (codeBlock.targetRange) {
-            applyRange(codeBlock.targetRange, "");
-          } else {
-            console.warn("Missing target range for delete-range");
-          }
+          applyRangeChange("");
           break;
         case "insert-at-cursor": {
           const position = monacoEditor.getPosition();
