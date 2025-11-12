@@ -74,7 +74,7 @@ const parseJsonBlocks = (text: string): { blocks: CodeBlock[]; ranges: Array<{ s
       const parsed = JSON.parse(rawJson);
 
       if (Array.isArray(parsed)) {
-        parsed.forEach((entry) => {
+        parsed.forEach((entry: unknown) => {
           if (entry && typeof entry === 'object') {
             const block = normalizeCodeBlock(entry as Record<string, unknown>);
             if (block) {
@@ -83,8 +83,8 @@ const parseJsonBlocks = (text: string): { blocks: CodeBlock[]; ranges: Array<{ s
           }
         });
       } else if (parsed && typeof parsed === 'object') {
-        if ('codeBlocks' in parsed && Array.isArray(parsed.codeBlocks)) {
-          parsed.codeBlocks.forEach((entry) => {
+        if ('codeBlocks' in parsed && Array.isArray((parsed as { codeBlocks: unknown[] }).codeBlocks)) {
+          (parsed as { codeBlocks: unknown[] }).codeBlocks.forEach((entry: unknown) => {
             if (entry && typeof entry === 'object') {
               const block = normalizeCodeBlock(entry as Record<string, unknown>);
               if (block) {
