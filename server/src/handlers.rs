@@ -20,10 +20,7 @@ use reprod_core::{
     ToolExecutor, ToolManifest, ToolRegistry,
 };
 use serde_json::{json, Value};
-use std::{
-    sync::Arc,
-    time::{SystemTime, UNIX_EPOCH},
-};
+use std::sync::Arc;
 use tokio::sync::Mutex;
 use uuid::Uuid;
 
@@ -537,4 +534,51 @@ async fn handle_export_rmarkdown(
         .map_err(|e| format!("Failed to write RMarkdown file: {}", e))?;
 
     Ok(ExportRMarkdownResponse::success(output_path))
+}
+
+/// Helper function to create a ToolLogPayload from a ToolCall
+fn tool_log_from_call(tool_call: &reprod_core::ToolCall) -> ToolLogPayload {
+    ToolLogPayload {
+        id: tool_call.id.clone(),
+        name: tool_call.name.clone(),
+        status: ToolLogStatus::Running,
+        input: Some(tool_call.input.clone()),
+        output: None,
+        error: None,
+        started_at: Some(now_millis()),
+        finished_at: None,
+    }
+}
+
+/// Helper function to get current time in milliseconds since UNIX epoch
+fn now_millis() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis() as i64
+}
+
+/// Helper function to build streaming payload responses
+fn build_streaming_payload(
+    stream: bool,
+    stream_id: &str,
+    content: String,
+) -> Vec<WSResponse> {
+    if stream {
+        vec![
+            WSResponse::AIResponseChunk {
+                id: stream_id.to_string(),
+                chunk: content.clone(),
+            },
+            WSResponse::AIResponseComplete {
+                id: stream_id.to_string(),
+                final_text: content,
+                code_blocks: None,
+            },
+        ]
+    } else {
+        vec![WSResponse::AIResponse {
+            response: content,
+        }]
+    }
 }
