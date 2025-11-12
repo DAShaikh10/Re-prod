@@ -252,7 +252,7 @@ pub fn get_filesystem_tools() -> Vec<Value> {
         }
     ])
     .as_array()
-    .unwrap()
+    .expect("get_filesystem_tools: json! array literal should always be an array")
     .clone()
 }
 

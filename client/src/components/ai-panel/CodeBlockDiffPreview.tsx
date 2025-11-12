@@ -46,7 +46,12 @@ export function CodeBlockDiffPreview({ codeBlock, onRetry }: Props): JSX.Element
     return {
       baseline: original,
       isStale: stale,
-      lineDelta: Math.abs(newLines.length - originalLines.length),
+      lineDelta: (() => {
+        if (!original) {
+          return codeBlock.code ? codeBlock.code.split(/\r?\n/).length : 0;
+        }
+        return Math.abs(newLines.length - originalLines.length);
+      })(),
     };
   }, [codeBlock, editorContent, editorFilepath]);
 
