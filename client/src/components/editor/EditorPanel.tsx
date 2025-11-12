@@ -5,39 +5,9 @@ import { useStore } from "@/core";
 import { useEditorCells } from "@/hooks/useEditorCells";
 import { useEditorDecorations } from "@/hooks/useEditorDecorations";
 import { useEditorExecution } from "@/hooks/useEditorExecution";
+import { computeTargetRange } from "@/core/ai/contextMatcher";
 import type { editor as MonacoEditor } from "monaco-editor";
 import type { CodeBlock, CodeRange } from "@shared/types";
-
-type Position = { line: number; column: number };
-
-const computePosition = (text: string): Position => {
-  const lines = text.split(/\r?\n/);
-  const line = lines.length;
-  const column = (lines[line - 1]?.length ?? 0) + 1;
-  return { line, column };
-};
-
-const findRangeForSnippet = (content: string, snippet: string): CodeRange | undefined => {
-  if (!snippet) {
-    return undefined;
-  }
-
-  const normalizedContent = content;
-  const startIndex = normalizedContent.indexOf(snippet);
-  if (startIndex === -1) {
-    return undefined;
-  }
-
-  const startPos = computePosition(normalizedContent.slice(0, startIndex));
-  const endPos = computePosition(normalizedContent.slice(0, startIndex + snippet.length));
-
-  return {
-    startLine: startPos.line,
-    startColumn: startPos.column,
-    endLine: endPos.line,
-    endColumn: endPos.column,
-  };
-};
 
 const confirmReplaceAll = (filepath?: string): boolean => {
   if (typeof window === "undefined") {
@@ -114,7 +84,7 @@ export function EditorPanel(): JSX.Element {
         }
 
         if (codeBlock.originalCode) {
-          return findRangeForSnippet(editorContent, codeBlock.originalCode);
+          return computeTargetRange(editorContent, codeBlock.originalCode) ?? undefined;
         }
 
         return undefined;
