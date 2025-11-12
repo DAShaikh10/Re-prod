@@ -3,12 +3,15 @@ import { useStore } from '@/core';
 import { socketService } from '@/services/socket';
 import type { WSResponse } from '@/services/socket';
 import { extractCodeBlocks } from '@/core/ai/codeBlockUtils';
+import { applyCodeChangeFile } from '@/services/fileService';
 import type { AIMessage, CodeBlock } from '@shared/types';
 
 const aiResponseMatcher = (message: WSResponse): boolean =>
   message.type === 'ai_response' ||
   message.type === 'ai_response_with_tools' ||
   message.type === 'error';
+
+const REMOTE_FILE_ACTIONS = new Set(['create-file', 'delete-range', 'replace-range']);
 
 export function useAIConversation() {
   const messages = useStore((state) => state.ai.messages);
@@ -18,6 +21,7 @@ export function useAIConversation() {
   const setAILoading = useStore((state) => state.setAILoading);
   const applyCodeChange = useStore((state) => state.applyCodeChange);
   const editorContent = useStore((state) => state.editor.content);
+  const editorFilepath = useStore((state) => state.editor.filepath);
 
   const [input, setInput] = useState('');
   const timeoutIdRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -49,14 +53,32 @@ export function useAIConversation() {
     [addAIMessage],
   );
 
-  const handleApplyCode = useCallback((codeBlock: CodeBlock): void => {
+  const handleApplyCode = useCallback(async (codeBlock: CodeBlock): Promise<void> => {
+    const targetFile = codeBlock.filepath;
+    const shouldUseRemote =
+      Boolean(targetFile) &&
+      targetFile !== editorFilepath &&
+      REMOTE_FILE_ACTIONS.has(codeBlock.action);
+
+    if (shouldUseRemote) {
+      try {
+        await applyCodeChangeFile(codeBlock);
+        postAssistantMessage(`Applied ${codeBlock.action} to ${targetFile}`);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'unknown error';
+        postAssistantMessage(`Failed to apply remote change: ${message}`);
+        console.error('Remote code change failed', error);
+      }
+      return;
+    }
+
     if (applyCodeChange) {
-      applyCodeChange(codeBlock);
+      await applyCodeChange(codeBlock);
       return;
     }
 
     console.warn('applyCodeChange not available, falling back to append mode');
-  }, [applyCodeChange]);
+  }, [applyCodeChange, editorFilepath, postAssistantMessage]);
 
   const handleStop = useCallback((): void => {
     clearTimeoutRef();
