@@ -95,7 +95,6 @@ export function buildMenuSections(snapshot: MenuStateSnapshot): MenuSection[] {
       label: 'Session',
       items: [
         { id: 'session:show-timeline', label: 'Show Timeline', shortcut: '⌘T', action: () => menuActions.session.showTimeline() },
-        { id: 'session:export-reproducible', label: 'Export Reproducible Package', action: () => menuActions.session.exportReproducible() },
         { type: 'separator' },
         { id: 'session:new', label: 'New Session', shortcut: '⌘⇧N', action: () => menuActions.session.new() },
         { id: 'session:save', label: 'Save Session...', action: () => menuActions.session.save() },
