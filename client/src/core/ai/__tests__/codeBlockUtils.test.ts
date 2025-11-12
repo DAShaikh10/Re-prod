@@ -52,4 +52,22 @@ cat('hello world')
     expect(block.action).toBe('replace-all');
     expect(block.code.trim()).toBe("cat('hello world')");
   });
+ 
+  it('extracts original/new snippets from diff-style code blocks', () => {
+    const diffBlock = `
+```json
+{
+  "id": "diff-example",
+  "action": "replace-range",
+  "code": "@@\\n function run() {\\n-  old_value <- 1\\n+  new_value <- 2\\n }\\n@@",
+  "explanation": "Update variable"
+}
+```
+`;
+
+    const [block] = extractCodeBlocks(diffBlock);
+
+    expect(block.code).toContain('new_value <- 2');
+    expect(block.originalCode).toContain('old_value <- 1');
+  });
 });
