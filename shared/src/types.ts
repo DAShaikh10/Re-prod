@@ -57,6 +57,12 @@ export type CodeChangeAction =
   | 'create-file'
   | 'delete-range';
 
+export interface PatchChunk {
+  context?: string;
+  oldLines: string[];
+  newLines: string[];
+}
+
 export interface CodeRange {
   startLine: number;
   startColumn: number;
@@ -71,6 +77,8 @@ export interface CodeBlock {
   action: CodeChangeAction;
   targetRange?: CodeRange;
   filepath?: string;
+  patchChunks?: PatchChunk[];
+  patchText?: string;
   checksum?: string;
   explanation?: string;
   originalCode?: string;

@@ -43,10 +43,7 @@ const parsePatchSnippet = (value: string): { originalCode: string; newCode: stri
   const newLines: string[] = [];
 
   for (const line of lines) {
-    if (line.startsWith('@@')) {
-      continue;
-    }
-    if (line.startsWith('---') || line.startsWith('+++')) {
+    if (line.startsWith('@@') || line.startsWith('---') || line.startsWith('+++')) {
       continue;
     }
 
@@ -71,7 +68,7 @@ const parsePatchSnippet = (value: string): { originalCode: string; newCode: stri
     newLines.push(line);
   }
 
-  if (originalLines.length === 0 && newLines.length === 0) {
+  if (!originalLines.length && !newLines.length) {
     return null;
   }
 
@@ -81,16 +78,30 @@ const parsePatchSnippet = (value: string): { originalCode: string; newCode: stri
   };
 };
 
+const formatPatchText = (hunk: PatchHunk): string => {
+  const header = `*** Begin Patch\n*** ${hunk.type === 'add' ? 'Add' : hunk.type === 'delete' ? 'Delete' : 'Update'} File: ${hunk.filepath}\n`;
+  const body = hunk.chunks
+    .map((chunk) => {
+      const context = chunk.context ? `${chunk.context}\n` : '';
+      const oldLines = chunk.oldLines.map((line) => `-${line}`).join('\n');
+      const newLines = chunk.newLines.map((line) => `+${line}`).join('\n');
+      return `${context}${oldLines}\n${newLines}`;
+    })
+    .join('\n\n');
+
+  return `${header}${body}\n*** End Patch`;
+};
+
 const buildCodeBlockFromPatch = (hunk: PatchHunk): CodeBlock | null => {
   const newCode = hunk.chunks.flatMap((chunk) => chunk.newLines).join('\n').trimEnd();
   const originalCode = hunk.chunks.flatMap((chunk) => chunk.oldLines).join('\n').trimEnd();
 
-  let action: CodeChangeAction = 'replace-range';
-  if (hunk.type === 'add') {
-    action = 'create-file';
-  } else if (hunk.type === 'delete') {
-    action = 'delete-range';
+  if (!newCode) {
+    return null;
   }
+
+  const action: CodeChangeAction =
+    hunk.type === 'add' ? 'create-file' : hunk.type === 'delete' ? 'delete-range' : 'replace-range';
 
   const codeBlock: CodeBlock = {
     id: `patch-${Date.now()}-${hunk.filepath}`,
@@ -98,6 +109,8 @@ const buildCodeBlockFromPatch = (hunk: PatchHunk): CodeBlock | null => {
     language: 'r',
     action,
     filepath: hunk.filepath,
+    patchChunks: hunk.chunks,
+    patchText: formatPatchText(hunk),
   };
 
   if (originalCode) {
@@ -198,6 +211,10 @@ export function extractCodeBlocks(text: string): CodeBlock[] {
     return patchHunks
       .map(buildCodeBlockFromPatch)
       .filter((block): block is CodeBlock => block !== null);
+  }
+
+  if (text.includes('*** Begin Patch')) {
+    console.warn('Patch detected but structured parser could not decode it.');
   }
 
   const codeBlocks: CodeBlock[] = [];
