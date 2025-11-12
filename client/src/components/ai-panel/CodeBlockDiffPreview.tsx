@@ -40,6 +40,9 @@ export function CodeBlockDiffPreview({ codeBlock, onRetry }: Props): JSX.Element
     const original = codeBlock.originalCode ?? localSlice;
     const stale = Boolean(codeBlock.originalCode && localSlice && codeBlock.originalCode !== localSlice);
 
+    const originalLines = original ? original.split(/\r?\n/) : [];
+    const newLines = codeBlock.code ? codeBlock.code.split(/\r?\n/) : [];
+
     return {
       baseline: original,
       isStale: stale,
@@ -47,8 +50,6 @@ export function CodeBlockDiffPreview({ codeBlock, onRetry }: Props): JSX.Element
         if (!original) {
           return codeBlock.code ? codeBlock.code.split(/\r?\n/).length : 0;
         }
-        const originalLines = original.split(/\r?\n/);
-        const newLines = codeBlock.code ? codeBlock.code.split(/\r?\n/): [];
         return Math.abs(newLines.length - originalLines.length);
       })(),
     };
@@ -90,9 +91,7 @@ export function CodeBlockDiffPreview({ codeBlock, onRetry }: Props): JSX.Element
         }}
       />
       <div className="code-diff-stats">
-        {lineDelta > 0
-          ? `Lines changed: ${lineDelta}`
-          : 'Lines unchanged'}
+        {lineDelta > 0 ? `Lines changed: ${lineDelta}` : 'Lines unchanged'}
       </div>
     </div>
   );
