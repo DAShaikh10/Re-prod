@@ -1,11 +1,15 @@
-import type { TimelineFiltersProps } from '@/types/timeline';
+import type { TimelineFiltersProps } from "@/types/timeline";
+import { Checkbox } from "../shared/Checkbox";
 
-export function TimelineFilters({ filters = {}, onChange }: TimelineFiltersProps): JSX.Element {
+export function TimelineFilters({
+  filters = {},
+  onChange,
+}: TimelineFiltersProps): JSX.Element {
   const handleActorChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
     onChange({
       ...filters,
-      actor: value === 'all' ? undefined : (value as 'user' | 'ai'),
+      actor: value === "all" ? undefined : (value as "user" | "ai"),
     });
   };
 
@@ -13,21 +17,10 @@ export function TimelineFilters({ filters = {}, onChange }: TimelineFiltersProps
     const value = e.target.value;
     onChange({
       ...filters,
-      source: value === 'all' ? undefined : (value as 'selection' | 'cell' | 'whole_document'),
-    });
-  };
-
-  const handlePlotsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onChange({
-      ...filters,
-      hasPlots: e.target.checked ? true : undefined,
-    });
-  };
-
-  const handleErrorsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onChange({
-      ...filters,
-      hasErrors: e.target.checked ? true : undefined,
+      source:
+        value === "all"
+          ? undefined
+          : (value as "selection" | "cell" | "whole_document"),
     });
   };
 
@@ -52,7 +45,7 @@ export function TimelineFilters({ filters = {}, onChange }: TimelineFiltersProps
           <label htmlFor="filter-actor">Actor:</label>
           <select
             id="filter-actor"
-            value={filters.actor || 'all'}
+            value={filters.actor || "all"}
             onChange={handleActorChange}
           >
             <option value="all">All</option>
@@ -65,7 +58,7 @@ export function TimelineFilters({ filters = {}, onChange }: TimelineFiltersProps
           <label htmlFor="filter-source">Source:</label>
           <select
             id="filter-source"
-            value={filters.source || 'all'}
+            value={filters.source || "all"}
             onChange={handleSourceChange}
           >
             <option value="all">All</option>
@@ -75,25 +68,23 @@ export function TimelineFilters({ filters = {}, onChange }: TimelineFiltersProps
           </select>
         </div>
 
-        <div className="timeline-filter timeline-filter-checkbox">
-          <input
-            type="checkbox"
-            id="filter-plots"
-            checked={filters.hasPlots || false}
-            onChange={handlePlotsChange}
-          />
-          <label htmlFor="filter-plots">📊 With Plots</label>
-        </div>
+        <Checkbox
+          className="timeline-filter timeline-filter-checkbox"
+          label="📊 With Plots"
+          checked={filters.hasPlots || false}
+          onChange={(checked) =>
+            onChange({ ...filters, hasPlots: checked ? true : undefined })
+          }
+        />
 
-        <div className="timeline-filter timeline-filter-checkbox">
-          <input
-            type="checkbox"
-            id="filter-errors"
-            checked={filters.hasErrors || false}
-            onChange={handleErrorsChange}
-          />
-          <label htmlFor="filter-errors">❌ With Errors</label>
-        </div>
+        <Checkbox
+          className="timeline-filter timeline-filter-checkbox"
+          label="❌ With Errors"
+          checked={filters.hasErrors || false}
+          onChange={(checked) =>
+            onChange({ ...filters, hasErrors: checked ? true : undefined })
+          }
+        />
       </div>
 
       <div className="timeline-filters-row">
@@ -103,13 +94,16 @@ export function TimelineFilters({ filters = {}, onChange }: TimelineFiltersProps
             type="text"
             id="filter-code"
             placeholder="Search code..."
-            value={filters.codeContains || ''}
+            value={filters.codeContains || ""}
             onChange={handleCodeSearchChange}
           />
         </div>
 
         {hasActiveFilters && (
-          <button className="timeline-filter-clear" onClick={handleClearFilters}>
+          <button
+            className="timeline-filter-clear"
+            onClick={handleClearFilters}
+          >
             Clear Filters
           </button>
         )}
