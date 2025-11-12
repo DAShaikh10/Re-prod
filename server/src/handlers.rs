@@ -19,8 +19,13 @@ use reprod_core::{
     AIResponse, ChatMessage, Config, ExecutionEvent, ExecutionRequest, ExecutionResult, RExecutor,
     ToolExecutor, ToolManifest, ToolRegistry,
 };
-use std::sync::Arc;
+use serde_json::{json, Value};
+use std::{
+    sync::Arc,
+    time::{SystemTime, UNIX_EPOCH},
+};
 use tokio::sync::Mutex;
+use uuid::Uuid;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -72,6 +77,10 @@ enum WSRequest {
         messages: Vec<ChatMessage>,
         #[serde(default)]
         enable_tools: bool,
+        #[serde(default)]
+        request_id: Option<String>,
+        #[serde(default)]
+        stream: bool,
     },
     #[serde(rename = "list_tools")]
     ListTools,
@@ -98,6 +107,22 @@ enum WSResponse {
     AIResponse { response: String },
     #[serde(rename = "ai_response_with_tools")]
     AIResponseWithTools { response: AIResponse },
+    #[serde(rename = "ai_response_chunk")]
+    AIResponseChunk { id: String, chunk: String },
+    #[serde(rename = "ai_response_complete")]
+    AIResponseComplete {
+        id: String,
+        #[serde(rename = "final")]
+        final_text: String,
+        #[serde(rename = "codeBlocks", skip_serializing_if = "Option::is_none")]
+        code_blocks: Option<Vec<Value>>,
+    },
+    #[serde(rename = "ai_plan_updated")]
+    AIPlanUpdated { id: String, plan: Vec<PlanStepPayload> },
+    #[serde(rename = "ai_tool_started")]
+    AIToolStarted { id: String, tool: ToolLogPayload },
+    #[serde(rename = "ai_tool_finished")]
+    AIToolFinished { id: String, tool: ToolLogPayload },
     #[serde(rename = "error")]
     Error { message: String },
     #[serde(rename = "tools")]
@@ -122,6 +147,48 @@ enum WSResponse {
     ExportRMarkdownResponse { response: ExportRMarkdownResponse },
 }
 
+#[derive(serde::Serialize)]
+struct PlanStepPayload {
+    id: String,
+    title: String,
+    status: PlanStepStatus,
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "lowercase")]
+enum PlanStepStatus {
+    Pending,
+    Running,
+    Done,
+    Error,
+}
+
+#[derive(serde::Serialize, Clone)]
+struct ToolLogPayload {
+    id: String,
+    name: String,
+    status: ToolLogStatus,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    input: Option<Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    output: Option<Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    error: Option<String>,
+    #[serde(rename = "startedAt", skip_serializing_if = "Option::is_none")]
+    started_at: Option<i64>,
+    #[serde(rename = "finishedAt", skip_serializing_if = "Option::is_none")]
+    finished_at: Option<i64>,
+}
+
+#[derive(serde::Serialize, Clone)]
+#[serde(rename_all = "lowercase")]
+enum ToolLogStatus {
+    Pending,
+    Running,
+    Done,
+    Error,
+}
+
 async fn handle_ws_request(request: WSRequest, state: &AppState) -> Vec<WSResponse> {
     match request {
         WSRequest::Execute { request } => {
@@ -139,54 +206,62 @@ async fn handle_ws_request(request: WSRequest, state: &AppState) -> Vec<WSRespon
         WSRequest::AIMessage {
             messages,
             enable_tools,
+            request_id,
+            stream,
         } => {
             let cfg = state.config.lock().await.clone();
             let provider = ai::from_config(&cfg);
+            let stream_id = request_id.unwrap_or_else(|| Uuid::new_v4().to_string());
+            let mut outbound = Vec::new();
 
             if enable_tools {
-                // Combine all AI tools
                 let mut tools = get_filesystem_tools();
                 tools.extend(get_r_context_tools());
 
-                // First API call to get tool calls
-                let result = provider
+                match provider
                     .send_message_with_tools(messages.clone(), tools.clone())
-                    .await;
-
-                match result {
+                    .await
+                {
                     Ok(response) => {
-                        // Execute tool calls if present
                         if let Some(ref tool_calls) = response.tool_calls {
                             let mut tool_results = Vec::new();
 
                             for tool_call in tool_calls {
+                                let mut log = tool_log_from_call(tool_call);
+                                outbound.push(WSResponse::AIToolStarted {
+                                    id: stream_id.clone(),
+                                    tool: log.clone(),
+                                });
+
                                 let tool_result = execute_ai_tool_call(tool_call, state).await;
-
-                                // Log tool execution result
-                                tracing::info!(
-                                    "Tool {} executed: {:?}",
-                                    tool_call.name,
-                                    tool_result
-                                );
-
-                                // Collect tool results
-                                let result_content = match tool_result {
-                                    Ok(content) => content,
-                                    Err(e) => format!("Error: {}", e),
-                                };
-                                tool_results.push((tool_call.id.clone(), result_content));
+                                match tool_result {
+                                    Ok(content) => {
+                                        log.status = ToolLogStatus::Done;
+                                        log.output = Some(json!({ "result": content }));
+                                        tool_results.push((tool_call.id.clone(), content));
+                                    }
+                                    Err(err) => {
+                                        log.status = ToolLogStatus::Error;
+                                        log.error = Some(err.clone());
+                                        tool_results.push((
+                                            tool_call.id.clone(),
+                                            format!("Error: {}", err),
+                                        ));
+                                    }
+                                }
+                                log.finished_at = Some(now_millis());
+                                outbound.push(WSResponse::AIToolFinished {
+                                    id: stream_id.clone(),
+                                    tool: log,
+                                });
                             }
 
-                            // Build follow-up messages with tool results
                             let mut follow_up_messages = messages.clone();
-
-                            // Add assistant's message (simplified for now)
                             follow_up_messages.push(ChatMessage {
                                 role: "assistant".to_string(),
                                 content: response.content.clone(),
                             });
 
-                            // Add tool results as user messages
                             for (tool_id, result) in tool_results {
                                 follow_up_messages.push(ChatMessage {
                                     role: "user".to_string(),
@@ -194,25 +269,33 @@ async fn handle_ws_request(request: WSRequest, state: &AppState) -> Vec<WSRespon
                                 });
                             }
 
-                            // Get final response from AI with tool results
-                            tracing::info!("Sending tool results back to AI for final response");
                             match provider.send_message(follow_up_messages).await {
                                 Ok(final_response) => {
-                                    tracing::info!("Received final response from AI");
-                                    vec![WSResponse::AIResponse {
-                                        response: final_response,
-                                    }]
+                                    outbound.extend(build_streaming_payload(
+                                        stream,
+                                        &stream_id,
+                                        final_response.clone(),
+                                    ));
+                                    outbound
                                 }
                                 Err(e) => {
-                                    tracing::error!("Failed to get final response: {}", e);
-                                    vec![WSResponse::Error {
-                                        message: format!("Failed to get final response: {}", e),
-                                    }]
+                                    outbound.push(WSResponse::Error {
+                                        message: format!(
+                                            "Failed to get final response: {}",
+                                            e
+                                        ),
+                                    });
+                                    outbound
                                 }
                             }
                         } else {
-                            // No tool calls, return original response
-                            vec![WSResponse::AIResponseWithTools { response }]
+                            outbound.extend(build_streaming_payload(
+                                stream,
+                                &stream_id,
+                                response.content.clone(),
+                            ));
+                            outbound.push(WSResponse::AIResponseWithTools { response });
+                            outbound
                         }
                     }
                     Err(e) => vec![WSResponse::Error {
@@ -220,11 +303,11 @@ async fn handle_ws_request(request: WSRequest, state: &AppState) -> Vec<WSRespon
                     }],
                 }
             } else {
-                // Legacy mode without tools
-                let result = provider.send_message(messages).await;
-
-                match result {
-                    Ok(response) => vec![WSResponse::AIResponse { response }],
+                match provider.send_message(messages).await {
+                    Ok(response) => {
+                        outbound.extend(build_streaming_payload(stream, &stream_id, response.clone()));
+                        outbound
+                    }
                     Err(e) => vec![WSResponse::Error {
                         message: e.to_string(),
                     }],
