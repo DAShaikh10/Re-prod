@@ -128,35 +128,208 @@ grep -r "API Reference" docs/
 - Modifying system files outside project directory
 - Destructive operations without confirmation
 
-## Parallel Development with Git Worktrees
+## Multi-Agent Parallel Development
 
-### Overview
+This project uses a **multi-agent organizational framework** for parallel development, inspired by software development teams. The framework leverages git worktrees to enable simultaneous work on multiple features.
 
-This project uses **git worktrees** for parallel development of independent features. Worktrees allow multiple branches to be checked out simultaneously in separate directories, enabling:
+### Organizational Structure
 
-- Parallel implementation of unrelated features
-- Isolation of changes without branch switching
-- Independent testing and development environments
-- Reduced risk of conflicts between concurrent work
-
-### Worktree Strategy
-
-**Directory Structure**:
 ```
-/path/to/project/
-├── main-repo/           # Main repository (usually on develop branch)
-├── wt-feature-a/        # Worktree for feature A
-├── wt-feature-b/        # Worktree for feature B
-└── wt-refactor-c/       # Worktree for refactoring C
+                                 ┌─────────────────────┐
+                                 │   User (CEO)        │
+                                 │   Vision & Concept  │
+                                 │   - Owns Release & Main Branch │
+                                 └──────────┬──────────┘
+                                            │
+                                            ▼
+                          ┌────────────────────────────────────────────┐
+                          │   CTO Agent                                │
+                          │   - Receives vision                        │
+                          │   - Creates product spec                   │
+                          │   - Defines permissions                    │
+                          │   - Builds dependency graph (tickets)      │
+                          │   - Runs Dijkstra scheduler                │
+                          │       → Auto-determines parallel managers  │
+                          │         based on cost/risk/dependency      │
+                          │   - Spawns Manager Agents dynamically      │
+                          │   - Monitors Manager sessions              │
+                          │   - Owns the develop branch                │
+                          │     → Resolves feature conflicts           │
+                          │     → Adds integration tests if missing    │
+                          └────────────┬───────────────────────────────┘
+                                       │
+                        ┌──────────────┴──────────────┐
+                        │    Auto-selected Managers   │
+                        │ (by Dijkstra frontier size) │
+                        └──────────────┬──────────────┘
+                                       │
+             ┌─────────────────────────┴───────────────────────────┐
+             │                                                     │
+             ▼                                                     ▼
+   ┌──────────────────────┐                          ┌──────────────────────┐
+   │  Manager Agent #1    │                          │  Manager Agent #N    │
+   │  (Ticket #1)         │                          │  (Ticket #N)         │
+   │  - Designs architecture                           │  - Designs architecture               │
+   │  - Defines tests                                  │  - Defines tests                      │
+   │  - Reviews code                                   │  - Reviews code                       │
+   │  - Selects best implementation                    │  - Selects best implementation        │
+   │  - Monitors Coders                                │  - Monitors Coders                    │
+   │  - Runs evaluation function f(impl)               │  - Runs evaluation function f(impl)   │
+   │  - Merges best implementation                     │  - Merges best implementation         │
+   │  - Owns feature branch (function + quality)       │
+   └─────┬────────────────┘                          └─────┬────────────────┘
+         │                                                 │
+ ┌───────┼────────┐                                ┌───────┼────────┐
+ │       │        │                                │       │        │
+ ▼       ▼        ▼                                ▼       ▼        ▼
+┌────────┐┌────────┐┌────────┐               ┌────────┐┌────────┐┌────────┐
+│Coder #1││Coder #2││Coder #3│               │Coder #1││Coder #2││Coder #3│
+│(WT #1) ││(WT #2) ││(WT #3) │               │(WT #1) ││(WT #2) ││(WT #3) │
+│ - Work ││ - Work ││ - Work │               │ - Work ││ - Work ││ - Work │
+│ - Done ││ - Done ││ - Done │               │ - Done ││ - Done ││ - Done │
+│ - Responsible only for WT branch           │ - Can pull feature branch    │
+└────────┘└────────┘└────────┘               └────────┘└────────┘└────────┘
 ```
 
-**Branch Naming**:
-- `feature/<description>` - New features
-- `refactor/<description>` - Code refactoring
-- `fix/<description>` - Bug fixes
-- `hotfix/<description>` - Critical production fixes
+**Roles:**
+- **CEO (User)**: Provides vision and owns the release process
+- **CTO Agent**: Interprets vision, plans development, dynamically assigns Managers, oversees develop branch
+- **Manager Agents**: Govern specific tickets, evaluate multiple implementations from Coders
+- **Coder Agents**: Work in isolated worktrees, ensuring no conflicts across experiments
 
-### Creating Worktrees
+### Manager Evaluation Logic
+
+```
+                ┌───────────────────────────────┐
+                │   Manager Agent               │
+                │  (per ticket)                 │
+                └─────────────┬─────────────────┘
+                              │
+                ┌─────────────▼─────────────┐
+                │ Validate Implementation   │
+                │---------------------------│
+                │ 1. Spec Compliance        │
+                │ 2. Test Success (100%)    │
+                │ 3. Config Integrity       │
+                └─────────────┬─────────────┘
+                              │
+                      If All Pass ✔
+                              │
+                ┌─────────────▼─────────────┐
+                │ Compute Evaluation Score  │
+                │  f(impl) = Σ wᵢ·metricᵢ  │
+                │---------------------------│
+                │  Cohesion (LCOM4)         │
+                │  Coupling (CBO)           │
+                │  SOLID Avg Score          │
+                │  Test Coverage            │
+                │  Code Size Adequacy       │
+                │  Maintainability          │
+                └─────────────┬─────────────┘
+                              │
+                ┌─────────────▼─────────────┐
+                │ Select Highest-Scoring    │
+                │ Implementation            │
+                └─────────────┬─────────────┘
+                              │
+                ┌─────────────▼─────────────┐
+                │ Merge to Feature Branch   │
+                └────────────────────────────┘
+```
+
+**Evaluation Process:**
+- Each Manager validates all Coder submissions for a ticket
+- Validation gates: specification match, test success, environment integrity
+- Composite score f(impl) calculated using metric weights defined by Manager
+- Highest-scoring implementation merged to feature branch
+
+### Branch Strategy
+
+```
+CEO (Release/Main)
+          ▲
+          │
+   ┌──────┴──────┐
+   │ CTO (Develop)│
+   │ Integrates   │
+   │ multiple     │
+   │ feature branches
+   └──────┬──────┘
+          │
+  ┌───────┴────────┐
+  │ Manager Agents  │
+  │ (feature/*)     │
+  └──────┬──────────┘
+          │
+  ┌───────┴──────────┐
+  │ Coder Worktrees   │
+  │ (wt/*/*)          │
+  └───────────────────┘
+```
+
+**Branch Permissions:**
+- **Coders**: Can only modify their own worktree (`wt/<ticket>/<coder>`). May pull from feature branches but cannot push upstream
+- **Managers**: Own `feature/<ticket>` branches, ensure functional and quality integrity
+- **CTO**: Owns develop branch, integrates features, resolves merge conflicts, adds integration tests
+- **CEO**: Merges develop into main or release/*, finalizing production deployment
+
+### Bottom-Up Knowledge Strategy
+
+```
+┌────────────────────────┐
+│        Coders          │
+│------------------------│
+│ - Implement features    │
+│ - Retrieve knowledge via│
+│   web searches, docs,   │
+│   or external sources   │
+│ - Document findings and │
+│   learning points       │
+└───────────┬────────────┘
+            │ share upward
+            ▼
+┌────────────────────────┐
+│       Managers         │
+│------------------------│
+│ - Compare multiple      │
+│   implementations       │
+│ - Derive architecture   │
+│   and design insights   │
+│ - Summarize trade-offs  │
+│   and lessons learned   │
+└───────────┬────────────┘
+            │ consolidate
+            ▼
+┌────────────────────────┐
+│          CTO           │
+│------------------------│
+│ - Integrate technical   │
+│   documentation and     │
+│   current develop state │
+│ - Produce unified       │
+│   internal documents    │
+└───────────┬────────────┘
+            │ upward feedback
+            ▼
+┌────────────────────────┐
+│          CEO           │
+│------------------------│
+│ - Use documentation to  │
+│   refine product vision │
+│   and strategic goals   │
+└────────────────────────┘
+```
+
+**Knowledge Flow:**
+- Bottom-up: Coders → Managers → CTO → CEO
+- **Coders** actively research web, analyze open-source code, record findings in Markdown under `docs/coders/`
+- **Managers** extract architectural insights, identify design trade-offs, share summaries upward
+- **CTO** consolidates into formal internal documents (`docs/cto/`), synthesizing develop branch state
+- **CEO** reads summaries to adapt product direction and reinforce organizational feedback loop
+
+### Practical Implementation
+
+#### Creating Worktrees
 
 ```bash
 # Create worktree with new branch from develop
@@ -169,45 +342,16 @@ git worktree list
 git worktree remove ../wt-new-feature
 ```
 
-### Parallel Execution with AI Agents
-
-AI coding assistants (Claude Code, Codex, etc.) can work on multiple worktrees in parallel:
-
-**Single Worktree Execution**:
-```bash
-cd /path/to/wt-feature-a
-<ai-agent-command> --add-dir src/ --allow-file-operations --allow-bash
-```
-
-**Parallel Execution** (3 worktrees simultaneously):
-
-#### Method 1: Multiple Terminals
-```bash
-# Terminal 1
-cd /path/to/wt-feature-a
-<ai-agent-command> --add-dir src/ --allow-file-operations
-
-# Terminal 2
-cd /path/to/wt-feature-b
-<ai-agent-command> --add-dir src/ --allow-file-operations
-
-# Terminal 3
-cd /path/to/wt-refactor-c
-<ai-agent-command> --add-dir core/ --allow-file-operations
-```
-
-#### Method 2: Claude Code Task Tool (Recommended)
+#### Parallel Execution with Claude Code
 
 Claude Code can launch multiple subagents in parallel using **a single message with multiple Task tool invocations**.
 
-**Key principle**: All Task tools must be called in ONE message for true parallelism.
-
-**Example structure**:
+**Example: 3 Coders working simultaneously**
 ```
 Single message contains:
-  - Task 1 invocation (worktree A)
-  - Task 2 invocation (worktree B)
-  - Task 3 invocation (worktree C)
+  - Task 1 invocation (worktree A, Coder #1)
+  - Task 2 invocation (worktree B, Coder #2)
+  - Task 3 invocation (worktree C, Coder #3)
 
 Result: All 3 tasks execute simultaneously
 ```
@@ -222,22 +366,11 @@ Result: All 3 tasks execute simultaneously
 **Real-world example from this project**:
 Three UI implementation approaches were executed in parallel across three worktrees (wt-ui-phase1, wt-ui-phase2, wt-ui-phase3), each implementing different design philosophies simultaneously. All three completed with passing tests.
 
-#### Method 3: Background Execution with Logs
-```bash
-# Start all worktrees in background
-<ai-agent> -p "implement feature A" > logs/feature-a.log 2>&1 &
-<ai-agent> -p "implement feature B" > logs/feature-b.log 2>&1 &
-<ai-agent> -p "refactor C" > logs/refactor-c.log 2>&1 &
+#### Permission Flags for Automation
 
-# Monitor progress
-tail -f logs/feature-a.log
-```
+For autonomous execution without interactive prompts:
 
-### Permission Flags for Automation
-
-For autonomous execution without interactive prompts, use permission mode flags:
-
-- `--permission-mode bypassPermissions` - Bypass all permission checks for autonomous execution
+- `--permission-mode bypassPermissions` - Bypass all permission checks
 - `--permission-mode acceptEdits` - Auto-accept edit operations
 - `--dangerously-skip-permissions` - Alternative bypass flag (for sandboxes only)
 
@@ -245,48 +378,53 @@ For autonomous execution without interactive prompts, use permission mode flags:
 ```bash
 <ai-agent> --add-dir src/ \
           --permission-mode bypassPermissions \
-          -p "Read docs/issue.md and implement the complete solution. Create all files, make all changes, and run tests."
+          -p "Read docs/issue.md and implement the complete solution."
 ```
 
-### Worktree Best Practices
+### Workflow Example
+
+```bash
+# 1. CTO: Create worktrees for 3 Coders implementing the same feature
+git worktree add -b coder/ui-impl-1 ../wt-ui-1 develop
+git worktree add -b coder/ui-impl-2 ../wt-ui-2 develop
+git worktree add -b coder/ui-impl-3 ../wt-ui-3 develop
+
+# 2. Manager: Launch 3 Coders in parallel (Claude Code Task tool)
+#    Single message with 3 Task invocations
+
+# 3. Manager: Review implementations after completion
+git -C ../wt-ui-1 log --oneline -3
+git -C ../wt-ui-2 log --oneline -3
+git -C ../wt-ui-3 log --oneline -3
+
+# 4. Manager: Run tests and evaluate each implementation
+cd ../wt-ui-1 && cargo test && pnpm test
+cd ../wt-ui-2 && cargo test && pnpm test
+cd ../wt-ui-3 && cargo test && pnpm test
+
+# 5. Manager: Select best implementation and merge to feature branch
+git checkout -b feature/ui-improvements develop
+git merge coder/ui-impl-2  # Assuming impl-2 scored highest
+
+# 6. CTO: Merge feature branch to develop
+git checkout develop
+git merge feature/ui-improvements
+
+# 7. Clean up worktrees
+git worktree remove ../wt-ui-1
+git worktree remove ../wt-ui-2
+git worktree remove ../wt-ui-3
+```
+
+### Best Practices
 
 1. **Independence**: Only work on independent features in parallel
 2. **Communication**: Document what each worktree is working on
 3. **Sync Frequently**: Pull from develop regularly to stay in sync
 4. **Clean Up**: Remove worktrees after merging to avoid clutter
 5. **Test Isolation**: Run tests in each worktree independently
-
-### Workflow Example
-
-```bash
-# 1. Create worktrees for 3 independent features
-git worktree add -b feature/ui-improvements ../wt-ui develop
-git worktree add -b refactor/storage ../wt-storage develop
-git worktree add -b feature/ai-tools ../wt-ai develop
-
-# 2. Run AI agents in parallel (autonomous mode)
-cd ../wt-ui && <ai-agent> --allow-file-operations -p "implement UI improvements" &
-cd ../wt-storage && <ai-agent> --allow-file-operations -p "refactor storage layer" &
-cd ../wt-ai && <ai-agent> --allow-file-operations -p "add AI tool integration" &
-
-# 3. Wait for completion
-wait
-
-# 4. Review changes in each worktree
-git -C ../wt-ui status
-git -C ../wt-storage status
-git -C ../wt-ai status
-
-# 5. Commit and push from each worktree
-git -C ../wt-ui add <files> && git -C ../wt-ui commit -m "feat: ui improvements"
-git -C ../wt-storage add <files> && git -C ../wt-storage commit -m "refactor: storage layer"
-git -C ../wt-ai add <files> && git -C ../wt-ai commit -m "feat: ai tools"
-
-# 6. Clean up after merging
-git worktree remove ../wt-ui
-git worktree remove ../wt-storage
-git worktree remove ../wt-ai
-```
+6. **Manager Review**: Always have Manager evaluate before merging
+7. **CTO Integration**: Let CTO handle develop branch integration
 
 ### Troubleshooting
 
@@ -298,7 +436,6 @@ git worktree remove /path/to/worktree
 
 **Branch conflicts**:
 ```bash
-# Delete branch and recreate worktree
 git branch -D feature/name
 git worktree add -b feature/name ../wt-name develop
 ```
