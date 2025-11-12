@@ -3,26 +3,10 @@ import { useStore } from '@/core';
 import { socketService } from '@/services/socket';
 import { extractCodeBlocks } from '@/core/ai/codeBlockUtils';
 import { applyCodeChangeFile } from '@/services/fileService';
+import { buildPromptWithContext, createRequestId, REMOTE_FILE_ACTIONS } from '@/core/ai/utils';
 import type { AIMessage, CodeBlock } from '@shared/types';
 
-const REMOTE_FILE_ACTIONS = new Set(['create-file', 'delete-range', 'replace-range']);
 const STREAM_TIMEOUT_MS = 45000;
-
-const buildPromptWithContext = (
-  filepath: string,
-  editorContent: string,
-  userInput: string,
-): string => {
-  const fileLabel = filepath || 'current editor buffer';
-  return `Current file (${fileLabel}):\n\n\`\`\`r\n${editorContent}\n\`\`\`\n\n${userInput}`;
-};
-
-const createRequestId = (): string => {
-  if (typeof globalThis.crypto !== 'undefined' && typeof globalThis.crypto.randomUUID === 'function') {
-    return globalThis.crypto.randomUUID();
-  }
-  return `req-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-};
 
 export function useAIConversation() {
   const messages = useStore((state) => state.ai.messages);
