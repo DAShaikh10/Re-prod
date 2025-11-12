@@ -84,6 +84,27 @@ export interface CodeBlock {
   originalCode?: string;
 }
 
+export type PlanStepStatus = 'pending' | 'running' | 'done' | 'error';
+
+export interface PlanStep {
+  id: string;
+  title: string;
+  status: PlanStepStatus;
+}
+
+export type ToolCallStatus = 'pending' | 'running' | 'done' | 'error';
+
+export interface ToolCallLog {
+  id: string;
+  name: string;
+  status: ToolCallStatus;
+  input?: Record<string, unknown>;
+  output?: Record<string, unknown>;
+  error?: string;
+  startedAt?: number;
+  finishedAt?: number;
+}
+
 export interface AIResponse {
   message: string;
   suggestedCode?: string; // Deprecated: use codeBlocks instead
@@ -126,6 +147,10 @@ export interface AIMessage {
   content: string;
   code?: string; // Deprecated: use codeBlocks instead
   codeBlocks?: CodeBlock[];
+  planSteps?: PlanStep[];
+  toolLogs?: ToolCallLog[];
+  streamingId?: string;
+  isComplete?: boolean;
   timestamp: number;
 }
 
