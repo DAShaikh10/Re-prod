@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import Editor, { Monaco } from "@monaco-editor/react";
 import { IconPlay, IconPlayCircle } from "@/components/shared";
 import { useStore } from "@/core";
@@ -6,7 +6,7 @@ import { useEditorCells } from "@/hooks/useEditorCells";
 import { useEditorDecorations } from "@/hooks/useEditorDecorations";
 import { useEditorExecution } from "@/hooks/useEditorExecution";
 import type { editor as MonacoEditor } from "monaco-editor";
-import type { CodeBlock } from "@shared/types";
+import type { CodeBlock, CodeRange } from "@shared/types";
 
 export function EditorPanel(): JSX.Element {
   const editor = useStore((state) => state.editor);
@@ -41,61 +41,86 @@ export function EditorPanel(): JSX.Element {
   };
 
   // Apply code changes from AI
-  const applyCodeChange = (codeBlock: CodeBlock): void => {
-    const monacoEditor = editorRef.current;
-    if (!monacoEditor) {
-      console.error("Editor not ready");
-      return;
-    }
+  const applyCodeChange = useCallback(
+    (codeBlock: CodeBlock): void => {
+      const monacoEditor = editorRef.current;
+      if (!monacoEditor) {
+        console.error("Editor not ready");
+        return;
+      }
 
-    const model = monacoEditor.getModel();
-    if (!model) return;
+      const model = monacoEditor.getModel();
+      if (!model) {
+        return;
+      }
 
-    if (codeBlock.action === "replace-all") {
-      // Replace entire editor content
-      monacoEditor.setValue(codeBlock.code);
-      setEditorContent(codeBlock.code);
-    } else if (codeBlock.action === "replace-lines" && codeBlock.targetLines) {
-      // Replace specific lines
-      const { start, end } = codeBlock.targetLines;
+      const clampLine = (line: number): number =>
+        Math.min(Math.max(line, 1), model.getLineCount());
 
-      const range = {
-        startLineNumber: start,
-        startColumn: 1,
-        endLineNumber: end,
-        endColumn: model.getLineMaxColumn(end),
+      const clampColumn = (line: number, column?: number): number => {
+        const maxColumn = model.getLineMaxColumn(line);
+        const requested = column ?? 1;
+        return Math.min(Math.max(requested, 1), maxColumn);
       };
 
-      monacoEditor.executeEdits("ai-apply", [
-        {
-          range: range,
-          text: codeBlock.code,
-        },
-      ]);
-
-      // Update store with new content
-      setEditorContent(monacoEditor.getValue());
-    } else if (codeBlock.action === "insert-at-cursor") {
-      // Insert at current cursor position
-      const position = monacoEditor.getPosition();
-      if (position) {
-        monacoEditor.executeEdits("ai-insert", [
+      const applyRange = (range: CodeRange, text: string): void => {
+        monacoEditor.executeEdits("ai-apply", [
           {
             range: {
-              startLineNumber: position.lineNumber,
-              startColumn: position.column,
-              endLineNumber: position.lineNumber,
-              endColumn: position.column,
+              startLineNumber: clampLine(range.startLine),
+              startColumn: clampColumn(range.startLine, range.startColumn),
+              endLineNumber: clampLine(range.endLine),
+              endColumn: clampColumn(range.endLine, range.endColumn),
             },
-            text: codeBlock.code,
+            text,
           },
         ]);
-
-        // Update store
         setEditorContent(monacoEditor.getValue());
+      };
+
+      switch (codeBlock.action) {
+        case "replace-all":
+          monacoEditor.setValue(codeBlock.code);
+          setEditorContent(codeBlock.code);
+          break;
+        case "replace-range":
+          if (codeBlock.targetRange) {
+            applyRange(codeBlock.targetRange, codeBlock.code);
+          } else {
+            console.warn("Missing target range for replace-range");
+          }
+          break;
+        case "delete-range":
+          if (codeBlock.targetRange) {
+            applyRange(codeBlock.targetRange, "");
+          } else {
+            console.warn("Missing target range for delete-range");
+          }
+          break;
+        case "insert-at-cursor": {
+          const position = monacoEditor.getPosition();
+          if (position) {
+            applyRange(
+              {
+                startLine: position.lineNumber,
+                startColumn: position.column,
+                endLine: position.lineNumber,
+                endColumn: position.column,
+              },
+              codeBlock.code,
+            );
+          }
+          break;
+        }
+        case "create-file":
+          console.info("create-file action will be handled by file service");
+          break;
+        default:
+          console.warn("Unknown code block action", codeBlock.action);
       }
-    }
-  };
+    },
+    [setEditorContent],
+  );
 
   useEffect(() => {
     setApplyCodeChange(applyCodeChange);

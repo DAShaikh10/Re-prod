@@ -20,12 +20,31 @@ export function CodeBlockWithApply({ codeBlock, onApply }: Props): JSX.Element {
   };
 
   const getActionLabel = (): string => {
+    const targetFile = codeBlock.filepath ? codeBlock.filepath : 'active editor';
+
     if (codeBlock.action === 'replace-all') {
-      return 'Replace all editor content';
-    } else if (codeBlock.action === 'replace-lines' && codeBlock.targetLines) {
-      return `Replace lines ${codeBlock.targetLines.start}-${codeBlock.targetLines.end}`;
+      return `Replace entire ${targetFile}`;
     }
-    return 'Insert at cursor';
+
+    if (codeBlock.action === 'replace-range' && codeBlock.targetRange) {
+      const { startLine, startColumn, endLine, endColumn } = codeBlock.targetRange;
+      return `Replace ${targetFile} ${startLine}:${startColumn}-${endLine}:${endColumn}`;
+    }
+
+    if (codeBlock.action === 'delete-range' && codeBlock.targetRange) {
+      const { startLine, endLine } = codeBlock.targetRange;
+      return `Delete ${targetFile} lines ${startLine}-${endLine}`;
+    }
+
+    if (codeBlock.action === 'create-file' && codeBlock.filepath) {
+      return `Create file ${codeBlock.filepath}`;
+    }
+
+    if (codeBlock.action === 'insert-at-cursor') {
+      return `Insert at cursor in ${targetFile}`;
+    }
+
+    return 'Apply suggested change';
   };
 
   return (
@@ -40,7 +59,9 @@ export function CodeBlockWithApply({ codeBlock, onApply }: Props): JSX.Element {
       <div className="code-block">
         <div className="code-header">
           <span className="code-language">R</span>
-          <span className="code-target">{getActionLabel()}</span>
+          <span className="code-target">
+            {codeBlock.filepath ? `${codeBlock.filepath}` : 'Current file'} • {getActionLabel()}
+          </span>
         </div>
 
         <pre className="code-content">
