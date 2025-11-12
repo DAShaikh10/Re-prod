@@ -28,7 +28,12 @@ export function ExportDialog({ open, onClose }: ExportDialogProps): JSX.Element 
     <div
       className="export-dialog-overlay"
       onClick={exporting ? undefined : onClose}
-      role="presentation"
+      tabIndex={-1}
+      onKeyDown={(e) => {
+        if (!exporting && e.key === 'Escape') {
+          onClose();
+        }
+      }}
     >
       <div
         className="export-dialog"
