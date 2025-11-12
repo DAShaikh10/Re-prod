@@ -1,15 +1,14 @@
-import { useState } from 'react';
-import { Allotment } from 'allotment';
-import 'allotment/dist/style.css';
-import { MenuBar, StatusBar } from '@/components/menu';
-import { EditorPanel } from '@/components/editor';
-import { AIPanel } from '@/components/ai-panel';
-import { ConsolePanel } from '@/components/console';
-import { UnifiedRightPane } from '@/components/unified-pane';
-import { ExportDialog } from '@/components/export';
-import { useStore } from '@/core';
-import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
-import { useSocketConnection } from '@/hooks/useSocketConnection';
+import { useState } from "react";
+import { Allotment } from "allotment";
+import "allotment/dist/style.css";
+import { MenuBar, StatusBar } from "@/components/menu";
+import { EditorPanel } from "@/components/editor";
+import { AIPanel } from "@/components/ai-panel";
+import { BottomPane } from "@/components/bottom-pane";
+import { ExportDialog } from "@/components/export";
+import { useStore } from "@/core";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { useSocketConnection } from "@/hooks/useSocketConnection";
 
 function App(): JSX.Element {
   const panes = useStore((state) => state.view.panes);
@@ -26,35 +25,36 @@ function App(): JSX.Element {
     <div className="app">
       <MenuBar />
       <div className="workspace-shell">
-        <Allotment vertical>
-          <Allotment.Pane minSize={300} preferredSize="70%">
-            <Allotment>
-              {panes.editor && (
-                <Allotment.Pane minSize={400} preferredSize="60%">
+        <Allotment>
+          {/* Left side: Editor + Bottom Pane */}
+          {panes.editor && (
+            <Allotment.Pane minSize={400} preferredSize="60%">
+              <Allotment vertical>
+                <Allotment.Pane minSize={300} preferredSize="65%">
                   <EditorPanel />
                 </Allotment.Pane>
-              )}
-              <Allotment.Pane minSize={300} preferredSize={panes.editor ? '40%' : '100%'}>
-                <AIPanel />
-              </Allotment.Pane>
-            </Allotment>
-          </Allotment.Pane>
-          <Allotment.Pane minSize={150} preferredSize="30%">
-            <Allotment>
-              {panes.console && (
-                <Allotment.Pane minSize={250} preferredSize="50%">
-                  <ConsolePanel />
+                <Allotment.Pane minSize={150} preferredSize="35%">
+                  <BottomPane />
                 </Allotment.Pane>
-              )}
-              <Allotment.Pane minSize={250} preferredSize={panes.console ? '50%' : '100%'}>
-                <UnifiedRightPane />
-              </Allotment.Pane>
-            </Allotment>
+              </Allotment>
+            </Allotment.Pane>
+          )}
+          {/* Right side: AI Assistant (full height) */}
+          <Allotment.Pane
+            minSize={300}
+            preferredSize={panes.editor ? "40%" : "100%"}
+          >
+            <div className="ai-pane-wrapper">
+              <AIPanel />
+            </div>
           </Allotment.Pane>
         </Allotment>
       </div>
       <StatusBar />
-      <ExportDialog open={exportDialogOpen} onClose={() => setExportDialogOpen(false)} />
+      <ExportDialog
+        open={exportDialogOpen}
+        onClose={() => setExportDialogOpen(false)}
+      />
     </div>
   );
 }

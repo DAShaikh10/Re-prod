@@ -7,13 +7,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent } from 'react';
 import { useStore } from '@/core/state/store';
-import { menuActions } from '@/services/menuActions';
+import { useMenuSections } from '@/hooks/useMenuSections';
 import {
-  type MenuSection,
   type MenuItem,
   type MenuSectionComponentProps,
   type ConnectionIndicatorProps,
+  MenuSection,
 } from '@/types/menu';
+import { menuActions } from '@/services/menuActions';
 
 // Menu sections definition
 const menuSections: MenuSection[] = [
@@ -81,6 +82,7 @@ const menuSections: MenuSection[] = [
     label: 'Session',
     items: [
       { id: 'session:show-timeline', label: 'Show Timeline', shortcut: '⌘T', action: () => menuActions.session.showTimeline() },
+      { id: 'session:export-reproducible', label: 'Export Reproducible Package', action: () => menuActions.session.exportReproducible() },
       { type: 'separator' },
       { id: 'session:new', label: 'New Session', shortcut: '⌘⇧N', action: () => menuActions.session.new() },
       { id: 'session:save', label: 'Save Session...', action: () => menuActions.session.save() },
@@ -143,6 +145,7 @@ const menuSections: MenuSection[] = [
 
 export function MenuBar(): JSX.Element {
   const isConnected = useStore((state) => state.isConnected);
+  const menuSections = useMenuSections();
   const [openSection, setOpenSection] = useState<string | null>(null);
   const menubarRef = useRef<HTMLDivElement>(null);
 

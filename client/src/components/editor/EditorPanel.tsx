@@ -1,107 +1,53 @@
-import { useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import Editor, { Monaco } from "@monaco-editor/react";
 import { IconPlay, IconPlayCircle } from "@/components/shared";
+import { useStore } from "@/core";
+import { useEditorCells } from "@/hooks/useEditorCells";
+import { useEditorDecorations } from "@/hooks/useEditorDecorations";
+import { useEditorExecution } from "@/hooks/useEditorExecution";
+import { computeTargetRange, matchPatchChunk } from "@/core/ai/contextMatcher";
 import type { editor as MonacoEditor } from "monaco-editor";
-import {
-  useStore,
-  parseCells,
-  type Cell,
-  type ExecutionTarget,
-  getExecutionTarget,
-  getExecutionTargetAndNext,
-  getAllCode,
-  buildExecutionRequest,
-} from "@/core";
-import { executeRequest, ExecutionServiceError } from '@/services/executionService';
-import type { CodeBlock, ExecutionLogEntry } from "@shared/types";
+import type { CodeBlock, CodeRange } from "@shared/types";
+
+const confirmReplaceAll = (filepath?: string): boolean => {
+  if (typeof window === "undefined") {
+    return true;
+  }
+
+  const target = filepath ? `file ${filepath}` : "current editor";
+  return window.confirm(
+    `This AI suggestion will replace the entire ${target}. ` +
+      "Proceed only if you understand the change.",
+  );
+};
 
 export function EditorPanel(): JSX.Element {
   const editor = useStore((state) => state.editor);
   const execution = useStore((state) => state.execution);
   const settings = useStore((state) => state.settings);
   const setEditorContent = useStore((state) => state.setEditorContent);
-  const setEditorCursorPosition = useStore(
-    (state) => state.setEditorCursorPosition,
-  );
-  const setIsRunning = useStore((state) => state.setIsRunning);
+  const setEditorCursorPosition = useStore((state) => state.setEditorCursorPosition);
   const setApplyCodeChange = useStore((state) => state.setApplyCodeChange);
-  const addExecutionResult = useStore((state) => state.addExecutionResult);
-  const [cells, setCells] = useState<Cell[]>([]);
-  const [executingCellIndex, setExecutingCellIndex] = useState<number | null>(
-    null,
-  );
+  const setRunCurrentCell = useStore((state) => state.setRunCurrentCell);
+  const setRunAll = useStore((state) => state.setRunAll);
+  const setMonacoEditor = useStore((state) => state.setMonacoEditor);
+  const recordPatchMatchFailure = useStore((state) => state.recordPatchMatchFailure);
+  const recordPatchMatchSuccess = useStore((state) => state.recordPatchMatchSuccess);
   const editorRef = useRef<MonacoEditor.IStandaloneCodeEditor | null>(null);
-  const decorationsRef = useRef<string[]>([]);
 
-  // Parse cells when content changes
-  useEffect(() => {
-    const filename = editor.filepath || "Untitled.R";
-    const parsedCells = parseCells(editor.content, filename);
-    setCells(parsedCells);
-  }, [editor.content, editor.filepath]);
-
-  // Update decorations when cells change or settings change
-  useEffect(() => {
-    if (!editorRef.current) return;
-
-    const monacoEditor = editorRef.current;
-
-    // Clear old decorations
-    decorationsRef.current = monacoEditor.deltaDecorations(
-      decorationsRef.current,
-      [],
-    );
-
-    // Only show decorations if enabled
-    if (!settings.showCellDecorations) return;
-
-    const newDecorations: MonacoEditor.IModelDeltaDecoration[] = [];
-
-    cells.forEach((cell, index) => {
-      // Add line decoration at section boundaries
-      if (cell.startLine > 1) {
-        newDecorations.push({
-          range: {
-            startLineNumber: cell.startLine,
-            startColumn: 1,
-            endLineNumber: cell.startLine,
-            endColumn: 1,
-          },
-          options: {
-            isWholeLine: true,
-            linesDecorationsClassName: "cell-boundary-decoration",
-            overviewRuler: {
-              color: "#4285f4",
-              position: 4,
-            },
-          },
-        });
-      }
-
-      // Highlight executing cell
-      if (settings.highlightExecutingCell && executingCellIndex === index) {
-        newDecorations.push({
-          range: {
-            startLineNumber: cell.startLine,
-            startColumn: 1,
-            endLineNumber: cell.endLine,
-            endColumn: 1,
-          },
-          options: {
-            isWholeLine: true,
-            className: "executing-cell-background",
-          },
-        });
-      }
-    });
-
-    decorationsRef.current = monacoEditor.deltaDecorations([], newDecorations);
-  }, [
-    cells,
-    settings.showCellDecorations,
-    settings.highlightExecutingCell,
+  const cells = useEditorCells(editor.content, editor.filepath);
+  const {
     executingCellIndex,
-  ]);
+    handleRunAll,
+    handleRunCurrentCell,
+    handleRunCellAndMoveNext,
+  } = useEditorExecution({ editorRef, cells });
+
+  useEditorDecorations(editorRef, cells, {
+    showCellDecorations: settings.showCellDecorations,
+    highlightExecutingCell: settings.highlightExecutingCell,
+    executingCellIndex,
+  });
 
   const handleEditorChange = (value: string | undefined): void => {
     if (value !== undefined) {
@@ -109,168 +55,162 @@ export function EditorPanel(): JSX.Element {
     }
   };
 
-  const executeCode = async (target: ExecutionTarget): Promise<void> => {
-    setIsRunning(true);
-
-    if (target.cellIndex !== undefined) {
-      setExecutingCellIndex(target.cellIndex);
-    }
-
-    const request = buildExecutionRequest({
-      target,
-      cells,
-      documentContent: editor.content,
-      filepath: editor.filepath ?? undefined
-    });
-
-    try {
-      const { result } = await executeRequest(request);
-      const normalized: ExecutionLogEntry = {
-        stdout: result.output,
-        stderr: result.error || "",
-        plots: result.plots.map((plot) => ({
-          id: plot.filename || `plot-${plot.index}`,
-          path: plot.filename,
-          data: `data:image/png;base64,${plot.base64_data}`,
-          timestamp: Date.now(),
-        })),
-        timestamp: Date.now(),
-        duration: result.execution_time_ms,
-        success: result.success,
-      };
-      addExecutionResult(normalized);
-      console.log("Execution completed");
-    } catch (error) {
-      const message =
-        error instanceof ExecutionServiceError
-          ? error.message
-          : 'Execution failed due to an unexpected error.';
-
-      const normalized: ExecutionLogEntry = {
-        stdout: "",
-        stderr: message,
-        plots: [],
-        timestamp: Date.now(),
-        duration: 0,
-        success: false,
-      };
-      addExecutionResult(normalized);
-    } finally {
-      setExecutingCellIndex(null);
-      setIsRunning(false);
-    }
-  };
-
-  const handleRunAll = (): void => {
-    const code = getAllCode(editorRef.current);
-    if (code) {
-      void executeCode({
-        code,
-        source: 'whole-document'
-      });
-    }
-  };
-
-  const handleRunCurrentCell = (): void => {
-    const target = getExecutionTarget(
-      editorRef.current,
-      cells,
-      editor.cursorPosition.line,
-    );
-
-    if (target) {
-      void executeCode(target);
-    }
-  };
-
-  const handleRunCellAndMoveNext = (): void => {
-    const result = getExecutionTargetAndNext(
-      editorRef.current,
-      cells,
-      editor.cursorPosition.line,
-    );
-
-    if (!result) return;
-
-    // Execute the target (selection, cell, or whole document)
-    void executeCode(result.target);
-
-    // Only move to next cell if we executed a cell and there's a next cell
-    if (result.nextCell && editorRef.current) {
-      editorRef.current.setPosition({
-        lineNumber: result.nextCell.startLine,
-        column: 1,
-      });
-      editorRef.current.revealLineInCenter(result.nextCell.startLine);
-    }
-  };
-
   // Apply code changes from AI
-  const applyCodeChange = (codeBlock: CodeBlock): void => {
-    const monacoEditor = editorRef.current;
-    if (!monacoEditor) {
-      console.error("Editor not ready");
-      return;
-    }
+  const applyCodeChange = useCallback(
+    (codeBlock: CodeBlock): void => {
+      const monacoEditor = editorRef.current;
+      if (!monacoEditor) {
+        console.error("Editor not ready");
+        return;
+      }
 
-    const model = monacoEditor.getModel();
-    if (!model) return;
+      const model = monacoEditor.getModel();
+      if (!model) {
+        return;
+      }
 
-    if (codeBlock.action === "replace-all") {
-      // Replace entire editor content
-      monacoEditor.setValue(codeBlock.code);
-      setEditorContent(codeBlock.code);
-    } else if (codeBlock.action === "replace-lines" && codeBlock.targetLines) {
-      // Replace specific lines
-      const { start, end } = codeBlock.targetLines;
+      const clampLine = (line: number): number =>
+        Math.min(Math.max(line, 1), model.getLineCount());
 
-      const range = {
-        startLineNumber: start,
-        startColumn: 1,
-        endLineNumber: end,
-        endColumn: model.getLineMaxColumn(end),
+      const clampColumn = (line: number, column?: number): number => {
+        const maxColumn = model.getLineMaxColumn(line);
+        const requested = column ?? 1;
+        return Math.min(Math.max(requested, 1), maxColumn);
       };
 
-      monacoEditor.executeEdits("ai-apply", [
-        {
-          range: range,
-          text: codeBlock.code,
-        },
-      ]);
+      const editorContent = monacoEditor.getValue();
 
-      // Update store with new content
-      setEditorContent(monacoEditor.getValue());
-    } else if (codeBlock.action === "insert-at-cursor") {
-      // Insert at current cursor position
-      const position = monacoEditor.getPosition();
-      if (position) {
-        monacoEditor.executeEdits("ai-insert", [
+      const resolveTargetRange = (): CodeRange | undefined => {
+        if (codeBlock.targetRange) {
+          return codeBlock.targetRange;
+        }
+
+        if (codeBlock.originalCode) {
+          return computeTargetRange(editorContent, codeBlock.originalCode) ?? undefined;
+        }
+
+        return undefined;
+      };
+
+      const applyRange = (range: CodeRange, text: string): void => {
+        monacoEditor.executeEdits("ai-apply", [
           {
             range: {
-              startLineNumber: position.lineNumber,
-              startColumn: position.column,
-              endLineNumber: position.lineNumber,
-              endColumn: position.column,
+              startLineNumber: clampLine(range.startLine),
+              startColumn: clampColumn(range.startLine, range.startColumn),
+              endLineNumber: clampLine(range.endLine),
+              endColumn: clampColumn(range.endLine, range.endColumn),
             },
-            text: codeBlock.code,
+            text,
           },
         ]);
-
-        // Update store
         setEditorContent(monacoEditor.getValue());
-      }
-    }
-  };
+      };
 
-  const setRunCurrentCell = useStore((state) => state.setRunCurrentCell);
-  const setRunAll = useStore((state) => state.setRunAll);
-  const setMonacoEditor = useStore((state) => state.setMonacoEditor);
+      const applyPatchChunks = (): boolean => {
+        if (!codeBlock.patchChunks?.length) {
+          return false;
+        }
+
+        const content = monacoEditor.getValue();
+        for (const chunk of codeBlock.patchChunks) {
+          const range = matchPatchChunk(content, chunk);
+          if (!range) {
+            console.warn("Unable to find context for patch chunk", chunk.context);
+            recordPatchMatchFailure(
+              `Unable to match patch chunk: ${chunk.context ?? 'missing context'}`,
+              codeBlock.id,
+            );
+            return false;
+          }
+
+          applyRange(range, chunk.newLines.join("\n"));
+        }
+
+        recordPatchMatchSuccess();
+        return true;
+      };
+
+      const applyRangeChange = (text: string, alertOnFail = true): boolean => {
+        const range = resolveTargetRange();
+        if (!range) {
+          if (alertOnFail) {
+            console.warn("Missing target range for AI apply action", codeBlock.action);
+            recordPatchMatchFailure(
+              `Missing target range for ${codeBlock.action}`,
+              codeBlock.id,
+            );
+            if (typeof window !== "undefined") {
+              window.alert(
+                "Unable to locate the suggested context in the current editor. " +
+                  "Try running the suggestion again after scrolling the intended section into view.",
+              );
+            }
+          }
+          return false;
+        }
+
+        applyRange(range, text);
+        recordPatchMatchSuccess();
+        return true;
+      };
+
+      switch (codeBlock.action) {
+        case "replace-all": {
+          const appliedRange = applyRangeChange(codeBlock.code, false);
+          if (appliedRange) {
+            break;
+          }
+
+          if (confirmReplaceAll(codeBlock.filepath)) {
+            monacoEditor.setValue(codeBlock.code);
+            setEditorContent(codeBlock.code);
+          }
+          break;
+        }
+        case "replace-range":
+          if (!applyPatchChunks()) {
+            applyRangeChange(codeBlock.code);
+          }
+          break;
+        case "delete-range":
+          if (!applyPatchChunks()) {
+            applyRangeChange("");
+          }
+          break;
+        case "insert-at-cursor": {
+          const position = monacoEditor.getPosition();
+          if (position) {
+            applyRange(
+              {
+                startLine: position.lineNumber,
+                startColumn: position.column,
+                endLine: position.lineNumber,
+                endColumn: position.column,
+              },
+              codeBlock.code,
+            );
+          }
+          break;
+        }
+        case "create-file":
+          console.info("create-file action will be handled by file service");
+          break;
+        default:
+          console.warn("Unknown code block action", codeBlock.action);
+      }
+    },
+    [setEditorContent],
+  );
 
   useEffect(() => {
     setApplyCodeChange(applyCodeChange);
+  }, [applyCodeChange, setApplyCodeChange]);
+
+  useEffect(() => {
     setRunCurrentCell(handleRunCurrentCell);
     setRunAll(handleRunAll);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [handleRunCurrentCell, handleRunAll, setRunCurrentCell, setRunAll]);
 
   const handleEditorDidMount = (
     monacoEditor: MonacoEditor.IStandaloneCodeEditor,
