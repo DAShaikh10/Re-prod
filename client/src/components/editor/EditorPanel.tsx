@@ -5,7 +5,7 @@ import { useStore } from "@/core";
 import { useEditorCells } from "@/hooks/useEditorCells";
 import { useEditorDecorations } from "@/hooks/useEditorDecorations";
 import { useEditorExecution } from "@/hooks/useEditorExecution";
-import { computeTargetRange } from "@/core/ai/contextMatcher";
+import { computeTargetRange, matchPatchChunk } from "@/core/ai/contextMatcher";
 import type { editor as MonacoEditor } from "monaco-editor";
 import type { CodeBlock, CodeRange } from "@shared/types";
 
@@ -31,6 +31,8 @@ export function EditorPanel(): JSX.Element {
   const setRunCurrentCell = useStore((state) => state.setRunCurrentCell);
   const setRunAll = useStore((state) => state.setRunAll);
   const setMonacoEditor = useStore((state) => state.setMonacoEditor);
+  const recordPatchMatchFailure = useStore((state) => state.recordPatchMatchFailure);
+  const recordPatchMatchSuccess = useStore((state) => state.recordPatchMatchSuccess);
   const editorRef = useRef<MonacoEditor.IStandaloneCodeEditor | null>(null);
 
   const cells = useEditorCells(editor.content, editor.filepath);
@@ -105,11 +107,39 @@ export function EditorPanel(): JSX.Element {
         setEditorContent(monacoEditor.getValue());
       };
 
+      const applyPatchChunks = (): boolean => {
+        if (!codeBlock.patchChunks?.length) {
+          return false;
+        }
+
+        const content = monacoEditor.getValue();
+        for (const chunk of codeBlock.patchChunks) {
+          const range = matchPatchChunk(content, chunk);
+          if (!range) {
+            console.warn("Unable to find context for patch chunk", chunk.context);
+            recordPatchMatchFailure(
+              `Unable to match patch chunk: ${chunk.context ?? 'missing context'}`,
+              codeBlock.id,
+            );
+            return false;
+          }
+
+          applyRange(range, chunk.newLines.join("\n"));
+        }
+
+        recordPatchMatchSuccess();
+        return true;
+      };
+
       const applyRangeChange = (text: string, alertOnFail = true): boolean => {
         const range = resolveTargetRange();
         if (!range) {
           if (alertOnFail) {
             console.warn("Missing target range for AI apply action", codeBlock.action);
+            recordPatchMatchFailure(
+              `Missing target range for ${codeBlock.action}`,
+              codeBlock.id,
+            );
             if (typeof window !== "undefined") {
               window.alert(
                 "Unable to locate the suggested context in the current editor. " +
@@ -121,6 +151,7 @@ export function EditorPanel(): JSX.Element {
         }
 
         applyRange(range, text);
+        recordPatchMatchSuccess();
         return true;
       };
 
@@ -138,10 +169,14 @@ export function EditorPanel(): JSX.Element {
           break;
         }
         case "replace-range":
-          applyRangeChange(codeBlock.code);
+          if (!applyPatchChunks()) {
+            applyRangeChange(codeBlock.code);
+          }
           break;
         case "delete-range":
-          applyRangeChange("");
+          if (!applyPatchChunks()) {
+            applyRangeChange("");
+          }
           break;
         case "insert-at-cursor": {
           const position = monacoEditor.getPosition();
