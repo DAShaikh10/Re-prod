@@ -1,18 +1,23 @@
 import { useState } from 'react';
 import { IconClipboard, IconCheck, IconLightbulb } from '@/components/shared';
+import { CodeBlockDiffPreview } from './CodeBlockDiffPreview';
 import type { CodeBlock } from '@shared/types';
 
 interface Props {
   codeBlock: CodeBlock;
-  onApply: (codeBlock: CodeBlock) => void;
+  onApply: (codeBlock: CodeBlock) => Promise<void>;
 }
 
 export function CodeBlockWithApply({ codeBlock, onApply }: Props): JSX.Element {
   const [applied, setApplied] = useState(false);
 
-  const handleApply = (): void => {
-    onApply(codeBlock);
-    setApplied(true);
+  const handleApply = async (): Promise<void> => {
+    try {
+      await onApply(codeBlock);
+      setApplied(true);
+    } catch (error) {
+      console.error('Failed to apply code block', error);
+    }
   };
 
   const handleCopy = (): void => {
@@ -63,6 +68,8 @@ export function CodeBlockWithApply({ codeBlock, onApply }: Props): JSX.Element {
             {codeBlock.filepath ? `${codeBlock.filepath}` : 'Current file'} • {getActionLabel()}
           </span>
         </div>
+
+        <CodeBlockDiffPreview codeBlock={codeBlock} />
 
         <pre className="code-content">
           <code>{codeBlock.code}</code>

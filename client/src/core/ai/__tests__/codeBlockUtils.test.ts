@@ -17,7 +17,7 @@ Here is the patch:
     "endLine": 7,
     "endColumn": 1
   },
-  "code": "print(\'fixed\')",
+  "code": "print('fixed')",
   "explanation": "Fixes edge case"
 }
 ```
