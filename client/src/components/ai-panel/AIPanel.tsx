@@ -1,7 +1,6 @@
 import { useRef, useEffect } from 'react';
 import { IconSend, IconSquare } from '@/components/shared';
-import { CodeBlockWithApply } from './CodeBlockWithApply';
-import type { CodeBlock } from '@shared/types';
+import { StreamingMessage } from './StreamingMessage';
 import { useAIConversation } from '@/hooks/useAIConversation';
 
 export function AIPanel(): JSX.Element {
@@ -43,44 +42,23 @@ export function AIPanel(): JSX.Element {
           ) : (
             <>
               {messages.map((message) => (
-                <div key={message.id} className={`message message-${message.role}`}>
-                  <div className="message-header">
-                    <span className="message-role">
-                      {message.role === 'user' ? 'You' : 'AI'}
-                    </span>
-                  </div>
-                  <div className="message-content">
-                    {message.content}
-                  </div>
-                  {/* Legacy code display */}
-                  {message.code && !message.codeBlocks && (
-                    <div className="message-code">
-                      <pre><code>{message.code}</code></pre>
+                message.role === 'assistant' ? (
+                  <StreamingMessage
+                    key={message.id}
+                    message={message}
+                    onApplyCode={handleApplyCode}
+                  />
+                ) : (
+                  <div key={message.id} className="message message-user">
+                    <div className="message-header">
+                      <span className="message-role">You</span>
                     </div>
-                  )}
-                  {/* New code blocks with Apply buttons */}
-                  {message.codeBlocks && message.codeBlocks.length > 0 && (
-                    message.codeBlocks.map((codeBlock: CodeBlock) => (
-                      <CodeBlockWithApply
-                        key={codeBlock.id}
-                        codeBlock={codeBlock}
-                        onApply={handleApplyCode}
-                      />
-                    ))
-                  )}
-                </div>
+                    <div className="message-content">
+                      {message.content}
+                    </div>
+                  </div>
+                )
               ))}
-              {isLoading && (
-                <div className="message message-assistant">
-                  <div className="message-header">
-                    <span className="message-role">AI</span>
-                  </div>
-                  <div className="message-content">
-                    <div className="spinner"></div>
-                    Thinking...
-                  </div>
-                </div>
-              )}
               <div ref={messagesEndRef} />
             </>
           )}

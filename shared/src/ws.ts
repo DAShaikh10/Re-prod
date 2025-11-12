@@ -1,8 +1,11 @@
 import type { ToolManifest } from './tools';
 import type {
   ChatMessagePayload,
+  CodeBlock,
   ExecutionRequestPayload,
   ExecutionResultPayload,
+  PlanStep,
+  ToolCallLog,
   ToolExecutionRequestPayload,
 } from './types';
 import type { TimelineMessage, TimelineQuery, TimelineResponse, TimelineStats } from './timeline';
@@ -39,7 +42,13 @@ export interface ExportRMarkdownResponsePayload {
 
 export type ClientMessage =
   | { type: 'execute'; request: ExecutionRequestPayload }
-  | { type: 'ai_message'; messages: ChatMessagePayload[]; enable_tools?: boolean }
+  | {
+      type: 'ai_message';
+      messages: ChatMessagePayload[];
+      enable_tools?: boolean;
+      request_id?: string;
+      stream?: boolean;
+    }
   | { type: 'list_tools' }
   | ({ type: 'execute_tool' } & ToolExecutionRequestPayload)
   | { type: 'timeline_query'; query: TimelineQuery }
@@ -55,6 +64,11 @@ export type ServerMessage =
   | { type: 'execution_result'; result: ExecutionResultPayload }
   | { type: 'ai_response'; response: string }
   | { type: 'ai_response_with_tools'; response: { content: string; tool_calls?: Array<{ name: string; input: Record<string, any> }> } }
+  | { type: 'ai_response_chunk'; id: string; chunk: string }
+  | { type: 'ai_response_complete'; id: string; final: string; codeBlocks?: CodeBlock[] }
+  | { type: 'ai_plan_updated'; id: string; plan: PlanStep[] }
+  | { type: 'ai_tool_started'; id: string; tool: ToolCallLog }
+  | { type: 'ai_tool_finished'; id: string; tool: ToolCallLog }
   | { type: 'error'; message: string }
   | { type: 'tools'; tools: ToolManifest[] }
   | ({ type: 'tool_execution_result' } & ToolExecutionResponse)
