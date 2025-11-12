@@ -181,7 +181,7 @@ pub fn get_r_context_tools() -> Vec<Value> {
         }
     ])
     .as_array()
-    .unwrap()
+    .expect("get_r_context_tools: json! array literal should always be an array")
     .clone()
 }
 
