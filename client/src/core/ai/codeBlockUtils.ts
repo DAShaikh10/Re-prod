@@ -1,4 +1,6 @@
 import type { CodeBlock, CodeChangeAction, CodeRange } from '@shared/types';
+import { parsePatchFormat } from './patchParser';
+import type { PatchHunk } from './patchParser';
 
 const R_CODE_BLOCK_REGEX = /```(?:r|R)\n([\s\S]*?)\n```/g;
 const JSON_BLOCK_REGEX = /```json\n([\s\S]*?)\n```/g;
@@ -77,6 +79,32 @@ const parsePatchSnippet = (value: string): { originalCode: string; newCode: stri
     originalCode: originalLines.join('\n').trimEnd(),
     newCode: newLines.join('\n').trimEnd(),
   };
+};
+
+const buildCodeBlockFromPatch = (hunk: PatchHunk): CodeBlock | null => {
+  const newCode = hunk.chunks.flatMap((chunk) => chunk.newLines).join('\n').trimEnd();
+  const originalCode = hunk.chunks.flatMap((chunk) => chunk.oldLines).join('\n').trimEnd();
+
+  let action: CodeChangeAction = 'replace-range';
+  if (hunk.type === 'add') {
+    action = 'create-file';
+  } else if (hunk.type === 'delete') {
+    action = 'delete-range';
+  }
+
+  const codeBlock: CodeBlock = {
+    id: `patch-${Date.now()}-${hunk.filepath}`,
+    code: newCode,
+    language: 'r',
+    action,
+    filepath: hunk.filepath,
+  };
+
+  if (originalCode) {
+    codeBlock.originalCode = originalCode;
+  }
+
+  return codeBlock;
 };
 
 const normalizeCodeBlock = (raw: Record<string, unknown>): CodeBlock | null => {
@@ -165,6 +193,13 @@ const parseJsonBlocks = (text: string): { blocks: CodeBlock[]; ranges: Array<{ s
 };
 
 export function extractCodeBlocks(text: string): CodeBlock[] {
+  const patchHunks = parsePatchFormat(text);
+  if (patchHunks.length > 0) {
+    return patchHunks
+      .map(buildCodeBlockFromPatch)
+      .filter((block): block is CodeBlock => block !== null);
+  }
+
   const codeBlocks: CodeBlock[] = [];
   const { blocks: jsonBlocks, ranges: jsonRanges } = parseJsonBlocks(text);
   codeBlocks.push(...jsonBlocks);
