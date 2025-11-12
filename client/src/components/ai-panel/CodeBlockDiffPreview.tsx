@@ -5,6 +5,7 @@ import type { CodeBlock, CodeRange } from '@shared/types';
 
 interface Props {
   codeBlock: CodeBlock;
+  onRetry?: () => void;
 }
 
 function sliceContent(content: string, range: CodeRange): string {
@@ -26,11 +27,11 @@ function sliceContent(content: string, range: CodeRange): string {
   return selected.join('\n');
 }
 
-export function CodeBlockDiffPreview({ codeBlock }: Props): JSX.Element | null {
+export function CodeBlockDiffPreview({ codeBlock, onRetry }: Props): JSX.Element | null {
   const editorContent = useStore((state) => state.editor.content);
   const editorFilepath = useStore((state) => state.editor.filepath);
 
-  const { baseline, isStale } = useMemo(() => {
+  const { baseline, isStale, lineDelta } = useMemo(() => {
     const localSlice =
       codeBlock.targetRange && (!codeBlock.filepath || codeBlock.filepath === editorFilepath)
         ? sliceContent(editorContent, codeBlock.targetRange)
@@ -42,6 +43,14 @@ export function CodeBlockDiffPreview({ codeBlock }: Props): JSX.Element | null {
     return {
       baseline: original,
       isStale: stale,
+      lineDelta: (() => {
+        if (!original) {
+          return codeBlock.code ? codeBlock.code.split(/\r?\n/).length : 0;
+        }
+        const originalLines = original.split(/\r?\n/);
+        const newLines = codeBlock.code ? codeBlock.code.split(/\r?\n/): [];
+        return Math.abs(newLines.length - originalLines.length);
+      })(),
     };
   }, [codeBlock, editorContent, editorFilepath]);
 
@@ -54,6 +63,16 @@ export function CodeBlockDiffPreview({ codeBlock }: Props): JSX.Element | null {
       {isStale && (
         <div className="code-diff-warning" data-testid="code-diff-warning" role="status">
           ⚠️ Editor content changed since this suggestion was generated.
+          {onRetry && (
+            <button
+              type="button"
+              className="btn btn-link"
+              onClick={onRetry}
+              data-testid="code-diff-retry"
+            >
+              Retry context match
+            </button>
+          )}
         </div>
       )}
       <DiffEditor
@@ -70,6 +89,11 @@ export function CodeBlockDiffPreview({ codeBlock }: Props): JSX.Element | null {
           scrollBeyondLastLine: false,
         }}
       />
+      <div className="code-diff-stats">
+        {lineDelta > 0
+          ? `Lines changed: ${lineDelta}`
+          : 'Lines unchanged'}
+      </div>
     </div>
   );
 }
