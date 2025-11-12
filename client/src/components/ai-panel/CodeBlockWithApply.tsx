@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { IconClipboard, IconCheck, IconLightbulb } from '@/components/shared';
 import { CodeBlockDiffPreview } from './CodeBlockDiffPreview';
 import type { CodeBlock } from '@shared/types';
@@ -10,11 +10,17 @@ interface Props {
 
 export function CodeBlockWithApply({ codeBlock, onApply }: Props): JSX.Element {
   const [applied, setApplied] = useState(false);
+  const [currentBlock, setCurrentBlock] = useState<CodeBlock>(codeBlock);
+
+  useEffect(() => {
+    setCurrentBlock(codeBlock);
+    setApplied(false);
+  }, [codeBlock]);
 
   const handleApply = async (): Promise<void> => {
     try {
-      await onApply(codeBlock);
-      setApplied(true);
+    await onApply(currentBlock);
+    setApplied(true);
     } catch (error) {
       console.error('Failed to apply code block', error);
     }
@@ -52,8 +58,15 @@ export function CodeBlockWithApply({ codeBlock, onApply }: Props): JSX.Element {
     return 'Apply suggested change';
   };
 
+  const handleRetry = (): void => {
+    setCurrentBlock((prev) => ({
+      ...prev,
+      targetRange: undefined,
+    }));
+  };
+
   return (
-    <div className="code-block-container">
+      <div className="code-block-container">
       {codeBlock.explanation && (
         <div className="code-explanation">
           <IconLightbulb width={16} height={16} aria-hidden />
@@ -69,10 +82,10 @@ export function CodeBlockWithApply({ codeBlock, onApply }: Props): JSX.Element {
           </span>
         </div>
 
-        <CodeBlockDiffPreview codeBlock={codeBlock} />
+          <CodeBlockDiffPreview codeBlock={currentBlock} onRetry={handleRetry} />
 
         <pre className="code-content">
-          <code>{codeBlock.code}</code>
+          <code>{currentBlock.code}</code>
         </pre>
 
         <div className="code-actions">
