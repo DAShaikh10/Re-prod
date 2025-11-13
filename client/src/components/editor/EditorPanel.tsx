@@ -1,25 +1,14 @@
 import { useCallback, useEffect, useRef } from "react";
 import Editor, { Monaco } from "@monaco-editor/react";
-import { IconPlay, IconPlayCircle } from "@/components/shared";
+import { IconPlay, IconPlayCircle, ConfirmDialog } from "@/components/shared";
 import { useStore } from "@/core";
 import { useEditorCells } from "@/hooks/useEditorCells";
 import { useEditorDecorations } from "@/hooks/useEditorDecorations";
 import { useEditorExecution } from "@/hooks/useEditorExecution";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { computeTargetRange, matchPatchChunk } from "@/core/ai/contextMatcher";
 import type { editor as MonacoEditor } from "monaco-editor";
 import type { CodeBlock, CodeRange } from "@shared/types";
-
-const confirmReplaceAll = (filepath?: string): boolean => {
-  if (typeof window === "undefined") {
-    return true;
-  }
-
-  const target = filepath ? `file ${filepath}` : "current editor";
-  return window.confirm(
-    `This AI suggestion will replace the entire ${target}. ` +
-      "Proceed only if you understand the change.",
-  );
-};
 
 export function EditorPanel(): JSX.Element {
   const editor = useStore((state) => state.editor);
@@ -34,6 +23,7 @@ export function EditorPanel(): JSX.Element {
   const recordPatchMatchFailure = useStore((state) => state.recordPatchMatchFailure);
   const recordPatchMatchSuccess = useStore((state) => state.recordPatchMatchSuccess);
   const editorRef = useRef<MonacoEditor.IStandaloneCodeEditor | null>(null);
+  const { dialogState, showConfirm, handleConfirm, handleCancel } = useConfirmDialog();
 
   const cells = useEditorCells(editor.content, editor.filepath);
   const {
@@ -162,10 +152,17 @@ export function EditorPanel(): JSX.Element {
             break;
           }
 
-          if (confirmReplaceAll(codeBlock.filepath)) {
-            monacoEditor.setValue(codeBlock.code);
-            setEditorContent(codeBlock.code);
-          }
+          // Show confirmation dialog asynchronously
+          const target = codeBlock.filepath ? `file ${codeBlock.filepath}` : "current editor";
+          showConfirm(
+            "Confirm Replace All",
+            `This AI suggestion will replace the entire ${target}. Proceed only if you understand the change.`
+          ).then((confirmed) => {
+            if (confirmed) {
+              monacoEditor.setValue(codeBlock.code);
+              setEditorContent(codeBlock.code);
+            }
+          });
           break;
         }
         case "replace-range":
@@ -200,7 +197,7 @@ export function EditorPanel(): JSX.Element {
           console.warn("Unknown code block action", codeBlock.action);
       }
     },
-    [setEditorContent],
+    [setEditorContent, showConfirm, recordPatchMatchFailure, recordPatchMatchSuccess],
   );
 
   useEffect(() => {
@@ -251,69 +248,78 @@ export function EditorPanel(): JSX.Element {
   };
 
   return (
-    <div className="panel editor-panel">
-      <div className="panel-header">
-        <div className="panel-title">
-          {editor.filepath || "Untitled.R"}
-          {editor.isDirty && <span className="dirty-marker"> •</span>}
+    <>
+      <div className="panel editor-panel">
+        <div className="panel-header">
+          <div className="panel-title">
+            {editor.filepath || "Untitled.R"}
+            {editor.isDirty && <span className="dirty-marker"> •</span>}
+          </div>
+          <div className="panel-actions">
+            <button
+              className="btn"
+              onClick={handleRunCurrentCell}
+              disabled={execution.isRunning}
+              title="Run Current Cell (Cmd/Ctrl+Enter)"
+            >
+              <IconPlay width={16} height={16} aria-hidden />
+              Run Selection
+            </button>
+            <button
+              className="btn btn-primary"
+              onClick={handleRunAll}
+              disabled={execution.isRunning}
+              title="Run All (Cmd/Ctrl+Shift+Enter)"
+            >
+              {execution.isRunning ? (
+                <>
+                  <div className="spinner"></div>
+                  Running
+                </>
+              ) : (
+                <>
+                  <IconPlayCircle width={16} height={16} aria-hidden />
+                  Run All
+                </>
+              )}
+            </button>
+          </div>
         </div>
-        <div className="panel-actions">
-          <button
-            className="btn"
-            onClick={handleRunCurrentCell}
-            disabled={execution.isRunning}
-            title="Run Current Cell (Cmd/Ctrl+Enter)"
-          >
-            <IconPlay width={16} height={16} aria-hidden />
-            Run Selection
-          </button>
-          <button
-            className="btn btn-primary"
-            onClick={handleRunAll}
-            disabled={execution.isRunning}
-            title="Run All (Cmd/Ctrl+Shift+Enter)"
-          >
-            {execution.isRunning ? (
-              <>
-                <div className="spinner"></div>
-                Running
-              </>
-            ) : (
-              <>
-                <IconPlayCircle width={16} height={16} aria-hidden />
-                Run All
-              </>
-            )}
-          </button>
+        <div className="panel-content">
+          <Editor
+            height="100%"
+            defaultLanguage="r"
+            theme="vs"
+            value={editor.content}
+            onChange={handleEditorChange}
+            options={{
+              fontSize: 13,
+              fontFamily: "Monaco, Menlo, Consolas, monospace",
+              minimap: { enabled: false },
+              scrollBeyondLastLine: false,
+              wordWrap: "on",
+              lineNumbers: "on",
+              renderWhitespace: "selection",
+              tabSize: 2,
+              automaticLayout: true,
+              padding: { top: 8, bottom: 8 },
+              scrollbar: {
+                useShadows: false,
+                verticalScrollbarSize: 12,
+                horizontalScrollbarSize: 12,
+              },
+            }}
+            onMount={handleEditorDidMount}
+          />
         </div>
       </div>
-      <div className="panel-content">
-        <Editor
-          height="100%"
-          defaultLanguage="r"
-          theme="vs"
-          value={editor.content}
-          onChange={handleEditorChange}
-          options={{
-            fontSize: 13,
-            fontFamily: "Monaco, Menlo, Consolas, monospace",
-            minimap: { enabled: false },
-            scrollBeyondLastLine: false,
-            wordWrap: "on",
-            lineNumbers: "on",
-            renderWhitespace: "selection",
-            tabSize: 2,
-            automaticLayout: true,
-            padding: { top: 8, bottom: 8 },
-            scrollbar: {
-              useShadows: false,
-              verticalScrollbarSize: 12,
-              horizontalScrollbarSize: 12,
-            },
-          }}
-          onMount={handleEditorDidMount}
-        />
-      </div>
-    </div>
+      <ConfirmDialog
+        open={dialogState.open}
+        title={dialogState.title}
+        message={dialogState.message}
+        onConfirm={handleConfirm}
+        onCancel={handleCancel}
+      />
+    </>
   );
 }
