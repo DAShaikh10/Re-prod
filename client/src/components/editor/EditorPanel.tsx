@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useRef } from "react";
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+} from "react";
+import type { ForwardedRef } from "react";
 import Editor, { Monaco } from "@monaco-editor/react";
 import { IconPlay, IconPlayCircle, ConfirmDialog } from "@/components/shared";
 import { useStore } from "@/core";
@@ -9,8 +17,9 @@ import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { computeTargetRange, matchPatchChunk } from "@/core/ai/contextMatcher";
 import type { editor as MonacoEditor } from "monaco-editor";
 import type { CodeBlock, CodeRange } from "@shared/types";
+import type { EditorRef } from "./editorRef";
 
-export function EditorPanel(): JSX.Element {
+function EditorPanelComponent(_: unknown, ref: ForwardedRef<EditorRef>): JSX.Element {
   const editor = useStore((state) => state.editor);
   const execution = useStore((state) => state.execution);
   const settings = useStore((state) => state.settings);
@@ -20,9 +29,11 @@ export function EditorPanel(): JSX.Element {
   const setRunCurrentCell = useStore((state) => state.setRunCurrentCell);
   const setRunAll = useStore((state) => state.setRunAll);
   const setMonacoEditor = useStore((state) => state.setMonacoEditor);
+  const setEditorRef = useStore((state) => state.setEditorRef);
   const recordPatchMatchFailure = useStore((state) => state.recordPatchMatchFailure);
   const recordPatchMatchSuccess = useStore((state) => state.recordPatchMatchSuccess);
-  const editorRef = useRef<MonacoEditor.IStandaloneCodeEditor | null>(null);
+  const editorMethodsRef = useRef<EditorRef | null>(null);
+  const monacoEditorRef = useRef<MonacoEditor.IStandaloneCodeEditor | null>(null);
   const { dialogState, showConfirm, handleConfirm, handleCancel } = useConfirmDialog();
 
   const cells = useEditorCells(editor.content, editor.filepath);
@@ -31,9 +42,9 @@ export function EditorPanel(): JSX.Element {
     handleRunAll,
     handleRunCurrentCell,
     handleRunCellAndMoveNext,
-  } = useEditorExecution({ editorRef, cells });
+  } = useEditorExecution({ editorRef: monacoEditorRef, cells });
 
-  useEditorDecorations(editorRef, cells, {
+  useEditorDecorations(monacoEditorRef, cells, {
     showCellDecorations: settings.showCellDecorations,
     highlightExecutingCell: settings.highlightExecutingCell,
     executingCellIndex,
@@ -45,10 +56,47 @@ export function EditorPanel(): JSX.Element {
     }
   };
 
+  const navigateToLine = useCallback((lineNumber: number): void => {
+    const monacoEditor = monacoEditorRef.current;
+    if (!monacoEditor) {
+      return;
+    }
+
+    const model = monacoEditor.getModel();
+    if (!model) {
+      return;
+    }
+
+    const clampLine = Math.min(Math.max(lineNumber, 1), model.getLineCount());
+    monacoEditor.revealLine(clampLine);
+    monacoEditor.setPosition({ lineNumber: clampLine, column: 1 });
+    monacoEditor.focus();
+  }, []);
+
+  const focusEditor = useCallback((): void => {
+    const monacoEditor = monacoEditorRef.current;
+    if (!monacoEditor) {
+      return;
+    }
+
+    monacoEditor.focus();
+  }, []);
+
+  const editorMethods = useMemo(
+    () => ({
+      navigateToLine,
+      focus: focusEditor,
+    }),
+    [focusEditor, navigateToLine],
+  );
+
+  useImperativeHandle(ref, () => editorMethods, [editorMethods]);
+  useImperativeHandle(editorMethodsRef, () => editorMethods, [editorMethods]);
+
   // Apply code changes from AI
   const applyCodeChange = useCallback(
     (codeBlock: CodeBlock): void => {
-      const monacoEditor = editorRef.current;
+      const monacoEditor = monacoEditorRef.current;
       if (!monacoEditor) {
         console.error("Editor not ready");
         return;
@@ -205,6 +253,13 @@ export function EditorPanel(): JSX.Element {
   }, [applyCodeChange, setApplyCodeChange]);
 
   useEffect(() => {
+    setEditorRef(editorMethodsRef);
+    return () => {
+      setEditorRef(null);
+    };
+  }, [editorMethodsRef, setEditorRef]);
+
+  useEffect(() => {
     setRunCurrentCell(handleRunCurrentCell);
     setRunAll(handleRunAll);
   }, [handleRunCurrentCell, handleRunAll, setRunCurrentCell, setRunAll]);
@@ -213,7 +268,7 @@ export function EditorPanel(): JSX.Element {
     monacoEditor: MonacoEditor.IStandaloneCodeEditor,
     monaco: Monaco,
   ): void => {
-    editorRef.current = monacoEditor;
+    monacoEditorRef.current = monacoEditor;
     setMonacoEditor(monacoEditor);
 
     // Track cursor position
@@ -323,3 +378,6 @@ export function EditorPanel(): JSX.Element {
     </>
   );
 }
+
+export const EditorPanel = forwardRef<EditorRef>(EditorPanelComponent);
+EditorPanel.displayName = "EditorPanel";
