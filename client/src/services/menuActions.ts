@@ -13,6 +13,7 @@
 
 import { useStore } from '@/core/state/store';
 import type { ViewPane } from '@/core/state/slices/viewSlice';
+import { ErrorHandler } from '@/services/errorHandler';
 
 /**
  * Menu Actions
@@ -63,7 +64,10 @@ export const menuActions = {
           store.setEditorIsDirty(false);
           console.log(`Opened: ${file.name}`);
         } catch (error) {
-          console.error(`Failed to open file: ${error}`);
+          ErrorHandler.notify('Could not open file', {
+            error,
+            description: `We couldn't read ${file.name}. Please try again.`,
+          });
         }
       };
       input.click();
@@ -82,7 +86,9 @@ export const menuActions = {
       }
 
       if (!content) {
-        console.error('No content to save');
+        ErrorHandler.notify('Nothing to save', {
+          description: 'Add code to the editor before saving.',
+        });
         return;
       }
 
@@ -108,7 +114,9 @@ export const menuActions = {
       const { content } = store.editor || {};
 
       if (!content) {
-        console.error('No content to save');
+        ErrorHandler.notify('Nothing to save', {
+          description: 'Add code to the editor before saving.',
+        });
         return;
       }
 
@@ -132,7 +140,9 @@ export const menuActions = {
       if (typeof (window as any).openExportDialog === 'function') {
         (window as any).openExportDialog();
       } else {
-        console.error('Export dialog not initialized');
+        ErrorHandler.notify('Export dialog unavailable', {
+          description: 'Reload the page and try opening the export dialog again.',
+        });
       }
     },
   },
@@ -215,7 +225,9 @@ export const menuActions = {
       if (runCurrentCell) {
         runCurrentCell();
       } else {
-        console.error('Code execution not available: EditorPanel not mounted');
+        ErrorHandler.notify('Code execution not ready', {
+          description: 'Open the editor before running code.',
+        });
       }
     },
 
@@ -228,7 +240,9 @@ export const menuActions = {
       if (runAll) {
         runAll();
       } else {
-        console.error('Code execution not available: EditorPanel not mounted');
+        ErrorHandler.notify('Code execution not ready', {
+          description: 'Open the editor before running code.',
+        });
       }
     },
 
@@ -241,7 +255,9 @@ export const menuActions = {
       if (runAll) {
         runAll();
       } else {
-        console.error('Code execution not available: EditorPanel not mounted');
+        ErrorHandler.notify('Code execution not ready', {
+          description: 'Open the editor before running code.',
+        });
       }
     },
 
