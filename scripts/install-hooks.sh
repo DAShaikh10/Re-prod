@@ -33,13 +33,13 @@ if [ "$GIT_MAJOR" -lt 2 ] || ([ "$GIT_MAJOR" -eq 2 ] && [ "$GIT_MINOR" -lt 9 ]);
     exit 1
 fi
 
-# Configure Git to use hooks/ directory
+# Configure Git to use .hooks/ directory
 cd "$PROJECT_ROOT"
-git config core.hooksPath hooks
+git config core.hooksPath .hooks
 
 echo "✅ Git hooks configuration complete!"
 echo ""
-echo "   Git is now configured to use the hooks/ directory directly"
+echo "   Git is now configured to use the .hooks/ directory directly"
 echo "   (using core.hooksPath)"
 echo ""
 echo "The following checks will run before each push:"
