@@ -9,8 +9,11 @@
 /** Tabs rendered in the Console panel */
 export type ConsoleTabId = 'console' | 'history';
 
-/** Tabs rendered in the unified right pane */
-export type UnifiedRightPaneTab = 'plots' | 'timeline' | 'help';
+/** Tabs rendered in the consolidated bottom pane (excluding the console) */
+export type BottomPanePlotTab = 'plots' | 'timeline' | 'help';
+
+/** Tabs rendered in the consolidated bottom pane */
+export type BottomPaneTab = 'console' | 'history' | BottomPanePlotTab;
 
 /** Payload sent when other components want to focus a plot */
 export interface PlotFocusEventDetail {
@@ -19,7 +22,7 @@ export interface PlotFocusEventDetail {
 
 /** State snapshot for navigating generated plots */
 export interface PlotNavigationState {
-  activeTab: UnifiedRightPaneTab;
+  activeTab: BottomPanePlotTab;
   selectedPlotIndex: number;
   totalPlots: number;
 }

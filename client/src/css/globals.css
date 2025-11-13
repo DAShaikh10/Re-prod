@@ -7,6 +7,12 @@
   box-sizing: border-box;
 }
 
+/* Accessibility: Focus visible styles for keyboard navigation */
+*:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 2px;
+}
+
 html,
 body,
 #root {

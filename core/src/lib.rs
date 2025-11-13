@@ -1,3 +1,7 @@
+// Allow expect on lock poisoning - poisoned locks indicate serious bugs
+// and panicking is the correct behavior
+#![allow(clippy::expect_used)]
+
 pub mod ai;
 pub mod api;
 pub mod config;

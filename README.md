@@ -17,28 +17,21 @@ Furthermore unlike traditional IDEs, Re-prod **will ensure perfect reproducibili
 
 ---
 
-## Features
-
-- 🤖 **AI Agent Integration**: Claude API for intelligent R programming assistance
-- 📝 **Execution History**: Complete log of all R executions
-- 📊 **Plot Management**: Automatic plot capture and interactive viewing
-
 ## Architecture
 
-### Backend (Rust)
-- **Rust workspace** with Cargo
-- **Tauri** for desktop app (cross-platform)
-- **Axum** for web server (optional)
-- Native WebSocket communication
-- Real R execution via tokio::process
-- AI provider integration (Anthropic, OpenAI, etc.)
-- Platform-agnostic core library
+Re-prod is a multi-package workspace that blends Rust, Tauri, and React/TypeScript to deliver a cross-platform R analysis IDE.
+
+### Backend
+
+- `core/` holds the Rust logic for orchestrating R execution, timeline tracking, and AI prompt management.
+- `desktop/` packages the Rust core into a Tauri shell so the desktop build exposes native menus, commands, and a bundled frontend.
+- `server/` provides an optional Axum-based HTTP + WebSocket API that powers the browser experience when you run `pnpm dev`. It is not bundled in the desktop artifacts but is maintained so the web UI can mirror the desktop feature set.
 
 ### Frontend
-- React + TypeScript + Vite
-- Monaco Editor for code editing
-- RStudio-inspired color palette
-- Works with both Desktop (Tauri) and Web (Axum server)
+
+- `client/` is a React + TypeScript + Vite application that renders a Monaco-powered editor, a consolidated bottom pane (console, timelines, etc.), and the AI assistant.
+- `shared/` exports TypeScript types and constants shared across the client, server, and scripts.
+- `scripts/` supports onboarding, tooling helpers, and git hooks.
 
 ## Prerequisites
 
@@ -46,7 +39,7 @@ Furthermore unlike traditional IDEs, Re-prod **will ensure perfect reproducibili
 - **Node.js** 18+
 - **pnpm** 9+ (installs via `corepack enable pnpm` or `npm install -g pnpm`)
 - **R** (4.0+) with `Rscript` in PATH
-- **Anthropic API key** (optional, for AI features)
+- **AI API key** (optional, for AI features) - Anthropic or OpenAI
 
 ## Installation
 
@@ -76,11 +69,14 @@ Create `~/.reprod/auth.json` for AI features:
 mkdir -p ~/.reprod
 cat > ~/.reprod/auth.json << 'EOF'
 {
-  "anthropic_api_key": "your-api-key-here",
+  "anthropic_api_key": "sk-ant-...",
+  "openai_api_key": "sk-proj-...",
   "r_path": "Rscript"
 }
 EOF
 ```
+
+You can configure either or both AI providers. At least one API key is required for AI features.
 
 ## Running the Application
 
@@ -99,15 +95,14 @@ This launches the Tauri desktop application with:
 ### Option 2: Web Version
 
 ```bash
-# Start both Rust server and React client
 pnpm dev
 ```
 
-This starts:
-- **Rust server**: `http://localhost:3001`
+The root script runs the Axum + WebSocket API (`reprod-server`) alongside the Vite client so you can work entirely in the browser:
+- **Axum server**: `http://localhost:3001`
 - **React client**: `http://localhost:5173`
 
-Access at: http://localhost:5173
+Visit `http://localhost:5173` after both services are ready.
 
 ### Option 3: Frontend Only
 
@@ -115,85 +110,66 @@ Access at: http://localhost:5173
 pnpm --filter client dev
 ```
 
-Runs the Vite dev server on `http://localhost:5173` without launching the Rust backend.
+Runs the Vite dev server (at `http://localhost:5173`) without starting an R backend or Axum API.
 
 ## Project Structure
 
 ```
 Re-prod/
-├── Cargo.toml                 # Rust workspace root
-├── protocol/                  # Shared type definitions
-│   └── src/messages.rs
-├── common/                    # Error handling utilities
-│   └── src/errors.rs
-├── core/                      # Platform-agnostic business logic
-│   ├── src/executor/         # R code execution
-│   ├── src/ai/               # AI provider integration
-│   └── src/config/           # Configuration management
-├── desktop/                   # Tauri desktop app
-│   ├── src/
-│   │   ├── main.rs           # Desktop entry point
-│   │   └── commands/         # Tauri commands
-│   └── tauri.conf.json
-├── server/                    # Axum web server (optional)
-│   └── src/
-│       ├── main.rs           # Server entry point
-│       ├── routes.rs         # HTTP routes
-│       └── handlers.rs       # WebSocket handlers
-├── client/                    # React frontend
-│   ├── src/
-│   │   ├── components/       # Feature-oriented UI
-│   │   │   ├── ai-panel/
-│   │   │   ├── console/
-│   │   │   ├── editor/
-│   │   │   ├── menu/
-│   │   │   ├── plots/
-│   │   │   └── shared/
-│   │   ├── core/             # Zustand store
-│   │   ├── services/
-│   │   │   └── socket.ts     # Native WebSocket client
-│   │   └── css/
-│   └── package.json
-├── shared/                    # Shared TypeScript types
-├── docs/                      # Architecture documentation
-├── AGENTS.md                  # AI agent guidelines
-└── package.json               # Root workspace config
+├── Cargo.toml                 # Rust workspace root (core + desktop + server)
+├── core/                      # Platform-agnostic Rust business logic
+├── desktop/                   # Tauri desktop shell + commands
+├── server/                    # Axum HTTP/WebSocket API
+├── client/                    # React + TypeScript web frontend
+├── shared/                    # Shared TypeScript metadata
+├── scripts/                   # Setup helpers and git hooks
+├── AGENTS.md                  # AI agent coordination guide
+└── package.json               # pnpm workspace config + scripts
 ```
 
 ## Usage
 
-1. **Open Re-prod** in browser at `http://localhost:5173`
-2. **Write R code** in the Monaco editor (left pane)
-3. **Run code** by clicking "▶ Run" button
-4. **View output** in Console panel (bottom)
-5. **See plots** in Plots panel (right side, bottom)
-6. **Ask AI** for help using AI Assistant panel (right side, top)
+1. **Open Re-prod** in a browser (or the bundled Tauri window) so the workspace renders.
+2. **Write R code** in the Monaco editor located in the upper-left part of the canvas.
+3. **Execute selections or cells** via the "▶ Run" button or keyboard shortcuts.
+4. **Monitor output** in the Console tab inside the consolidated bottom pane.
+5. **Review history** in the Timeline tab to replay or rerun executions.
+6. **Visualize results** in the Plots tab of the bottom pane.
+7. **Chat with AI** from the right-hand assistant panel for guidance or code generation.
+
+### Layout Overview
+
+- **Left column**: Split vertically between the editor (top) and the bottom pane (console, timeline, plots, draft exports, etc.).
+- **Bottom pane tabs**: Switch between Console, Timeline, Plots, and other context-aware tabs without leaving the workspace.
+- **Right column**: The full-height AI Assistant panel provides autocomplete, suggestions, and chat interactions while staying visible alongside the editor.
+- **Resizing**: Drag the divider handles to adjust how much screen real estate each pane consumes.
 
 ### AI Assistant
 
-The AI assistant uses **Claude (Anthropic)** for intelligent R programming assistance:
+The AI assistant supports multiple AI providers for intelligent R programming assistance:
 
-**Claude (claude-sonnet-4-5)**:
-- Strong R programming knowledge
-- Code generation and explanation
-- Debugging assistance
+**Supported Providers:**
+- **Anthropic Claude** (claude-sonnet-4-5) - Strong R programming knowledge
+- **OpenAI GPT** (gpt-4, gpt-4-turbo) - Versatile code generation and debugging
 
 **Configuration:**
 
-The API key can be configured in two ways:
+API keys can be configured in two ways:
 
 1. **Configuration file** (Recommended):
 ```bash
 ~/.reprod/auth.json
 {
   "anthropic_api_key": "sk-ant-...",
+  "openai_api_key": "sk-proj-...",
   "r_path": "Rscript"
 }
 ```
 
-2. **Environment variable** (Fallback):
+2. **Environment variables** (Fallback):
 ```bash
 export ANTHROPIC_API_KEY="sk-ant-..."
+export OPENAI_API_KEY="sk-proj-..."
 ```
 
 ### Keyboard Shortcuts
@@ -209,6 +185,7 @@ If `Rscript` is not in your PATH, set the full path in `~/.reprod/auth.json`:
 ```json
 {
   "anthropic_api_key": null,
+  "openai_api_key": null,
   "r_path": "/usr/local/bin/Rscript"
 }
 ```
@@ -258,33 +235,18 @@ Socket connection error
 ### AI not responding
 
 **Solution**:
-1. Verify `ANTHROPIC_API_KEY` is set in `~/.reprod/auth.json` or as environment variable
+1. Verify API keys are set in `~/.reprod/auth.json` or as environment variables
+   - Anthropic: `anthropic_api_key` or `ANTHROPIC_API_KEY`
+   - OpenAI: `openai_api_key` or `OPENAI_API_KEY`
 2. Check server/desktop logs for API errors
-3. Ensure you have Anthropic API credits
-4. Verify API key format: `sk-ant-...`
+3. Ensure you have API credits for your chosen provider
+4. Verify API key format:
+   - Anthropic: `sk-ant-...`
+- OpenAI: `sk-proj-...` or `sk-...`
 
-## Implementation Notes
+## Contributing
 
-Following AGENTS.md guidelines:
-- ✅ No dummy implementations - all services are real
-- ✅ Real Claude API integration (Anthropic)
-- ✅ Real R execution via tokio::process
-- ✅ Native WebSocket communication (Rust Axum)
-- ✅ RStudio-inspired UI (light grays, muted blues)
-- ✅ TypeScript strict mode with explicit types
-- ✅ Functional React components
-- ✅ Two-space indentation
-
-## Future Enhancements
-
-- File browser and project management
-- Keyboard shortcuts
-- Dark theme support
-- Multiple file tabs
-- R package management
-- Export to PDF/HTML
-- Collaborative editing
-- Electron desktop app
+Before submitting changes, follow the contribution guidance in [CONTRIBUTING.md](./CONTRIBUTING.md). 日本語版は [CONTRIBUTING.ja.md](./CONTRIBUTING.ja.md) をご覧ください。
 
 ## License
 
@@ -293,4 +255,4 @@ MIT
 ## Acknowledgments
 
 - Inspired by RStudio's excellent UI/UX
-- Built with React, Monaco Editor, and Socket.io
+- Built with Rust (Tauri, Axum), React, TypeScript, and Monaco Editor

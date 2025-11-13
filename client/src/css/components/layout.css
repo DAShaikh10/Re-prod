@@ -25,6 +25,12 @@
   min-height: 0;
 }
 
+.ai-pane-wrapper {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
 .workspace-shell .allotment__layout {
   gap: 10px !important;
 }
@@ -208,6 +214,22 @@
 .tab:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.panel-tabs--compact {
+  gap: 4px;
+  padding: 0 8px;
+}
+
+.panel-tabs--compact .tab {
+  padding: 4px 10px;
+  font-size: 11px;
+}
+
+.panel-tabs--equal-width .tab {
+  flex: 1;
+  justify-content: center;
+  min-width: 0;
 }
 
 .panel-content .tab-panel {
