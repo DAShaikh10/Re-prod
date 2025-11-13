@@ -1,5 +1,7 @@
+import type { RefObject } from 'react';
 import type { StateCreator } from 'zustand';
 import type { CodeBlock } from '@shared/types';
+import type { EditorRef } from '@/components/editor/editorRef';
 
 export interface EditorState {
   editor: {
@@ -15,6 +17,7 @@ export interface EditorState {
   applyCodeChange: ((codeBlock: CodeBlock) => void) | null;
   runCurrentCell: (() => void) | null;
   runAll: (() => void) | null;
+  editorRef: RefObject<EditorRef> | null;
   setEditorContent: (content: string) => void;
   setEditorFilepath: (filepath: string) => void;
   setEditorCursorPosition: (position: { line: number; column: number }) => void;
@@ -23,6 +26,7 @@ export interface EditorState {
   setApplyCodeChange: (handler: (codeBlock: CodeBlock) => void) => void;
   setRunCurrentCell: (handler: () => void) => void;
   setRunAll: (handler: () => void) => void;
+  setEditorRef: (editorRef: RefObject<EditorRef> | null) => void;
 }
 
 export const createEditorSlice: StateCreator<EditorState> = (set) => ({
@@ -57,6 +61,7 @@ abline(lm(hp ~ mpg, data = mtcars), col = "red", lwd = 2)
   applyCodeChange: null,
   runCurrentCell: null,
   runAll: null,
+  editorRef: null,
   setEditorContent: (content) =>
     set((state) => ({
       editor: { ...state.editor, content, isDirty: true }
@@ -76,5 +81,6 @@ abline(lm(hp ~ mpg, data = mtcars), col = "red", lwd = 2)
   setMonacoEditor: (monacoEditor) => set({ monacoEditor }),
   setApplyCodeChange: (handler) => set({ applyCodeChange: handler }),
   setRunCurrentCell: (handler) => set({ runCurrentCell: handler }),
-  setRunAll: (handler) => set({ runAll: handler })
+  setRunAll: (handler) => set({ runAll: handler }),
+  setEditorRef: (editorRef: RefObject<EditorRef> | null) => set({ editorRef })
 });

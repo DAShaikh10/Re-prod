@@ -1,0 +1,1 @@
+export { BottomPane } from './BottomPane';
