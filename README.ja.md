@@ -14,26 +14,21 @@ AI 駆動の R 分析 IDE — RStudio に代わる AI ネイティブな次世�
 
 ---
 
-## 特徴
-
-- 🤖 **AI エージェント統合**: Anthropic / OpenAI プロバイダーを備えたインテリジェントなコード支援
-- 📝 **実行履歴**: すべての R 実行を保存してタイムライン表示
-- 📊 **プロット管理**: 自動的にプロットをキャプチャし、UI で閲覧
-
 ## アーキテクチャ
 
-### バックエンド (Rust)
-- Cargo ワークスペース構成
-- Tauri デスクトップアプリケーション
-- Axum WebSocket サーバー (オプション)
-- Tokio による R 実行
-- AI プロバイダー統合 (Anthropic / OpenAI)
-- プラットフォーム非依存のコアライブラリ
+Re-prod は Rust、Tauri、React/TypeScript を組み合わせたマルチパッケージのワークスペースです。
+
+### バックエンド
+
+- `core/` は R 実行、タイムラインの管理、AI プロンプトのオーケストレーションなどのプラットフォーム非依存ロジックを提供します。
+- `desktop/` は Tauri シェルに Rust コアを組み込んで、ネイティブメニューやコマンド、フロントエンドのバンドルを提供します。
+- `server/` は Axum ベースの HTTP + WebSocket API を提供し、`pnpm dev` でブラウザ版を動かす際に使用されます。デスクトップビルドには含まれませんが、Web UI をデスクトップと足並みをそろえて維持するために管理されています。
 
 ### フロントエンド
-- React + TypeScript + Vite
-- Monaco Editor によるコード編集
-- Tauri / Web の両方から利用可能
+
+- `client/` は Monaco ベースのエディタ、統合されたボトムペイン（コンソール・タイムライン・プロットなど）、AI アシスタントを描画する React + TypeScript + Vite アプリケーションです。
+- `shared/` はクライアント、サーバー、スクリプト間で共通の TypeScript 型や定数を提供します。
+- `scripts/` はオンボーディング、デモ、開発者ワークフローを支援します。
 
 ## 前提条件
 
@@ -94,10 +89,11 @@ Tauri ウィンドウが起動し、フロントエンドとバックエンド�
 pnpm dev
 ```
 
+このスクリプトは Axum + WebSocket API（`reprod-server`）と Vite クライアントを同時に起動します:
 - Axum サーバー: `http://localhost:3001`
-- Vite 開発サーバー: `http://localhost:5173`
+- React クライアント: `http://localhost:5173`
 
-ブラウザで `http://localhost:5173` にアクセスします。
+両方のサービスが立ち上がったらブラウザで `http://localhost:5173` にアクセスしてください。
 
 ### オプション 3: フロントエンドのみ
 
@@ -105,19 +101,71 @@ pnpm dev
 pnpm --filter client dev
 ```
 
-バックエンドを起動せずに Vite 開発サーバーのみを利用します。
+R バックエンドや Axum API を起動せずに Vite 開発サーバー（`http://localhost:5173`）だけを利用します。
 
 ## プロジェクト構成
 
 ```
 Re-prod/
-├── Cargo.toml                # Rust ワークスペース
-├── core/                     # 共通ビジネスロジック
-├── desktop/                  # Tauri デスクトップアプリ
-├── server/                   # Axum Web サーバー
-├── client/                   # React + TypeScript フロントエンド
-└── shared/                   # 共有 TypeScript 型
+├── Cargo.toml                 # Rust ワークスペース（core + desktop + server）
+├── core/                      # プラットフォーム非依存の Rust ビジネスロジック
+├── desktop/                   # Tauri デスクトップアプリ
+├── server/                    # Axum HTTP/WebSocket API
+├── client/                    # React + TypeScript フロントエンド
+├── shared/                    # 共有 TypeScript 型
+├── scripts/                   # セットアップヘルパー＆git hook
+├── AGENTS.md                  # AI エージェント開発ガイド
+└── package.json               # pnpm ワークスペース設定 & スクリプト
 ```
+
+## 利用方法
+
+1. **Re-prod** をブラウザまたは Tauri デスクトップで開きます（`http://localhost:5173` を利用）。
+2. 画面左上で Monaco エディタに R コードを書きます。
+3. "▶ Run" ボタンやショートカットで選択コード/セルを実行します。
+4. ボトムペインの Console タブで標準出力やエラーを確認します。
+5. Timeline タブで実行履歴を辿り、再実行や状態確認をします。
+6. Plots タブで描画結果を閲覧します。
+7. 右側の AI アシスタントパネルで質問や補完を行います。
+
+### レイアウト概要
+
+- **左カラム**: 上部がエディタ、下部が Console/Timeline/Plots などを切り替えるボトムペインです。
+- **ボトムペインタブ**: Console・Timeline・Plots・Drafts などのタブを切り替えて、作業ログやビジュアライゼーションを集約します。
+- **右カラム**: AI アシスタントが全高で表示され、常にコードと並列で操作できます。
+- **リサイズ**: スプリッターをドラッグしてカラムやペインのサイズを自由に変更できます。
+
+### AI アシスタント
+
+複数の AI プロバイダーと連携して、インテリジェントに R コードを支援します。
+
+**対応プロバイダー:**
+- **Anthropic Claude**（claude-sonnet-4-5）: R の知識に強い
+- **OpenAI GPT**（gpt-4, gpt-4-turbo）: 汎用的なコード生成・デバッグ
+
+**設定方法:**
+
+1. **設定ファイル（推奨）**:
+```bash
+~/.reprod/auth.json
+{
+  "anthropic_api_key": "sk-ant-...",
+  "openai_api_key": "sk-proj-...",
+  "r_path": "Rscript"
+}
+```
+
+2. **環境変数（補足）**:
+```bash
+export ANTHROPIC_API_KEY="sk-ant-..."
+export OPENAI_API_KEY="sk-proj-..."
+```
+
+### キーボードショートカット
+
+- `Cmd/Ctrl + Enter`: カーソル位置/セルを実行
+- `Shift + Enter`: カーソル位置のセルを実行し、次のセルへ
+- `Cmd/Ctrl + Shift + Enter`: すべてのコードを実行
 
 ## 開発ワークフロー
 
@@ -156,6 +204,10 @@ rm -rf server/temp/*
 - `~/.reprod/auth.json` もしくは環境変数で API キーを設定
 - サーバー / デスクトップのログを確認
 - API の利用制限に達していないか確認
+
+## 貢献
+
+変更を提案する前に [CONTRIBUTING.md](./CONTRIBUTING.md) および日本語版 [CONTRIBUTING.ja.md](./CONTRIBUTING.ja.md) をご覧ください。
 
 ## ライセンス
 
