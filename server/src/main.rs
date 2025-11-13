@@ -13,7 +13,7 @@ use reprod_core::{
     Config, RExecutor, ToolExecutor, ToolRegistry,
 };
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{atomic::AtomicU64, Arc};
 use tokio::sync::Mutex;
 use tower_http::cors::{Any, CorsLayer};
 use tower_http::trace::TraceLayer;
@@ -119,6 +119,7 @@ async fn main() {
             timeline: timeline.clone(),
             filesystem_tool: filesystem_tool.clone(),
             r_context_tool: r_context_tool.clone(),
+            request_counter: Arc::new(AtomicU64::new(0)),
         });
 
     let addr = "127.0.0.1:3001";

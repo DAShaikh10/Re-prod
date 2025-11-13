@@ -20,9 +20,11 @@ use reprod_core::{
     ToolExecutor, ToolManifest, ToolRegistry,
 };
 use serde_json::{json, Value};
-use std::sync::Arc;
+use std::sync::{
+    atomic::{AtomicU64, Ordering},
+    Arc,
+};
 use tokio::sync::Mutex;
-use uuid::Uuid;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -33,6 +35,7 @@ pub struct AppState {
     pub timeline: Arc<JsonTimeline>,
     pub filesystem_tool: Arc<FileSystemTool>,
     pub r_context_tool: Arc<RContextTool>,
+    pub request_counter: Arc<AtomicU64>,
 }
 
 pub async fn ws_handler(ws: WebSocketUpgrade, State(state): State<AppState>) -> Response {
@@ -208,7 +211,10 @@ async fn handle_ws_request(request: WSRequest, state: &AppState) -> Vec<WSRespon
         } => {
             let cfg = state.config.lock().await.clone();
             let provider = ai::from_config(&cfg);
-            let stream_id = request_id.unwrap_or_else(|| Uuid::new_v4().to_string());
+            let stream_id = request_id.unwrap_or_else(|| {
+                let count = state.request_counter.fetch_add(1, Ordering::Relaxed);
+                format!("req-{}", count)
+            });
             let mut outbound = Vec::new();
 
             if enable_tools {
