@@ -39,8 +39,9 @@ cd Re-prod
 # Install dependencies
 pnpm install
 
-# Install git hooks (optional but recommended)
+# Configure git hooks (optional but recommended)
 bash scripts/install-hooks.sh
+# This configures Git to use hooks/ directory via core.hooksPath
 ```
 
 ### 2. Create a Branch

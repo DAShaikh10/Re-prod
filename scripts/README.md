@@ -29,13 +29,18 @@ bash scripts/setup-branch-protection.sh
 
 **Note:** You need repository admin permissions to run this script.
 
-## Git Hooks Installation
+## Git Hooks Configuration
 
 ### `install-hooks.sh`
 
-Installs pre-push git hooks to ensure code quality before pushing.
+Configures Git to use the `hooks/` directory directly via `core.hooksPath` (Git 2.9+).
 
-**What it checks:**
+**How it works:**
+- Uses Git's native `core.hooksPath` setting to read hooks from `hooks/` directory
+- No file copying needed - hooks are version controlled and automatically available
+- Requires Git 2.9+ (released June 2016, widely available)
+
+**What the pre-push hook checks:**
 - Rust formatting: `cargo fmt --check`
 - Rust linting: `cargo clippy`
 - TypeScript linting: `pnpm run lint`
@@ -45,4 +50,9 @@ Installs pre-push git hooks to ensure code quality before pushing.
 bash scripts/install-hooks.sh
 ```
 
-**Note:** This is optional but recommended. Consider migrating to Husky for automatic setup (see Issue #50).
+**Manual setup (alternative):**
+```bash
+git config core.hooksPath hooks
+```
+
+**Note:** This is optional but recommended for maintaining code quality before pushing.
