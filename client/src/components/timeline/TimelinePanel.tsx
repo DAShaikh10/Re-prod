@@ -1,10 +1,12 @@
+import { useCallback } from 'react';
 import type { ExecutionEventPayload } from 'shared';
 
+import { useStore } from '@/core';
+import { useTimelineData } from '@/hooks/useTimelineData';
 import { Timeline } from './Timeline';
 import { TimelineStats } from './TimelineStats';
 import { TimelineFilters } from './TimelineFilters';
 import { TimelineSort } from './TimelineSort';
-import { useTimelineData } from '@/hooks/useTimelineData';
 
 export function TimelinePanel(): JSX.Element {
   const {
@@ -22,16 +24,24 @@ export function TimelinePanel(): JSX.Element {
     statsLoading,
   } = useTimelineData();
 
-  const handleNavigate = (event: ExecutionEventPayload) => {
-    // TODO: Implement navigation to code location
-    // This will be implemented when integrating with editor
-    console.log('Navigate to event:', event.event_id);
+  const editorRef = useStore((state) => state.editorRef);
 
-    // Future implementation:
-    // - Jump to code location in editor (context.document_path, blocks[0].start_line)
-    // - Show plot in plots panel (result.plots)
-    // - Highlight executing cell (context.cell_index)
-  };
+  const handleNavigate = useCallback(
+    (event: ExecutionEventPayload) => {
+      const targetEditor = editorRef?.current;
+      if (!targetEditor) {
+        return;
+      }
+
+      const line = event.blocks?.[0]?.start_line;
+      if (line === undefined) {
+        return;
+      }
+
+      targetEditor.navigateToLine(line);
+    },
+    [editorRef],
+  );
 
   return (
     <div className="timeline-panel">
