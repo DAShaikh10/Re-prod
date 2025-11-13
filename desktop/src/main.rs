@@ -1,4 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+// Allow expect for critical initialization failures where panic is appropriate
+#![allow(clippy::expect_used)]
 
 mod commands;
 

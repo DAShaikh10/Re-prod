@@ -12,6 +12,7 @@
 @import './components/status-bar.css';
 @import './components/layout.css';
 @import './components/export-dialog.css';
+@import './components/confirm-dialog.css';
 
 /* Design themes */
 @import './design-phylo-rstudio.css';

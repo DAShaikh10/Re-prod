@@ -91,7 +91,7 @@ fn segment_rmd_code(content: &str) -> Vec<CodeBlockMetadata> {
                 };
             }
         } else if is_rmd_chunk_end(line) {
-            let start = chunk_start.unwrap();
+            let start = chunk_start.expect("chunk_start must be Some when processing chunk end");
             let code_lines = &lines[(start + 1)..idx];
             let code = code_lines.join("\n");
             blocks.push(build_block(
@@ -163,7 +163,7 @@ fn parse_section_label(line: &str, existing_sections: usize) -> Option<String> {
     let dash_index = remainder.find("----");
     dash_index?;
 
-    let label_part = &remainder[..dash_index.unwrap()];
+    let label_part = &remainder[..dash_index.expect("dash_index must be Some after ? check")];
     let label = label_part.trim();
     if label.is_empty() {
         Some(format!("Section {}", existing_sections + 1))

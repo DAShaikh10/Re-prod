@@ -50,16 +50,59 @@ export interface ExecutionLogEntry {
   success: boolean;
 }
 
+export type CodeChangeAction =
+  | 'replace-all'
+  | 'replace-range'
+  | 'insert-at-cursor'
+  | 'create-file'
+  | 'delete-range';
+
+export interface PatchChunk {
+  context?: string;
+  oldLines: string[];
+  newLines: string[];
+}
+
+export interface CodeRange {
+  startLine: number;
+  startColumn: number;
+  endLine: number;
+  endColumn: number;
+}
+
 export interface CodeBlock {
   id: string;
   code: string;
   language: 'r';
-  action: 'replace-all' | 'replace-lines' | 'insert-at-cursor';
-  targetLines?: {
-    start: number;
-    end: number;
-  };
+  action: CodeChangeAction;
+  targetRange?: CodeRange;
+  filepath?: string;
+  patchChunks?: PatchChunk[];
+  patchText?: string;
+  checksum?: string;
   explanation?: string;
+  originalCode?: string;
+}
+
+export type PlanStepStatus = 'pending' | 'running' | 'done' | 'error';
+
+export interface PlanStep {
+  id: string;
+  title: string;
+  status: PlanStepStatus;
+}
+
+export type ToolCallStatus = 'pending' | 'running' | 'done' | 'error';
+
+export interface ToolCallLog {
+  id: string;
+  name: string;
+  status: ToolCallStatus;
+  input?: Record<string, unknown>;
+  output?: Record<string, unknown>;
+  error?: string;
+  startedAt?: number;
+  finishedAt?: number;
 }
 
 export interface AIResponse {
@@ -104,6 +147,10 @@ export interface AIMessage {
   content: string;
   code?: string; // Deprecated: use codeBlocks instead
   codeBlocks?: CodeBlock[];
+  planSteps?: PlanStep[];
+  toolLogs?: ToolCallLog[];
+  streamingId?: string;
+  isComplete?: boolean;
   timestamp: number;
 }
 
