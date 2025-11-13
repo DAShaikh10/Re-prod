@@ -28,7 +28,7 @@ Re-prod は Rust、Tauri、React/TypeScript を組み合わせたマルチパッ
 
 - `client/` は Monaco ベースのエディタ、統合されたボトムペイン（コンソール・タイムライン・プロットなど）、AI アシスタントを描画する React + TypeScript + Vite アプリケーションです。
 - `shared/` はクライアント、サーバー、スクリプト間で共通の TypeScript 型や定数を提供します。
-- `docs/` や `scripts/` はオンボーディング、デモ、開発者ワークフローを支援します。
+- `scripts/` はオンボーディング、デモ、開発者ワークフローを支援します。
 
 ## 前提条件
 
@@ -113,7 +113,6 @@ Re-prod/
 ├── server/                    # Axum HTTP/WebSocket API
 ├── client/                    # React + TypeScript フロントエンド
 ├── shared/                    # 共有 TypeScript 型
-├── docs/                      # アーキテクチャ・デモ・手順書
 ├── scripts/                   # セットアップヘルパー＆git hook
 ├── AGENTS.md                  # AI エージェント開発ガイド
 └── package.json               # pnpm ワークスペース設定 & スクリプト
