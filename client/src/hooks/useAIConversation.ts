@@ -3,7 +3,7 @@ import { useStore } from '@/core';
 import { socketService } from '@/services/socket';
 import { extractCodeBlocks } from '@/core/ai/codeBlockUtils';
 import { applyCodeChangeFile } from '@/services/fileService';
-import { buildPromptWithContext, createRequestId, REMOTE_FILE_ACTIONS } from '@/core/ai/utils';
+import { buildPromptWithContext, createRequestId, REMOTE_FILE_ACTIONS } from '@/core/ai/promptUtils';
 import type { AIMessage, CodeBlock } from '@shared/types';
 
 const STREAM_TIMEOUT_MS = 45000;
