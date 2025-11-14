@@ -94,7 +94,7 @@ export function buildMenuSections(snapshot: MenuStateSnapshot): MenuSection[] {
       id: 'session',
       label: 'Session',
       items: [
-        { id: 'session:show-timeline', label: 'Show Timeline', shortcut: '⌘T', action: () => menuActions.session.showTimeline() },
+        { id: 'session:timeline', label: 'Timeline...', shortcut: '⌘T', action: () => menuActions.session.showTimeline() },
         { type: 'separator' },
         { id: 'session:new', label: 'New Session', shortcut: '⌘⇧N', action: () => menuActions.session.new() },
         { id: 'session:save', label: 'Save Session...', action: () => menuActions.session.save() },
@@ -128,13 +128,6 @@ export function buildMenuSections(snapshot: MenuStateSnapshot): MenuSection[] {
           shortcut: '⌘3',
           action: () => menuActions.view.togglePane('plots'),
           checked: () => viewPanes.plots,
-        },
-        {
-          id: 'view:toggle-timeline',
-          label: 'Show/Hide Timeline',
-          shortcut: '⌘4',
-          action: () => menuActions.view.togglePane('timeline'),
-          checked: () => viewPanes.timeline,
         },
         { type: 'separator' },
         { id: 'view:zoom-in', label: 'Zoom In', shortcut: '⌘+', action: () => menuActions.view.zoomIn() },

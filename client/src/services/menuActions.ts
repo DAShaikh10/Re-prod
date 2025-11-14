@@ -13,7 +13,6 @@
 
 import { useStore } from '@/core/state/store';
 import type { ViewPane } from '@/core/state/slices/viewSlice';
-import { ErrorHandler } from '@/services/errorHandler';
 
 /**
  * Menu Actions
@@ -64,10 +63,7 @@ export const menuActions = {
           store.setEditorIsDirty(false);
           console.log(`Opened: ${file.name}`);
         } catch (error) {
-          ErrorHandler.notify('Could not open file', {
-            error,
-            description: `We couldn't read ${file.name}. Please try again.`,
-          });
+          console.error(`Failed to open file: ${error}`);
         }
       };
       input.click();
@@ -86,9 +82,7 @@ export const menuActions = {
       }
 
       if (!content) {
-        ErrorHandler.notify('Nothing to save', {
-          description: 'Add code to the editor before saving.',
-        });
+        console.error('No content to save');
         return;
       }
 
@@ -114,9 +108,7 @@ export const menuActions = {
       const { content } = store.editor || {};
 
       if (!content) {
-        ErrorHandler.notify('Nothing to save', {
-          description: 'Add code to the editor before saving.',
-        });
+        console.error('No content to save');
         return;
       }
 
@@ -140,9 +132,7 @@ export const menuActions = {
       if (typeof (window as any).openExportDialog === 'function') {
         (window as any).openExportDialog();
       } else {
-        ErrorHandler.notify('Export dialog unavailable', {
-          description: 'Reload the page and try opening the export dialog again.',
-        });
+        console.error('Export dialog not initialized');
       }
     },
   },
@@ -225,9 +215,7 @@ export const menuActions = {
       if (runCurrentCell) {
         runCurrentCell();
       } else {
-        ErrorHandler.notify('Code execution not ready', {
-          description: 'Open the editor before running code.',
-        });
+        console.error('Code execution not available: EditorPanel not mounted');
       }
     },
 
@@ -240,9 +228,7 @@ export const menuActions = {
       if (runAll) {
         runAll();
       } else {
-        ErrorHandler.notify('Code execution not ready', {
-          description: 'Open the editor before running code.',
-        });
+        console.error('Code execution not available: EditorPanel not mounted');
       }
     },
 
@@ -255,9 +241,7 @@ export const menuActions = {
       if (runAll) {
         runAll();
       } else {
-        ErrorHandler.notify('Code execution not ready', {
-          description: 'Open the editor before running code.',
-        });
+        console.error('Code execution not available: EditorPanel not mounted');
       }
     },
 
@@ -296,14 +280,15 @@ export const menuActions = {
   // ===== SESSION MENU =====
   session: {
     /**
-     * Show timeline panel
+     * Show timeline dialog
      */
     showTimeline: () => {
-      // Scroll to timeline panel
-      setTimeout(() => {
-        const timelineEl = document.querySelector('.timeline-panel');
-        timelineEl?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      }, 100);
+      // Call global timeline dialog handler
+      if (typeof (window as any).openTimelineDialog === 'function') {
+        (window as any).openTimelineDialog();
+      } else {
+        console.error('Timeline dialog not initialized');
+      }
     },
 
     /**
