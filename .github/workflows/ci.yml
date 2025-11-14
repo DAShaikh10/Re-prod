@@ -73,8 +73,7 @@ jobs:
           echo "::endgroup::"
 
       - name: Run Frontend tests
-        run: pnpm --filter client test -- --run --reporter=basic
-        continue-on-error: true # Temporary: Timeline tests hang, fix in separate PR
+        run: pnpm --filter client test -- --run
 
       - name: Test Summary
         if: always()
