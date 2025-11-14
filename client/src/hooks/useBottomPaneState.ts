@@ -39,7 +39,6 @@ export function useBottomPaneState(): UseBottomPaneStateResult {
   );
 
   const plotsVisible = panes.plots;
-  const timelineVisible = panes.timeline;
   const currentPlot = allPlots[selectedPlotIndex] ?? null;
 
   const tabs = useMemo<PanelTabItem<BottomPaneTab>[]>(() => {
@@ -50,12 +49,9 @@ export function useBottomPaneState(): UseBottomPaneStateResult {
     if (plotsVisible) {
       list.push({ id: 'plots', label: 'Plots' });
     }
-    if (timelineVisible) {
-      list.push({ id: 'timeline', label: 'Timeline' });
-    }
     list.push({ id: 'help', label: 'Help' });
     return list;
-  }, [plotsVisible, timelineVisible]);
+  }, [plotsVisible]);
 
   useEffect(() => {
     const handleFocusPlot = (event: Event) => {
@@ -95,11 +91,12 @@ export function useBottomPaneState(): UseBottomPaneStateResult {
 
   useEffect(() => {
     if (activeTab === 'plots' && !plotsVisible) {
-      setActiveTab(timelineVisible ? 'timeline' : 'help');
-    } else if (activeTab === 'timeline' && !timelineVisible) {
-      setActiveTab(plotsVisible ? 'plots' : 'help');
+      setActiveTab('help');
+    } else if (activeTab === 'timeline') {
+      // Timeline is no longer a tab, default to help
+      setActiveTab('help');
     }
-  }, [activeTab, plotsVisible, timelineVisible]);
+  }, [activeTab, plotsVisible]);
 
   const selectPreviousPlot = useCallback(() => {
     setSelectedPlotIndex((current) => Math.max(0, current - 1));
