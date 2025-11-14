@@ -12,8 +12,9 @@ vi.mock('@/services/timelineService', () => ({
   subscribeToTimelineEvents: vi.fn(),
 }));
 
+let eventCounter = 0;
 const createMockEvent = (overrides?: Partial<ExecutionEventPayload>): ExecutionEventPayload => ({
-  event_id: 'evt-123',
+  event_id: `evt-${++eventCounter}`,
   context: {
     source: 'cell',
     document_path: 'analysis.R',
@@ -23,7 +24,7 @@ const createMockEvent = (overrides?: Partial<ExecutionEventPayload>): ExecutionE
   },
   blocks: [
     {
-      id: 'block-1',
+      id: `block-${eventCounter}`,
       index: 0,
       kind: 'section',
       label: 'Setup',
@@ -62,6 +63,7 @@ const createMockStats = (): TimelineStats => ({
 describe('TimelinePanel', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    eventCounter = 0; // Reset counter for unique IDs
 
     // Reset store state
     useStore.setState({
@@ -128,11 +130,22 @@ describe('TimelinePanel', () => {
       useStore.setState({ isConnected: true });
 
       const mockEvents = [createMockEvent()];
-      vi.mocked(timelineService.queryTimeline).mockResolvedValue({
-        events: mockEvents,
-        total: 1,
-        hasMore: false,
-        query: {},
+      // Return mock events for initial fetch, empty for pagination
+      vi.mocked(timelineService.queryTimeline).mockImplementation(async (query) => {
+        if (query.offset === 0) {
+          return {
+            events: mockEvents,
+            total: 1,
+            hasMore: false,
+            query: {},
+          };
+        }
+        return {
+          events: [],
+          total: 1,
+          hasMore: false,
+          query: {},
+        };
       });
 
       render(<TimelinePanel />);
