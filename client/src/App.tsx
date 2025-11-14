@@ -6,6 +6,7 @@ import { EditorPanel } from "@/components/editor";
 import { AIPanel } from "@/components/ai-panel";
 import { BottomPane } from "@/components/bottom-pane";
 import { ExportDialog } from "@/components/export";
+import { TimelineDialog } from "@/components/timeline";
 import { useStore } from "@/core";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useSocketConnection } from "@/hooks/useSocketConnection";
@@ -13,6 +14,7 @@ import { useSocketConnection } from "@/hooks/useSocketConnection";
 function App(): JSX.Element {
   const panes = useStore((state) => state.view.panes);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [timelineDialogOpen, setTimelineDialogOpen] = useState(false);
 
   // Enable global keyboard shortcuts
   useKeyboardShortcuts();
@@ -20,6 +22,8 @@ function App(): JSX.Element {
 
   // Expose export dialog handler globally for menu actions
   (window as any).openExportDialog = () => setExportDialogOpen(true);
+  // Expose timeline dialog handler globally for menu actions
+  (window as any).openTimelineDialog = () => setTimelineDialogOpen(true);
 
   return (
     <div className="app">
@@ -54,6 +58,10 @@ function App(): JSX.Element {
       <ExportDialog
         open={exportDialogOpen}
         onClose={() => setExportDialogOpen(false)}
+      />
+      <TimelineDialog
+        open={timelineDialogOpen}
+        onClose={() => setTimelineDialogOpen(false)}
       />
     </div>
   );

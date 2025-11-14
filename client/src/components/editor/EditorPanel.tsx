@@ -15,7 +15,6 @@ import { useEditorDecorations } from "@/hooks/useEditorDecorations";
 import { useEditorExecution } from "@/hooks/useEditorExecution";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { computeTargetRange, matchPatchChunk } from "@/core/ai/contextMatcher";
-import { ErrorHandler } from "@/services/errorHandler";
 import type { editor as MonacoEditor } from "monaco-editor";
 import type { CodeBlock, CodeRange } from "@shared/types";
 import type { EditorRef } from "./editorRef";
@@ -99,9 +98,7 @@ function EditorPanelComponent(_: unknown, ref: ForwardedRef<EditorRef>): JSX.Ele
     (codeBlock: CodeBlock): void => {
       const monacoEditor = monacoEditorRef.current;
       if (!monacoEditor) {
-        ErrorHandler.notify("Editor not ready", {
-          description: "Wait for the editor to finish loading, then try again.",
-        });
+        console.error("Editor not ready");
         return;
       }
 
@@ -157,11 +154,7 @@ function EditorPanelComponent(_: unknown, ref: ForwardedRef<EditorRef>): JSX.Ele
         for (const chunk of codeBlock.patchChunks) {
           const range = matchPatchChunk(content, chunk);
           if (!range) {
-            ErrorHandler.notify("Couldn't apply AI suggestion", {
-              description:
-                "We couldn't match the surrounding code. Scroll to the intended section and try again.",
-              error: chunk.context,
-            });
+            console.warn("Unable to find context for patch chunk", chunk.context);
             recordPatchMatchFailure(
               `Unable to match patch chunk: ${chunk.context ?? 'missing context'}`,
               codeBlock.id,
@@ -180,15 +173,17 @@ function EditorPanelComponent(_: unknown, ref: ForwardedRef<EditorRef>): JSX.Ele
         const range = resolveTargetRange();
         if (!range) {
           if (alertOnFail) {
-            ErrorHandler.notify("Couldn't locate AI target", {
-              description:
-                "Highlight the code you want to replace, then run the suggestion again.",
-              error: codeBlock.action,
-            });
+            console.warn("Missing target range for AI apply action", codeBlock.action);
             recordPatchMatchFailure(
               `Missing target range for ${codeBlock.action}`,
               codeBlock.id,
             );
+            if (typeof window !== "undefined") {
+              window.alert(
+                "Unable to locate the suggested context in the current editor. " +
+                  "Try running the suggestion again after scrolling the intended section into view.",
+              );
+            }
           }
           return false;
         }
@@ -247,10 +242,7 @@ function EditorPanelComponent(_: unknown, ref: ForwardedRef<EditorRef>): JSX.Ele
           console.info("create-file action will be handled by file service");
           break;
         default:
-          ErrorHandler.notify("Unsupported AI action", {
-            description: "This suggestion type isn't supported in the editor yet.",
-            error: codeBlock.action,
-          });
+          console.warn("Unknown code block action", codeBlock.action);
       }
     },
     [setEditorContent, showConfirm, recordPatchMatchFailure, recordPatchMatchSuccess],
