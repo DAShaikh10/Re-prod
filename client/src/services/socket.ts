@@ -202,8 +202,8 @@ class SocketService {
       this.connect(this.url);
     }, 2000);
 
-    if (this.reconnectTimer && typeof (this.reconnectTimer as { unref?: () => void }).unref === 'function') {
-      (this.reconnectTimer as { unref: () => void }).unref();
+    if (this.reconnectTimer && typeof (this.reconnectTimer as unknown as { unref?: () => void }).unref === 'function') {
+      (this.reconnectTimer as unknown as { unref: () => void }).unref();
     }
   }
 }
