@@ -40,7 +40,6 @@ export const menuActions = {
       store.setEditorContent('# New R Script\n\n');
       store.setEditorFilepath('');
       store.setEditorIsDirty(false);
-      console.log('New file created');
     },
 
     /**
@@ -61,7 +60,6 @@ export const menuActions = {
           store.setEditorContent(content);
           store.setEditorFilepath(file.name);
           store.setEditorIsDirty(false);
-          console.log(`Opened: ${file.name}`);
         } catch (error) {
           console.error(`Failed to open file: ${error}`);
         }
@@ -96,7 +94,6 @@ export const menuActions = {
       URL.revokeObjectURL(url);
 
       store.setEditorIsDirty(false);
-      console.log('File saved');
     },
 
     /**
@@ -119,8 +116,6 @@ export const menuActions = {
       a.download = 'untitled.R';
       a.click();
       URL.revokeObjectURL(url);
-
-      console.log('File downloaded');
     },
 
     /**
@@ -249,7 +244,6 @@ export const menuActions = {
      * Interrupt running R execution
      */
     interrupt: () => {
-      console.info('Interrupt not yet implemented');
       // TODO: Implement execution interrupt
     },
 
@@ -262,7 +256,6 @@ export const menuActions = {
         return;
       }
 
-      console.info('Restart session not yet implemented');
       // TODO: Implement session restart
     },
 
@@ -315,7 +308,6 @@ export const menuActions = {
      * TODO: Implement session persistence
      */
     save: () => {
-      console.info('Session save not yet implemented');
     },
 
     /**
@@ -323,14 +315,12 @@ export const menuActions = {
      * TODO: Implement session loading
      */
     load: () => {
-      console.info('Session load not yet implemented');
     },
 
     /**
      * Show session info
      */
     info: () => {
-      console.info('Session info not yet implemented');
       // TODO: Implement session info modal
     },
 
@@ -339,7 +329,6 @@ export const menuActions = {
      * TODO: Implement settings modal
      */
     settings: () => {
-      console.info('Settings not yet implemented');
     },
   },
 
@@ -352,8 +341,6 @@ export const menuActions = {
       const pane = paneId as ViewPane;
       const { togglePaneVisibility } = useStore.getState();
       togglePaneVisibility(pane);
-      const next = useStore.getState().view.panes[pane];
-      console.log(`${paneId} ${next ? 'shown' : 'hidden'}`);
     },
 
     /**
@@ -362,8 +349,6 @@ export const menuActions = {
     zoomIn: () => {
       const { adjustZoom } = useStore.getState();
       adjustZoom(0.1);
-      const { view } = useStore.getState();
-      console.log(`Zoom: ${Math.round(view.zoom * 100)}%`);
     },
 
     /**
@@ -372,8 +357,6 @@ export const menuActions = {
     zoomOut: () => {
       const { adjustZoom } = useStore.getState();
       adjustZoom(-0.1);
-      const { view } = useStore.getState();
-      console.log(`Zoom: ${Math.round(view.zoom * 100)}%`);
     },
 
     /**
@@ -382,9 +365,6 @@ export const menuActions = {
     zoomReset: () => {
       const { resetZoom } = useStore.getState();
       resetZoom();
-      const next = useStore.getState().view.zoom;
-      const rounded = Math.round(next * 100);
-      console.log(rounded === 100 ? 'Zoom reset to 100%' : `Zoom: ${rounded}%`);
     },
   },
 
@@ -402,7 +382,6 @@ export const menuActions = {
      * TODO: Implement shortcuts modal
      */
     shortcuts: () => {
-      console.info('Shortcuts modal not yet implemented');
     },
 
     /**
@@ -417,7 +396,6 @@ export const menuActions = {
      * TODO: Implement about modal
      */
     about: () => {
-      console.info('About modal not yet implemented');
     },
   },
 };
