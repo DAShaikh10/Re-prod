@@ -6,7 +6,6 @@ import {
   PanelTabs,
 } from '@/components/shared';
 import { ConsolePanel } from '@/components/console';
-import { TimelinePanel } from '@/components/timeline';
 import { useBottomPaneState } from '@/hooks/useBottomPaneState';
 
 export function BottomPane(): JSX.Element {
@@ -75,11 +74,6 @@ export function BottomPane(): JSX.Element {
       <div className="panel-content">
         {activeTab === 'console' && <ConsolePanel view="console" />}
         {activeTab === 'history' && <ConsolePanel view="history" />}
-        {activeTab === 'timeline' && (
-          <div className="timeline-container">
-            <TimelinePanel />
-          </div>
-        )}
         {activeTab === 'plots' && (
           <div className="plots-container">
             {allPlots.length === 0 ? (
