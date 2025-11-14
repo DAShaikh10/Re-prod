@@ -18,6 +18,8 @@ class SocketService {
   // One-shot handlers for request/response style calls with optional matchers.
   private oneShotHandlers: OneShotHandler[] = [];
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private autoReconnectEnabled = true;
+  private intentionalDisconnect = false;
   private url: string = '';
   private connectionListeners: Set<(status: ConnectionStatus) => void> = new Set();
 
@@ -29,14 +31,12 @@ class SocketService {
       }
     }
 
+    this.intentionalDisconnect = false;
     this.url = url;
     this.ws = new WebSocket(url);
 
     this.ws.onopen = () => {
-      if (this.reconnectTimer) {
-        clearTimeout(this.reconnectTimer);
-        this.reconnectTimer = null;
-      }
+      this.clearReconnectTimer();
       this.notifyConnection('connected');
     };
 
@@ -60,11 +60,13 @@ class SocketService {
     };
 
     this.ws.onclose = () => {
+      if (this.intentionalDisconnect) {
+        this.intentionalDisconnect = false;
+        return;
+      }
+
       this.notifyConnection('disconnected');
-      // Auto-reconnect after 2 seconds
-      this.reconnectTimer = setTimeout(() => {
-        this.connect(this.url);
-      }, 2000);
+      this.scheduleReconnect();
     };
   }
 
@@ -109,10 +111,8 @@ class SocketService {
   }
 
   disconnect(): void {
-    if (this.reconnectTimer) {
-      clearTimeout(this.reconnectTimer);
-      this.reconnectTimer = null;
-    }
+    this.intentionalDisconnect = true;
+    this.clearReconnectTimer();
     if (this.ws) {
       if (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING) {
         this.ws.close(1000, 'Client disconnecting');
@@ -126,6 +126,15 @@ class SocketService {
 
   isConnected(): boolean {
     return this.ws?.readyState === WebSocket.OPEN;
+  }
+
+  disableAutoReconnect(): void {
+    this.autoReconnectEnabled = false;
+    this.clearReconnectTimer();
+  }
+
+  enableAutoReconnect(): void {
+    this.autoReconnectEnabled = true;
   }
 
   onConnectionChange(listener: (status: ConnectionStatus) => void): () => void {
@@ -173,6 +182,29 @@ class SocketService {
         console.error('WebSocket connection listener threw an error', error);
       }
     });
+  }
+
+  private clearReconnectTimer(): void {
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+  }
+
+  private scheduleReconnect(): void {
+    if (!this.autoReconnectEnabled) {
+      return;
+    }
+
+    this.clearReconnectTimer();
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
+      this.connect(this.url);
+    }, 2000);
+
+    if (this.reconnectTimer && typeof (this.reconnectTimer as { unref?: () => void }).unref === 'function') {
+      (this.reconnectTimer as { unref: () => void }).unref();
+    }
   }
 }
 
