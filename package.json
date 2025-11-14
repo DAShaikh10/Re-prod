@@ -6,6 +6,7 @@
   "description": "AI-Powered R Analysis IDE",
   "workspaces": [
     "client",
+    "desktop/e2e",
     "shared"
   ],
   "scripts": {
