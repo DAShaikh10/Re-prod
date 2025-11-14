@@ -6,7 +6,7 @@ describe('extractCodeBlocks', () => {
     const structured = `
 Here is the patch:
 
-```json
+\`\`\`json
 {
   "id": "fix-target",
   "filepath": "analysis.R",
@@ -20,7 +20,7 @@ Here is the patch:
   "code": "print('fixed')",
   "explanation": "Fixes edge case"
 }
-```
+\`\`\`
 `;
 
     const [block] = extractCodeBlocks(structured);
@@ -42,9 +42,9 @@ Here is the patch:
 
   it('falls back to replace-all for plain R code fences', () => {
     const script = `
-```r
+\`\`\`r
 cat('hello world')
-```
+\`\`\`
 `;
 
     const [block] = extractCodeBlocks(script);
@@ -55,14 +55,14 @@ cat('hello world')
  
   it('extracts original/new snippets from diff-style code blocks', () => {
     const diffBlock = `
-```json
+\`\`\`json
 {
   "id": "diff-example",
   "action": "replace-range",
   "code": "@@\\n function run() {\\n-  old_value <- 1\\n+  new_value <- 2\\n }\\n@@",
   "explanation": "Update variable"
 }
-```
+\`\`\`
 `;
 
     const [block] = extractCodeBlocks(diffBlock);
