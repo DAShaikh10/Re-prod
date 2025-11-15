@@ -1,6 +1,9 @@
 use std::{
     path::{Path, PathBuf},
-    sync::Arc,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
     time::{Instant, SystemTime, UNIX_EPOCH},
 };
 
@@ -8,13 +11,61 @@ use crate::{
     CodeBlockKind, CodeBlockMetadata, EnvironmentSnapshot, ExecutionContext, ExecutionEvent,
     ExecutionRequest, ExecutionResult, ExecutionSource, PlotInfo,
 };
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
 use base64::Engine;
-use tokio::{fs, process::Command};
+use tokio::{
+    fs,
+    io::{AsyncRead, AsyncReadExt},
+    process::{Child, Command, Stdio},
+    sync::Mutex as AsyncMutex,
+    task::JoinHandle,
+};
 use uuid::Uuid;
 
 use super::{segment_r_code, NoopTimeline, SegmentationInput, TimelineSink};
+
+type SharedChild = Arc<AsyncMutex<Child>>;
+
+#[derive(Clone)]
+struct ActiveChild {
+    child: SharedChild,
+    interrupted: Arc<AtomicBool>,
+}
+
+impl ActiveChild {
+    fn new(child: Child) -> Self {
+        Self {
+            child: Arc::new(AsyncMutex::new(child)),
+            interrupted: Arc::new(AtomicBool::new(false)),
+        }
+    }
+
+    async fn wait(&self) -> std::io::Result<std::process::ExitStatus> {
+        let mut child = self.child.lock().await;
+        child.wait().await
+    }
+
+    async fn interrupt(&self) -> Result<()> {
+        let mut child = self.child.lock().await;
+        if let Err(error) = child.start_kill().await {
+            // If the process already exited, treat it as a successful interrupt.
+            if error.kind() != std::io::ErrorKind::InvalidInput {
+                return Err(anyhow!(error));
+            }
+        }
+        self.interrupted.store(true, Ordering::SeqCst);
+        Ok(())
+    }
+
+    fn matches(&self, other: &ActiveChild) -> bool {
+        Arc::ptr_eq(&self.child, &other.child)
+    }
+
+    fn was_interrupted(&self) -> bool {
+        self.interrupted.load(Ordering::SeqCst)
+    }
+}
 
 pub struct RExecutor {
     temp_dir: PathBuf,
@@ -29,7 +80,7 @@ impl RExecutor {
             temp_dir,
             r_path,
             timeline: Arc::new(NoopTimeline),
-            command_runner: Arc::new(ProcessCommandRunner),
+            command_runner: Arc::new(ProcessCommandRunner::default()),
         }
     }
 
@@ -72,14 +123,20 @@ impl RExecutor {
         let stdout = String::from_utf8_lossy(&command_output.stdout).to_string();
         let stderr = String::from_utf8_lossy(&command_output.stderr).to_string();
 
+        let mut error_output = if command_output.stderr.is_empty() {
+            None
+        } else {
+            Some(stderr)
+        };
+
+        if command_output.interrupted {
+            error_output = Some("Execution interrupted by user.".to_string());
+        }
+
         let result = ExecutionResult {
-            success: command_output.success,
+            success: command_output.success && !command_output.interrupted,
             output: stdout,
-            error: if command_output.stderr.is_empty() {
-                None
-            } else {
-                Some(stderr)
-            },
+            error: error_output,
             plots,
             execution_time_ms,
         };
@@ -89,6 +146,30 @@ impl RExecutor {
         self.timeline.record(event.clone()).await?;
 
         Ok((result, event))
+    }
+
+    pub async fn interrupt(&self) -> Result<bool> {
+        self.command_runner.interrupt().await
+    }
+
+    pub async fn reset(&self) -> Result<()> {
+        let _ = self.interrupt().await?;
+        self.cleanup_temp_dir().await?;
+        Ok(())
+    }
+
+    async fn cleanup_temp_dir(&self) -> Result<()> {
+        let mut entries = fs::read_dir(&self.temp_dir).await?;
+        while let Some(entry) = entries.next_entry().await? {
+            let path = entry.path();
+            let file_type = entry.file_type().await?;
+            if file_type.is_dir() {
+                fs::remove_dir_all(&path).await?;
+            } else {
+                fs::remove_file(&path).await?;
+            }
+        }
+        Ok(())
     }
 
     fn wrap_code_with_plot_capture(&self, code: &str, plot_prefix: &str) -> String {
@@ -181,7 +262,7 @@ impl RExecutorBuilder {
             temp_dir,
             r_path,
             timeline: Arc::new(NoopTimeline),
-            command_runner: Arc::new(ProcessCommandRunner),
+            command_runner: Arc::new(ProcessCommandRunner::default()),
         }
     }
 
@@ -219,6 +300,7 @@ impl RExecutorBuilder {
 #[async_trait]
 pub trait CommandRunner: Send + Sync {
     async fn run(&self, r_path: &str, script_path: &Path) -> Result<CommandOutput>;
+    async fn interrupt(&self) -> Result<bool>;
 }
 
 #[derive(Debug, Clone)]
@@ -226,9 +308,13 @@ pub struct CommandOutput {
     pub success: bool,
     pub stdout: Vec<u8>,
     pub stderr: Vec<u8>,
+    pub interrupted: bool,
 }
 
-struct ProcessCommandRunner;
+#[derive(Default)]
+struct ProcessCommandRunner {
+    active_child: AsyncMutex<Option<ActiveChild>>,
+}
 
 #[async_trait]
 impl CommandRunner for ProcessCommandRunner {
@@ -236,17 +322,65 @@ impl CommandRunner for ProcessCommandRunner {
         let script_str = script_path
             .to_str()
             .ok_or_else(|| anyhow!("Invalid path"))?;
-
-        let output = Command::new(r_path)
+        let mut child = Command::new(r_path)
             .args(["--vanilla", "--quiet", script_str])
-            .output()
-            .await?;
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()?;
+
+        let stdout = child.stdout.take();
+        let stderr = child.stderr.take();
+        let active = ActiveChild::new(child);
+
+        {
+            let mut guard = self.active_child.lock().await;
+            *guard = Some(active.clone());
+        }
+
+        let stdout_task = spawn_pipe_reader(stdout);
+        let stderr_task = spawn_pipe_reader(stderr);
+
+        let status = active
+            .wait()
+            .await
+            .context("Failed to wait for R process")?;
+
+        {
+            let mut guard = self.active_child.lock().await;
+            if let Some(current) = guard.as_ref() {
+                if current.matches(&active) {
+                    guard.take();
+                }
+            }
+        }
+
+        let stdout_bytes = stdout_task
+            .await
+            .map_err(|e| anyhow!("Failed to join stdout task: {}", e))??;
+        let stderr_bytes = stderr_task
+            .await
+            .map_err(|e| anyhow!("Failed to join stderr task: {}", e))??;
 
         Ok(CommandOutput {
-            success: output.status.success(),
-            stdout: output.stdout,
-            stderr: output.stderr,
+            success: status.success(),
+            stdout: stdout_bytes,
+            stderr: stderr_bytes,
+            interrupted: active.was_interrupted(),
         })
+    }
+
+    async fn interrupt(&self) -> Result<bool> {
+        let active = {
+            let guard = self.active_child.lock().await;
+            guard.clone()
+        };
+
+        if let Some(child) = active {
+            child.interrupt().await?;
+            Ok(true)
+        } else {
+            Ok(false)
+        }
     }
 }
 
@@ -312,6 +446,21 @@ fn build_event(
     }
 }
 
+fn spawn_pipe_reader<T>(pipe: Option<T>) -> JoinHandle<anyhow::Result<Vec<u8>>>
+where
+    T: AsyncRead + Unpin + Send + 'static,
+{
+    tokio::spawn(async move {
+        if let Some(mut reader) = pipe {
+            let mut buffer = Vec::new();
+            reader.read_to_end(&mut buffer).await?;
+            Ok(buffer)
+        } else {
+            Ok(Vec::new())
+        }
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -332,7 +481,12 @@ mod tests {
                 success: output.success,
                 stdout: output.stdout.clone(),
                 stderr: output.stderr.clone(),
+                interrupted: output.interrupted,
             })
+        }
+
+        async fn interrupt(&self) -> Result<bool> {
+            Ok(false)
         }
     }
 
@@ -345,6 +499,7 @@ mod tests {
                 success: true,
                 stdout: b"hello".to_vec(),
                 stderr: Vec::new(),
+                interrupted: false,
             }),
         };
 
@@ -395,6 +550,7 @@ mod tests {
                 success: false,
                 stdout: b"".to_vec(),
                 stderr: b"error".to_vec(),
+                interrupted: false,
             }),
         };
 

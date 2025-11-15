@@ -405,11 +405,11 @@ function EditorPanelComponent(_: unknown, ref: ForwardedRef<EditorRef>): JSX.Ele
             theme="vs"
             value={editor.content}
             onChange={handleEditorChange}
-            options={{
-              fontSize: 13,
-              fontFamily: "Monaco, Menlo, Consolas, monospace",
-              minimap: { enabled: false },
-              scrollBeyondLastLine: false,
+          options={{
+            fontSize: settings.fontSize,
+            fontFamily: "Monaco, Menlo, Consolas, monospace",
+            minimap: { enabled: false },
+            scrollBeyondLastLine: false,
               wordWrap: "on",
               lineNumbers: "on",
               renderWhitespace: "selection",
