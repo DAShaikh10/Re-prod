@@ -1,24 +1,13 @@
 import packageJson from '../../../package.json';
 import { IconInfo } from '@/components/shared';
 import { useStore } from '@/core';
+import { LINKS, TECH_STACK } from '@/constants/appInfo';
 import { ModalShell } from './ModalShell';
 
 interface AboutModalProps {
   open: boolean;
   onClose: () => void;
 }
-
-const LINKS = [
-  { label: 'Documentation', href: 'https://reprod.dev/docs' },
-  { label: 'GitHub', href: 'https://github.com/reprod' },
-  { label: 'Report Issue', href: 'https://github.com/reprod/issues/new' },
-];
-
-const TECH_STACK = [
-  { title: 'Rust Core', description: 'Tokio + Axum orchestrate the execution engine and WebSocket shell.' },
-  { title: 'Tauri Desktop', description: 'Native desktop wrapper with secure command bridge.' },
-  { title: 'React + Monaco', description: 'TypeScript UI with Monaco editor, Zustand state, and AI tooling.' },
-];
 
 export function AboutModal({ open, onClose }: AboutModalProps): JSX.Element | null {
   const settings = useStore((state) => state.settings);
