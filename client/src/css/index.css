@@ -14,6 +14,7 @@
 @import './components/layout.css';
 @import './components/export-dialog.css';
 @import './components/confirm-dialog.css';
+@import './components/modal-dialog.css';
 
 /* Design themes */
 @import './design-phylo-rstudio.css';

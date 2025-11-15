@@ -1,5 +1,6 @@
 import type { StateCreator } from 'zustand';
 import type { AppSettings } from '@shared/types';
+import { DEFAULT_SETTINGS } from '@/constants/defaultSettings';
 
 export interface SettingsState {
   settings: AppSettings;
@@ -7,14 +8,7 @@ export interface SettingsState {
 }
 
 export const createSettingsSlice: StateCreator<SettingsState> = (set) => ({
-  settings: {
-    autoRun: false,
-    theme: 'light',
-    rPath: 'Rscript',
-    fontSize: 13,
-    showCellDecorations: true,
-    highlightExecutingCell: true
-  },
+  settings: { ...DEFAULT_SETTINGS },
   updateSettings: (newSettings) =>
     set((state) => ({
       settings: { ...state.settings, ...newSettings }

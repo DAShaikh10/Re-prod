@@ -148,6 +148,10 @@ enum WSRequest {
     TimelineStatsQuery,
     #[serde(rename = "export_rmarkdown")]
     ExportRMarkdown { request: ExportRMarkdownRequest },
+    #[serde(rename = "interrupt_execution")]
+    InterruptExecution,
+    #[serde(rename = "restart_session")]
+    RestartSession,
 }
 
 #[derive(serde::Serialize)]
@@ -200,6 +204,10 @@ enum WSResponse {
     TimelineEventAdded { event: ExecutionEvent },
     #[serde(rename = "export_rmarkdown_response")]
     ExportRMarkdownResponse { response: ExportRMarkdownResponse },
+    #[serde(rename = "execution_interrupted")]
+    ExecutionInterrupted { success: bool },
+    #[serde(rename = "session_restarted")]
+    SessionRestarted { cleared_events: u64 },
 }
 
 #[derive(serde::Serialize)]
@@ -364,7 +372,11 @@ async fn handle_ws_request(request: WSRequest, state: &AppState) -> Vec<WSRespon
             } else {
                 match provider.send_message(messages_with_prompts).await {
                     Ok(response) => {
-                        outbound.extend(build_streaming_payload(stream, &stream_id, response));
+                        outbound.extend(build_streaming_payload(
+                            stream,
+                            &stream_id,
+                            response.clone(),
+                        ));
                         outbound
                     }
                     Err(e) => vec![WSResponse::Error {
@@ -439,6 +451,33 @@ async fn handle_ws_request(request: WSRequest, state: &AppState) -> Vec<WSRespon
                         message: format!("RMarkdown export failed: {}", e),
                     }]
                 }
+            }
+        }
+        WSRequest::InterruptExecution => {
+            let executor = state.r_executor.lock().await;
+            match executor.interrupt().await {
+                Ok(success) => vec![WSResponse::ExecutionInterrupted { success }],
+                Err(e) => vec![WSResponse::Error {
+                    message: format!("Failed to interrupt execution: {}", e),
+                }],
+            }
+        }
+        WSRequest::RestartSession => {
+            let restart_result = async {
+                {
+                    let executor = state.r_executor.lock().await;
+                    executor.reset().await.map_err(|e| e.to_string())?;
+                }
+                let cleared = state.timeline.reset().map_err(|e| e.to_string())?;
+                Ok::<u64, String>(cleared as u64)
+            }
+            .await;
+
+            match restart_result {
+                Ok(cleared_events) => vec![WSResponse::SessionRestarted { cleared_events }],
+                Err(message) => vec![WSResponse::Error {
+                    message: format!("Failed to restart session: {}", message),
+                }],
             }
         }
     }
