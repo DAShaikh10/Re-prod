@@ -4,7 +4,7 @@ import { socketService } from '@/services/socket';
 import { extractCodeBlocks } from '@/core/ai/codeBlockUtils';
 import { applyCodeChangeFile } from '@/services/fileService';
 import { buildPromptWithContext, createRequestId, REMOTE_FILE_ACTIONS } from '@/core/ai/promptUtils';
-import type { AIMessage, CodeBlock } from '@shared/types';
+import type { AIMessage, AIMode, CodeBlock } from '@shared/types';
 
 const STREAM_TIMEOUT_MS = 45000;
 
@@ -249,7 +249,7 @@ export function useAIConversation() {
     }
   }, [clearActiveRequest, clearTimeoutRef, completeStreamingMessage, postAssistantMessage, setAILoading]);
 
-  const handleAsk = useCallback((): void => {
+  const handleAsk = useCallback((mode: AIMode = 'agent'): void => {
     if (!input.trim()) {
       return;
     }
@@ -282,12 +282,15 @@ export function useAIConversation() {
 
     const cleanup = registerStreamingHandlers(requestId);
 
+    const enableTools = mode === 'agent';
+
     const sent = socketService.send({
       type: 'ai_message',
       request_id: requestId,
       stream: true,
       messages: requestMessages,
-      enable_tools: true,
+      enable_tools: enableTools,
+      mode,
     });
 
     if (!sent) {
