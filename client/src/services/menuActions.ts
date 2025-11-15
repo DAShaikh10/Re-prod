@@ -13,6 +13,20 @@
 
 import { useStore } from '@/core/state/store';
 import type { ViewPane } from '@/core/state/slices/viewSlice';
+import { interruptExecution, restartSession as restartSessionRequest } from './sessionControl';
+import { exportSessionSnapshot, importSessionSnapshot } from './sessionPersistence';
+
+const callGlobalHandler = (name: string) => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  const handler = (window as typeof window & Record<string, unknown>)[name];
+  if (typeof handler === 'function') {
+    (handler as () => void)();
+  } else {
+    console.error(`${name} handler not available`);
+  }
+};
 
 /**
  * Menu Actions
@@ -244,7 +258,14 @@ export const menuActions = {
      * Interrupt running R execution
      */
     interrupt: () => {
-      // TODO: Implement execution interrupt
+      const store = useStore.getState();
+      if (!store.execution.isRunning) {
+        return;
+      }
+
+      void interruptExecution().catch((error) => {
+        console.error('Failed to interrupt execution', error);
+      });
     },
 
     /**
@@ -256,7 +277,10 @@ export const menuActions = {
         return;
       }
 
-      // TODO: Implement session restart
+      void restartSessionRequest().catch((error) => {
+        console.error('Failed to restart session', error);
+        window.alert('Unable to restart session. Check logs for details.');
+      });
     },
 
     /**
@@ -305,23 +329,23 @@ export const menuActions = {
 
     /**
      * Save session
-     * TODO: Implement session persistence
      */
     save: () => {
+      exportSessionSnapshot();
     },
 
     /**
      * Load session
-     * TODO: Implement session loading
      */
     load: () => {
+      importSessionSnapshot();
     },
 
     /**
      * Show session info
      */
     info: () => {
-      // TODO: Implement session info modal
+      callGlobalHandler('openSessionInfoDialog');
     },
 
     /**
@@ -329,6 +353,7 @@ export const menuActions = {
      * TODO: Implement settings modal
      */
     settings: () => {
+      callGlobalHandler('openSettingsDialog');
     },
   },
 
@@ -382,6 +407,7 @@ export const menuActions = {
      * TODO: Implement shortcuts modal
      */
     shortcuts: () => {
+      callGlobalHandler('openShortcutsDialog');
     },
 
     /**
@@ -396,6 +422,7 @@ export const menuActions = {
      * TODO: Implement about modal
      */
     about: () => {
+      callGlobalHandler('openAboutDialog');
     },
   },
 };

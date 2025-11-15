@@ -56,7 +56,9 @@ export type ClientMessage =
   | {
       type: 'export_rmarkdown';
       request: ExportRMarkdownRequestPayload;
-    };
+    }
+  | { type: 'interrupt_execution' }
+  | { type: 'restart_session' };
 
 type TimelineEventPush = Extract<TimelineMessage, { type: 'timeline_event_added' }>;
 
@@ -75,6 +77,8 @@ export type ServerMessage =
   | { type: 'timeline_response'; data: TimelineResponse }
   | { type: 'timeline_stats_response'; stats: TimelineStats }
   | { type: 'export_rmarkdown_response'; response: ExportRMarkdownResponsePayload }
+  | { type: 'execution_interrupted'; success: boolean }
+  | { type: 'session_restarted'; cleared_events: number }
   | TimelineEventPush;
 
 export type ServerMessageType = ServerMessage['type'];

@@ -141,3 +141,49 @@ export function IconLightbulb(props: IconProps): JSX.Element {
     </svg>
   );
 }
+
+export function IconInfo(props: IconProps): JSX.Element {
+  return (
+    <svg viewBox="0 0 24 24" {...base} {...props}>
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="10" x2="12" y2="16" />
+      <circle cx="12" cy="7" r="0.8" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+export function IconSettings(props: IconProps): JSX.Element {
+  return (
+    <svg viewBox="0 0 24 24" {...base} {...props}>
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.09a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.09a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+    </svg>
+  );
+}
+
+export function IconKeyboard(props: IconProps): JSX.Element {
+  return (
+    <svg viewBox="0 0 24 24" {...base} {...props}>
+      <rect x="3" y="7" width="18" height="10" rx="2" />
+      <path d="M7 10h0" />
+      <path d="M10 10h0" />
+      <path d="M13 10h0" />
+      <path d="M16 10h0" />
+      <path d="M7 13h0" />
+      <path d="M10 13h0" />
+      <path d="M13 13h0" />
+      <path d="M16 13.5h2" />
+    </svg>
+  );
+}
+
+export function IconRefresh(props: IconProps): JSX.Element {
+  return (
+    <svg viewBox="0 0 24 24" {...base} {...props}>
+      <polyline points="23 4 23 10 17 10" />
+      <polyline points="1 20 1 14 7 14" />
+      <path d="M3.51 9a9 9 0 0 1 14.13-3.36L23 10" />
+      <path d="M20.49 15a9 9 0 0 1-14.13 3.36L1 14" />
+    </svg>
+  );
+}
