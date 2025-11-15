@@ -14,6 +14,7 @@ use crate::{
 use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
 use base64::Engine;
+use std::process::Stdio;
 use tokio::{
     fs,
     io::{AsyncRead, AsyncReadExt},
@@ -21,7 +22,6 @@ use tokio::{
     sync::Mutex as AsyncMutex,
     task::JoinHandle,
 };
-use std::process::Stdio;
 use uuid::Uuid;
 
 use super::{segment_r_code, NoopTimeline, SegmentationInput, TimelineSink};
