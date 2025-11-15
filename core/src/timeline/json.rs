@@ -300,9 +300,8 @@ impl JsonTimeline {
         })
     }
 
-    /// Clear all events (for testing)
-    #[cfg(test)]
-    pub fn clear(&self) -> Result<usize> {
+    /// Clear all events from the timeline storage.
+    pub fn reset(&self) -> Result<usize> {
         let count = self.read_records()?.len();
 
         // Truncate the file
