@@ -59,6 +59,7 @@ export interface AIState {
   addAIMessage: (message: AIMessage) => void;
   setAILoading: (isLoading: boolean) => void;
   clearAIMessages: () => void;
+  setAIMessages: (messages: AIMessage[]) => void;
   setAISuggestions: (suggestions: string[]) => void;
   recordPatchMatchFailure: (reason: string, id: string) => void;
   recordPatchMatchSuccess: () => void;
@@ -84,6 +85,10 @@ export const createAISlice: StateCreator<AIState> = (set) => ({
   addAIMessage: (message) =>
     set((state) => ({
       ai: { ...state.ai, messages: [...state.ai.messages, message] }
+    })),
+  setAIMessages: (messages) =>
+    set((state) => ({
+      ai: { ...state.ai, messages }
     })),
   setAILoading: (isLoading) =>
     set((state) => ({

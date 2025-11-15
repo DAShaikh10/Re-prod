@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { socketService } from '@/services/socket';
 import { useStore } from '@/core';
+import { refreshTimelineData } from '@/services/sessionPersistence';
 
 export function useSessionControlEvents(): void {
   const setIsRunning = useStore((state) => state.setIsRunning);
@@ -18,6 +19,7 @@ export function useSessionControlEvents(): void {
       if (message.type === 'session_restarted') {
         resetExecutionState();
         resetTimeline();
+        void refreshTimelineData();
       }
     });
 

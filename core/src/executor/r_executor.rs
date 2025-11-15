@@ -17,10 +17,11 @@ use base64::Engine;
 use tokio::{
     fs,
     io::{AsyncRead, AsyncReadExt},
-    process::{Child, Command, Stdio},
+    process::{Child, Command},
     sync::Mutex as AsyncMutex,
     task::JoinHandle,
 };
+use std::process::Stdio;
 use uuid::Uuid;
 
 use super::{segment_r_code, NoopTimeline, SegmentationInput, TimelineSink};
@@ -48,7 +49,7 @@ impl ActiveChild {
 
     async fn interrupt(&self) -> Result<()> {
         let mut child = self.child.lock().await;
-        if let Err(error) = child.start_kill().await {
+        if let Err(error) = child.start_kill() {
             // If the process already exited, treat it as a successful interrupt.
             if error.kind() != std::io::ErrorKind::InvalidInput {
                 return Err(anyhow!(error));
