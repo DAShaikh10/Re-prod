@@ -8,7 +8,7 @@ export interface SettingsState {
 
 export const DEFAULT_SETTINGS: AppSettings = {
   autoRun: false,
-  theme: 'light',
+  theme: 'phylo',
   rPath: 'Rscript',
   fontSize: 13,
   showCellDecorations: true,
