@@ -1,19 +1,11 @@
 import type { StateCreator } from 'zustand';
 import type { AppSettings } from '@shared/types';
+import { DEFAULT_SETTINGS } from '@/constants/defaultSettings';
 
 export interface SettingsState {
   settings: AppSettings;
   updateSettings: (settings: Partial<AppSettings>) => void;
 }
-
-export const DEFAULT_SETTINGS: AppSettings = {
-  autoRun: false,
-  theme: 'phylo',
-  rPath: 'Rscript',
-  fontSize: 13,
-  showCellDecorations: true,
-  highlightExecutingCell: true,
-};
 
 export const createSettingsSlice: StateCreator<SettingsState> = (set) => ({
   settings: { ...DEFAULT_SETTINGS },

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { AppSettings } from '@shared/types';
 import { IconSettings } from '@/components/shared';
 import { useStore } from '@/core';
-import { DEFAULT_SETTINGS } from '@/core/state/slices/settingsSlice';
+import { DEFAULT_SETTINGS } from '@/constants/defaultSettings';
 import { ModalShell } from './ModalShell';
 
 interface SettingsModalProps {
