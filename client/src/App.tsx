@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Allotment } from "allotment";
 import "allotment/dist/style.css";
 import { MenuBar, StatusBar } from "@/components/menu";
@@ -7,23 +7,51 @@ import { AIPanel } from "@/components/ai-panel";
 import { BottomPane } from "@/components/bottom-pane";
 import { ExportDialog } from "@/components/export";
 import { TimelineDialog } from "@/components/timeline";
+import { AboutModal, KeyboardShortcutsModal, SessionInfoModal, SettingsModal } from "@/components/modals";
 import { useStore } from "@/core";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useSocketConnection } from "@/hooks/useSocketConnection";
+import { useSettingsPersistence } from "@/hooks/useSettingsPersistence";
+import { useSessionControlEvents } from "@/hooks/useSessionControlEvents";
 
 function App(): JSX.Element {
   const panes = useStore((state) => state.view.panes);
+  const theme = useStore((state) => state.settings.theme);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [timelineDialogOpen, setTimelineDialogOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
+  const [sessionInfoOpen, setSessionInfoOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Enable global keyboard shortcuts
   useKeyboardShortcuts();
   useSocketConnection();
+  useSettingsPersistence();
+  useSessionControlEvents();
 
-  // Expose export dialog handler globally for menu actions
-  (window as any).openExportDialog = () => setExportDialogOpen(true);
-  // Expose timeline dialog handler globally for menu actions
-  (window as any).openTimelineDialog = () => setTimelineDialogOpen(true);
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+  }, [theme]);
+
+  useEffect(() => {
+    const globalScope = window as typeof window & Record<string, () => void>;
+    globalScope.openExportDialog = () => setExportDialogOpen(true);
+    globalScope.openTimelineDialog = () => setTimelineDialogOpen(true);
+    globalScope.openShortcutsDialog = () => setShortcutsOpen(true);
+    globalScope.openAboutDialog = () => setAboutOpen(true);
+    globalScope.openSessionInfoDialog = () => setSessionInfoOpen(true);
+    globalScope.openSettingsDialog = () => setSettingsOpen(true);
+
+    return () => {
+      delete globalScope.openExportDialog;
+      delete globalScope.openTimelineDialog;
+      delete globalScope.openShortcutsDialog;
+      delete globalScope.openAboutDialog;
+      delete globalScope.openSessionInfoDialog;
+      delete globalScope.openSettingsDialog;
+    };
+  }, []);
 
   return (
     <div className="app">
@@ -63,6 +91,16 @@ function App(): JSX.Element {
         open={timelineDialogOpen}
         onClose={() => setTimelineDialogOpen(false)}
       />
+      <KeyboardShortcutsModal
+        open={shortcutsOpen}
+        onClose={() => setShortcutsOpen(false)}
+      />
+      <AboutModal open={aboutOpen} onClose={() => setAboutOpen(false)} />
+      <SessionInfoModal
+        open={sessionInfoOpen}
+        onClose={() => setSessionInfoOpen(false)}
+      />
+      <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   );
 }
