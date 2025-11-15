@@ -76,6 +76,20 @@ pub struct AppState {
     pub request_counter: Arc<AtomicU64>,
 }
 
+fn with_system_prompts(messages: &[ChatMessage]) -> Vec<ChatMessage> {
+    let mut result = Vec::with_capacity(messages.len() + 2);
+    result.push(ChatMessage {
+        role: "system".to_string(),
+        content: PATCH_SYSTEM_PROMPT.to_string(),
+    });
+    result.push(ChatMessage {
+        role: "system".to_string(),
+        content: RANGE_SYSTEM_PROMPT.to_string(),
+    });
+    result.extend(messages.iter().cloned());
+    result
+}
+
 pub async fn ws_handler(ws: WebSocketUpgrade, State(state): State<AppState>) -> Response {
     ws.on_upgrade(|socket| handle_socket(socket, state))
 }
@@ -267,17 +281,7 @@ async fn handle_ws_request(request: WSRequest, state: &AppState) -> Vec<WSRespon
             let mut outbound = Vec::new();
 
             // Prepend system prompts
-            let mut messages_with_prompts = vec![
-                ChatMessage {
-                    role: "system".to_string(),
-                    content: PATCH_SYSTEM_PROMPT.to_string(),
-                },
-                ChatMessage {
-                    role: "system".to_string(),
-                    content: RANGE_SYSTEM_PROMPT.to_string(),
-                },
-            ];
-            messages_with_prompts.extend(messages.clone());
+            let messages_with_prompts = with_system_prompts(&messages);
 
             if enable_tools {
                 let mut tools = get_filesystem_tools();
@@ -334,12 +338,13 @@ async fn handle_ws_request(request: WSRequest, state: &AppState) -> Vec<WSRespon
                                 });
                             }
 
-                            match provider.send_message(follow_up_messages).await {
+                            let follow_up_with_prompts = with_system_prompts(&follow_up_messages);
+                            match provider.send_message(follow_up_with_prompts).await {
                                 Ok(final_response) => {
                                     outbound.extend(build_streaming_payload(
                                         stream,
                                         &stream_id,
-                                        final_response.clone(),
+                                        final_response,
                                     ));
                                     outbound
                                 }
@@ -670,5 +675,26 @@ fn build_streaming_payload(stream: bool, stream_id: &str, content: String) -> Ve
         ]
     } else {
         vec![WSResponse::AIResponse { response: content }]
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn with_system_prompts_preserves_existing_conversation() {
+        let messages = vec![ChatMessage {
+            role: "user".to_string(),
+            content: "request".to_string(),
+        }];
+
+        let prefixed = with_system_prompts(&messages);
+
+        assert_eq!(prefixed.len(), messages.len() + 2);
+        assert_eq!(prefixed[0].role, "system");
+        assert_eq!(prefixed[0].content, PATCH_SYSTEM_PROMPT);
+        assert_eq!(prefixed[1].content, RANGE_SYSTEM_PROMPT);
+        assert_eq!(&prefixed[2..], messages.as_slice());
     }
 }
