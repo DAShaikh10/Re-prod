@@ -1,5 +1,6 @@
-import type { ExecutionLogEntry, AppSettings } from '@shared/types';
+import type { ExecutionLogEntry, AppSettings, AIMessage } from '@shared/types';
 import { useStore } from '@/core';
+import { queryTimeline } from '@/services/timelineService';
 
 const SNAPSHOT_VERSION = 1;
 const STORAGE_FILENAME = () =>
@@ -14,6 +15,7 @@ interface SessionSnapshot {
   };
   executionHistory: ExecutionLogEntry[];
   settings: AppSettings;
+  aiMessages: AIMessage[];
 }
 
 export function exportSessionSnapshot(): void {
@@ -27,6 +29,7 @@ export function exportSessionSnapshot(): void {
     },
     executionHistory: state.execution.history,
     settings: state.settings,
+    aiMessages: state.ai.messages,
   };
 
   const blob = new Blob([JSON.stringify(snapshot, null, 2)], {
@@ -73,4 +76,24 @@ function applySnapshot(snapshot: SessionSnapshot): void {
   state.setEditorIsDirty(false);
   state.loadExecutionHistory(snapshot.executionHistory ?? []);
   state.updateSettings(snapshot.settings);
+  state.setAIMessages(snapshot.aiMessages ?? []);
+  void refreshTimelineData();
+}
+
+export async function refreshTimelineData(): Promise<void> {
+  const state = useStore.getState();
+  const { filters, sort, limit, setEvents, setLoading, setError } = state;
+
+  setLoading(true);
+  try {
+    const response = await queryTimeline({
+      filters,
+      sort,
+      limit,
+      offset: 0,
+    });
+    setEvents(response.events, response.total, response.hasMore);
+  } catch (error) {
+    setError(error instanceof Error ? error.message : 'Failed to refresh timeline');
+  }
 }
