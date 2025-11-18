@@ -48,6 +48,7 @@ Instructions:
 4. Prefix removed lines with `-` and added lines with `+`.
 5. Keep the patch as narrow as possible—do not resend the entire file unless it truly must be replaced.
 6. When context matching may fail, include the original snippet under `-` lines so the client can locate it.
+7. IMPORTANT: Always close the patch block with the exact marker `*** End Patch` (not just `***`).
 "#;
 
 const RANGE_SYSTEM_PROMPT: &str = r#"In addition to structured patches, provide a concise diff-style block for each change
@@ -203,6 +204,7 @@ enum WSResponse {
         #[serde(rename = "codeBlocks", skip_serializing_if = "Option::is_none")]
         code_blocks: Option<Vec<Value>>,
     },
+    #[allow(dead_code)] // Reserved for future AI planning feature
     #[serde(rename = "ai_plan_updated")]
     AIPlanUpdated {
         id: String,
@@ -240,6 +242,7 @@ enum WSResponse {
     SessionRestarted { cleared_events: u64 },
 }
 
+#[allow(dead_code)] // Reserved for future AI planning feature
 #[derive(serde::Serialize)]
 struct PlanStepPayload {
     id: String,
@@ -247,6 +250,7 @@ struct PlanStepPayload {
     status: PlanStepStatus,
 }
 
+#[allow(dead_code)] // Reserved for future AI planning feature
 #[derive(serde::Serialize)]
 #[serde(rename_all = "lowercase")]
 enum PlanStepStatus {
@@ -276,6 +280,7 @@ struct ToolLogPayload {
 #[derive(serde::Serialize, Clone)]
 #[serde(rename_all = "lowercase")]
 enum ToolLogStatus {
+    #[allow(dead_code)] // Reserved for future use
     Pending,
     Running,
     Done,
