@@ -7,6 +7,7 @@ use reprod_core::{
         TimelineResponsePayload, TimelineStatsPayload,
     },
     executor::timeline::JsonTimeline,
+    fs::{FileSystem, FileSystemEvent},
     AIResponse, ChatMessage, Config, ExecutionEvent, ExecutionRequest, ExecutionResult, RExecutor,
     ToolExecutor, ToolManifest, ToolRegistry,
 };
@@ -79,6 +80,7 @@ pub struct AppState {
     pub filesystem_tool: Arc<FileSystemTool>,
     pub r_context_tool: Arc<RContextTool>,
     pub request_counter: Arc<AtomicU64>,
+    pub fs: Arc<FileSystem>,
 }
 
 pub(super) fn with_system_prompts(messages: &[ChatMessage], mode: AIMode) -> Vec<ChatMessage> {
@@ -140,6 +142,15 @@ pub(super) enum WSRequest {
     InterruptExecution,
     #[serde(rename = "restart_session")]
     RestartSession,
+    #[serde(rename = "fs_action")]
+    FileSystemAction {
+        action: String,
+        path: String,
+        #[serde(default)]
+        content: Option<String>,
+        #[serde(default)]
+        to: Option<String>,
+    },
 }
 
 #[derive(serde::Serialize)]
@@ -197,6 +208,20 @@ pub(super) enum WSResponse {
     ExecutionInterrupted { success: bool },
     #[serde(rename = "session_restarted")]
     SessionRestarted { cleared_events: u64 },
+    #[serde(rename = "fs_event")]
+    FileSystemEvent { event: FileSystemEvent },
+    #[serde(rename = "fs_result")]
+    FileSystemResult {
+        action: String,
+        path: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        to: Option<String>,
+        success: bool,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        data: Option<Value>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        error: Option<String>,
+    },
 }
 
 #[allow(dead_code)] // Reserved for future AI planning feature
