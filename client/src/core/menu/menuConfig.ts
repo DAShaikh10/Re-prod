@@ -109,6 +109,13 @@ export function buildMenuSections(snapshot: MenuStateSnapshot): MenuSection[] {
       label: 'View',
       items: [
         {
+          id: 'view:toggle-files',
+          label: 'Show/Hide Files Pane',
+          shortcut: 'Cmd/Ctrl+Shift+E',
+          action: () => menuActions.view.togglePane('files'),
+          checked: () => viewPanes.files,
+        },
+        {
           id: 'view:toggle-editor',
           label: 'Show/Hide Editor',
           shortcut: '⌘1',
