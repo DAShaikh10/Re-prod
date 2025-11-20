@@ -54,7 +54,8 @@ pub async fn execute_r_code(
     State(state): State<AppState>,
     Json(payload): Json<ExecutionRequest>,
 ) -> Resp<ExecutionResult> {
-    let executor = state.r_executor.lock().await;
+    let runtime = state.projects.default_runtime().await.map_err(err_500)?;
+    let executor = runtime.r_executor.lock().await;
 
     executor.execute(payload).await.map(Json).map_err(err_500)
 }
@@ -89,12 +90,12 @@ pub async fn get_api_key(
     State(state): State<AppState>,
 ) -> Resp<ApiKeyResponse> {
     let config = state.config.lock().await;
-
     let api_key = match provider.as_str() {
         ai::PROVIDER_ANTHROPIC => config.anthropic_api_key.clone(),
         ai::PROVIDER_OPENAI => config.openai_api_key.clone(),
         _ => return Err(err_400(format!("Unknown provider: {}", provider))),
     };
+    drop(config);
 
     api_key
         .map(|key| Json(ApiKeyResponse { api_key: key }))
@@ -150,7 +151,8 @@ pub async fn execute_tool(
     State(state): State<AppState>,
     Json(request): Json<ToolExecutionRequest>,
 ) -> Resp<ToolExecutionResult> {
-    let mut r_executor = state.r_executor.lock().await;
+    let runtime = state.projects.default_runtime().await.map_err(err_500)?;
+    let mut r_executor = runtime.r_executor.lock().await;
 
     state
         .tool_executor
