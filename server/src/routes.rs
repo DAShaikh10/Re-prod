@@ -160,7 +160,7 @@ pub async fn execute_tool(
             &request.tool_id,
             &request.capability_id,
             request.parameters,
-            &mut r_executor,
+            &r_executor,
         )
         .await
         .map(|result| Json(crate::conversions::to_proto_tool_result(result)))
