@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo } from 'react';
+import { useRef } from 'react';
 import { PanelTabs } from '@/components/shared';
 import { IconPlus, IconXCircle } from '@/components/shared';
 import { useTerminal } from '@/hooks/useTerminal';
@@ -10,6 +11,8 @@ export function TerminalPane(): JSX.Element {
   const {
     state,
     isAvailable,
+    error,
+    errorDetail,
     createSession,
     closeSession,
     setActiveSession,
@@ -20,6 +23,7 @@ export function TerminalPane(): JSX.Element {
   } = useTerminal();
 
   const { sessions, activeSessionId } = state;
+  const didBootstrapRef = useRef(false);
 
   const sessionTabs = useMemo(
     () => sessions.map((session) => ({ id: session.id, label: session.title })),
@@ -27,11 +31,12 @@ export function TerminalPane(): JSX.Element {
   );
 
   useEffect(() => {
-    if (!isAvailable) {
+    if (!isAvailable || didBootstrapRef.current) {
       return;
     }
 
     if (sessions.length === 0) {
+      didBootstrapRef.current = true;
       void createSession();
     }
   }, [isAvailable, sessions.length, createSession]);
@@ -97,6 +102,12 @@ export function TerminalPane(): JSX.Element {
         </div>
       </div>
       <div className="terminal-pane__content">
+        {error && (
+          <div className="alert alert-error mb-2">
+            <p>{error}</p>
+            {errorDetail && <p className="muted">{errorDetail}</p>}
+          </div>
+        )}
         {!isAvailable && (
           <div className="terminal-pane__empty">
             <p>Terminal access is only available inside the desktop experience.</p>
