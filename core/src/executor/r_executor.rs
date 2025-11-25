@@ -185,21 +185,81 @@ impl RExecutor {
             r#"
 # Auto-generated plot capture wrapper
 .reprod_plot_dir <- "{temp_dir}"
+.reprod_state_path <- file.path(.reprod_plot_dir, ".reprod_state.RData")
+
+# Ensure plot directory exists
+if (!dir.exists(.reprod_plot_dir)) {{
+  dir.create(.reprod_plot_dir, recursive = TRUE, showWarnings = FALSE)
+}}
+
+# Restore workspace if it exists
+if (file.exists(.reprod_state_path)) {{
+  tryCatch(
+    load(.reprod_state_path, envir = .GlobalEnv),
+    error = function(e) message("Failed to restore workspace: ", e)
+  )
+}}
+
+# Reset run-scoped state to avoid stale values from previous sessions
+.reprod_plot_dir <- "{temp_dir}"
 .reprod_plot_prefix <- "{plot_prefix}"
+.reprod_state_path <- file.path(.reprod_plot_dir, ".reprod_state.RData")
+.reprod_exit_code <- 0
 
 # Open PNG device
 .reprod_open_device <- function(index) {{
   filename <- sprintf("%s_%d.png", .reprod_plot_prefix, index)
-  png(file.path(.reprod_plot_dir, filename), width = 800, height = 600)
+  png(
+    file.path(.reprod_plot_dir, filename),
+    width = 800, height = 600,
+    type = "cairo"
+  )
 }}
 
 .reprod_open_device(1)
 
 # User code
-{code}
+tryCatch(
+  {{
+    {code}
+  }},
+  error = function(e) {{
+    .reprod_exit_code <<- 1
+    assign(".reprod_last_error", e, envir = .GlobalEnv)
+    message("REPROD_ERROR: ", conditionMessage(e))
+  }}
+)
 
-# Close device to save file
-dev.off()
+# If a device is open, close it to flush the PNG
+if (names(dev.cur()) != "null device") {{
+  dev.off()
+}}
+
+# If no plots were produced, try to render the last ggplot object automatically
+try({{
+  existing_plots <- list.files(
+    .reprod_plot_dir,
+    pattern = sprintf("^%s_\\d+\\.png$", .reprod_plot_prefix)
+  )
+  if (length(existing_plots) == 0 &&
+      requireNamespace("ggplot2", quietly = TRUE)) {{
+    last_plot <- tryCatch(ggplot2::last_plot(), error = function(e) NULL)
+    if (inherits(last_plot, "ggplot")) {{
+      next_index <- length(existing_plots) + 1
+      .reprod_open_device(next_index)
+      print(last_plot)
+      dev.off()
+    }}
+  }}
+}}, silent = TRUE)
+
+# Persist workspace for next run
+tryCatch(
+  save.image(file = .reprod_state_path),
+  error = function(e) message("Failed to save workspace: ", e)
+)
+
+quit(status = .reprod_exit_code, runLast = FALSE)
 "#,
             temp_dir = temp_dir_str,
             plot_prefix = plot_prefix,
