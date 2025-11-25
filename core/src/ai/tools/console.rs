@@ -92,7 +92,7 @@ fn clamp_max_chars(max_chars: Option<usize>) -> usize {
 pub fn fetch_console_logs(
     timeline: &JsonTimeline,
     request: &GetConsoleLogsRequest,
-    ) -> Result<Vec<ConsoleLogSummary>, ReprodError> {
+) -> Result<Vec<ConsoleLogSummary>, ReprodError> {
     let limit = clamp_limit(request.limit);
     let max_chars = clamp_max_chars(request.max_chars_per_entry);
 
