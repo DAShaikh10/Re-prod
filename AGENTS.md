@@ -28,6 +28,7 @@
 - Adopt conventional commits: `feat:`, `fix:`, `docs:`, `test:`, `refactor:` followed by a short description and optional `(#issue)` when applicable.
 - Every PR should explain what changed, why it matters, how it was implemented, and what tests were run; link to the tracked issue or discussion and include screenshots when UI behavior changes.
 - Husky’s pre-push hook enforces formatting/linting; fix the reported issues locally rather than bypassing with `git push --no-verify`.
+- Branch naming/checkout: always create/switch feature branches as `git switch -c feature/issue-<number>-<slug>` (issue number + name), e.g., `git switch -c feature/issue-126-enable-ai-assistant-to-read-console-output`.
 
 ## Husky Hooks & Configuration Tips
 - Husky auto-installs once `pnpm install` completes; the pre-push hook runs `cargo fmt --check`, `cargo clippy`, and `pnpm run lint`.
