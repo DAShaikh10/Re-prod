@@ -32,18 +32,19 @@ pub struct ConsoleLogSummary {
 }
 
 impl ConsoleLogSummary {
-    fn from_event(event: ExecutionEvent, max_chars: usize) -> Self {
+    fn from_event(event: &ExecutionEvent, max_chars: usize) -> Self {
         Self {
             created_at_ms: event.created_at_ms,
             success: event.result.success,
-            source: source_to_string(event.context.source),
-            document_path: event.context.document_path,
+            source: source_to_string(&event.context.source),
+            document_path: event.context.document_path.clone(),
             duration_ms: event.result.execution_time_ms,
-            code: truncate(&collect_code(&event), max_chars),
+            code: truncate(&collect_code(event), max_chars),
             output: truncate(event.result.output.trim(), max_chars),
             error: event
                 .result
                 .error
+                .as_ref()
                 .map(|err| truncate(err.trim(), max_chars)),
             plot_count: event.result.plots.len(),
         }
@@ -65,10 +66,10 @@ fn truncate(text: &str, max_chars: usize) -> String {
     }
 
     let truncated: String = text.chars().take(max_chars).collect();
-    format!("{}... (truncated)", truncated)
+    format!("{}...(truncated)", truncated)
 }
 
-fn source_to_string(source: ExecutionSource) -> String {
+fn source_to_string(source: &ExecutionSource) -> String {
     match source {
         ExecutionSource::Selection => "selection",
         ExecutionSource::Cell => "cell",
@@ -79,20 +80,19 @@ fn source_to_string(source: ExecutionSource) -> String {
 }
 
 fn clamp_limit(limit: Option<u32>) -> u32 {
-    limit.unwrap_or(DEFAULT_LIMIT).max(1).min(MAX_LIMIT)
+    limit.unwrap_or(DEFAULT_LIMIT).clamp(1, MAX_LIMIT)
 }
 
 fn clamp_max_chars(max_chars: Option<usize>) -> usize {
     max_chars
         .unwrap_or(DEFAULT_MAX_CHARS)
-        .max(200)
-        .min(MAX_ALLOWED_CHARS)
+        .clamp(1, MAX_ALLOWED_CHARS)
 }
 
 pub fn fetch_console_logs(
     timeline: &JsonTimeline,
     request: &GetConsoleLogsRequest,
-) -> Result<Vec<ConsoleLogSummary>, ReprodError> {
+    ) -> Result<Vec<ConsoleLogSummary>, ReprodError> {
     let limit = clamp_limit(request.limit);
     let max_chars = clamp_max_chars(request.max_chars_per_entry);
 
@@ -110,7 +110,7 @@ pub fn fetch_console_logs(
     let summaries = response
         .events
         .into_iter()
-        .map(|event| ConsoleLogSummary::from_event(event, max_chars))
+        .map(|event| ConsoleLogSummary::from_event(&event, max_chars))
         .collect();
 
     Ok(summaries)
@@ -133,7 +133,7 @@ pub fn get_console_tools() -> Vec<Value> {
                     },
                     "max_chars_per_entry": {
                         "type": "integer",
-                        "minimum": 200,
+                        "minimum": 1,
                         "maximum": 4000,
                         "description": "Maximum characters to include for code and output fields per entry. Defaults to 1200."
                     }
@@ -153,6 +153,7 @@ mod tests {
         CodeBlockKind, CodeBlockMetadata, EnvironmentSnapshot, ExecutionActor, ExecutionContext,
         ExecutionResult, PlotInfo,
     };
+    use crate::timeline::TimelineSink;
 
     fn build_event(event_id: &str, created_at_ms: u64) -> ExecutionEvent {
         ExecutionEvent {
