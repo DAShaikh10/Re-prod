@@ -4,7 +4,7 @@ use crate::projects::ProjectRuntime;
 use reprod_core::{
     ai::{
         self,
-        tools::{get_filesystem_tools, get_r_context_tools},
+        tools::{get_console_tools, get_filesystem_tools, get_r_context_tools},
     },
     ChatMessage,
 };
@@ -38,6 +38,7 @@ pub(super) async fn handle_ai_message(
     if enable_tools {
         let mut tools = get_filesystem_tools();
         tools.extend(get_r_context_tools());
+        tools.extend(get_console_tools());
         let mut outbound = Vec::new();
 
         match provider
