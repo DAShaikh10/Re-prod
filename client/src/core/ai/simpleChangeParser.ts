@@ -53,7 +53,11 @@ const parseDiffBlock = (block: string): SimpleCodeChange | null => {
     }
     if (line.startsWith('+')) {
       newLines.push(line.slice(1));
+      continue;
     }
+    // Treat neutral lines (including blanks) within the diff span as shared context
+    oldLines.push(line.startsWith(' ') ? line.slice(1) : line);
+    newLines.push(line.startsWith(' ') ? line.slice(1) : line);
   }
 
   if (!oldLines.length && !newLines.length) {
@@ -90,6 +94,7 @@ const gatherSegments = (text: string, ranges: Array<{ start: number; end: number
 };
 
 export function parseSimpleChanges(text: string): SimpleCodeChange[] {
+  CODE_FENCE_REGEX.lastIndex = 0;
   const changes: SimpleCodeChange[] = [];
   const fenceRanges: Array<{ start: number; end: number }> = [];
 
