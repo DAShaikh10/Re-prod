@@ -153,6 +153,7 @@ mod tests {
         CodeBlockKind, CodeBlockMetadata, EnvironmentSnapshot, ExecutionActor, ExecutionContext,
         ExecutionResult, PlotInfo,
     };
+    use crate::timeline::TimelineSink;
 
     fn build_event(event_id: &str, created_at_ms: u64) -> ExecutionEvent {
         ExecutionEvent {
