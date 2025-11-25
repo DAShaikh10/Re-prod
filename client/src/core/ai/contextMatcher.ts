@@ -2,10 +2,11 @@ import type { CodeRange } from '@shared/types';
 import type { PatchChunk } from '@shared/types';
 
 const normalizeLine = (line: string): string => line.trim();
-const normalizeSnippet = (lines: string[]): string[] =>
-  lines
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0);
+const normalizeSnippet = (lines: string[]): string[] => {
+  const normalized = lines.map(normalizeLine);
+  const hasContent = normalized.some((line) => line.length > 0);
+  return hasContent ? normalized : [];
+};
 
 export function seekSequence(
   content: string,
@@ -38,11 +39,7 @@ export function computeTargetRange(
   content: string,
   snippet: string,
 ): CodeRange | null {
-  const snippetLines = snippet
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0);
-
+  const snippetLines = normalizeSnippet(snippet.split(/\r?\n/));
   if (!snippetLines.length) {
     return null;
   }
