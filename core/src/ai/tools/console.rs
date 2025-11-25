@@ -66,7 +66,7 @@ fn truncate(text: &str, max_chars: usize) -> String {
     }
 
     let truncated: String = text.chars().take(max_chars).collect();
-    format!("{}... (truncated)", truncated)
+    format!("{}...(truncated)", truncated)
 }
 
 fn source_to_string(source: &ExecutionSource) -> String {
@@ -86,7 +86,7 @@ fn clamp_limit(limit: Option<u32>) -> u32 {
 fn clamp_max_chars(max_chars: Option<usize>) -> usize {
     max_chars
         .unwrap_or(DEFAULT_MAX_CHARS)
-        .clamp(200, MAX_ALLOWED_CHARS)
+        .clamp(1, MAX_ALLOWED_CHARS)
 }
 
 pub fn fetch_console_logs(
@@ -133,7 +133,7 @@ pub fn get_console_tools() -> Vec<Value> {
                     },
                     "max_chars_per_entry": {
                         "type": "integer",
-                        "minimum": 200,
+                        "minimum": 1,
                         "maximum": 4000,
                         "description": "Maximum characters to include for code and output fields per entry. Defaults to 1200."
                     }
