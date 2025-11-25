@@ -119,6 +119,15 @@ pub(super) async fn execute_ai_tool_call(
                 })
                 .map_err(|e| e.to_string())
         }
+        "get_recent_console_logs" => {
+            let request: GetConsoleLogsRequest = serde_json::from_value(tool_call.input.clone())
+                .map_err(|e| format!("Invalid request: {}", e))?;
+
+            let logs = fetch_console_logs(runtime.timeline.as_ref(), &request)
+                .map_err(|e| e.to_string())?;
+
+            serde_json::to_string(&logs).map_err(|e| e.to_string())
+        }
         _ => Err(format!("Unknown tool: {}", tool_call.name)),
     }
 }

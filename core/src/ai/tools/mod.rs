@@ -1,6 +1,10 @@
+mod console;
 mod filesystem;
 mod r_context;
 
+pub use console::{
+    fetch_console_logs, get_console_tools, ConsoleLogSummary, GetConsoleLogsRequest,
+};
 pub use filesystem::{
     get_filesystem_tools, FileInfo, FileSystemTool, ListFilesRequest, ReadFileRequest,
     WriteFileRequest,

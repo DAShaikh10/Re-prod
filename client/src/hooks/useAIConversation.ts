@@ -19,6 +19,7 @@ export function useAIConversation() {
   const completeStreamingMessage = useStore((state) => state.completeStreamingMessage);
   const editorContent = useStore((state) => state.editor.content);
   const editorFilepath = useStore((state) => state.editor.filepath);
+  const consoleHistory = useStore((state) => state.execution.results);
 
   const { clearTimeoutRef, startTimeout } = useAITimeout();
   const { registerStreamingHandlers } = useAIStreaming();
@@ -88,7 +89,10 @@ export function useAIConversation() {
 
       const requestMessages = [
         ...messages.map((message) => ({ role: message.role, content: message.content })),
-        { role: 'user' as const, content: buildPromptWithContext(editorFilepath, editorContent, input) },
+        {
+          role: 'user' as const,
+          content: buildPromptWithContext(editorFilepath, editorContent, input, consoleHistory),
+        },
       ];
 
       const requestId = createRequestId();
@@ -144,6 +148,7 @@ export function useAIConversation() {
       clearActiveRequest,
       clearTimeoutRef,
       completeStreamingMessage,
+      consoleHistory,
       editorContent,
       editorFilepath,
       input,
