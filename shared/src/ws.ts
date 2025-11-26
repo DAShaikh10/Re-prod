@@ -17,6 +17,7 @@ import type {
 
 type ToolExecutionResponse = {
 	tool_id: string;
+	/* eslint-disable @typescript-eslint/naming-convention */
 	capability_id: string;
 	success: boolean;
 	stdout?: string | null;
@@ -26,17 +27,38 @@ type ToolExecutionResponse = {
 };
 
 export type ExportMode = "timeline" | "document";
+export type ExportFormat = "rmarkdown" | "pdf";
+export type CodeFolding = "show" | "hide";
+
+export interface OutputTruncationOptions {
+	headLines: number;
+	tailLines: number;
+	maxLines: number;
+}
+
+export interface PdfExportOptions {
+	toc: boolean;
+	includeSource: boolean;
+	highlightTheme?: string;
+	figWidth?: number;
+	figHeight?: number;
+	latexPreamble?: string | null;
+}
 
 export interface ExportRMarkdownRequestPayload {
 	mode: ExportMode;
+	format?: ExportFormat;
 	outputPath: string;
 	documentPath?: string;
+	codeFolding?: CodeFolding;
 	includeTimestamps: boolean;
 	showActor: boolean;
 	embedPlots: boolean;
 	includeOutputs: boolean;
 	includeErrors: boolean;
 	includeSummary: boolean;
+	outputTruncation?: OutputTruncationOptions;
+	pdfOptions?: PdfExportOptions;
 }
 
 export interface ExportRMarkdownResponsePayload {
@@ -97,12 +119,7 @@ export type ServerMessage =
 			};
 	  }
 	| { type: "ai_response_chunk"; id: string; chunk: string }
-	| {
-			type: "ai_response_complete";
-			id: string;
-			final: string;
-			codeBlocks?: CodeBlock[];
-	  }
+	| { type: "ai_response_complete"; id: string; final: string; codeBlocks?: CodeBlock[] }
 	| { type: "ai_plan_updated"; id: string; plan: PlanStep[] }
 	| { type: "ai_tool_started"; id: string; tool: ToolCallLog }
 	| { type: "ai_tool_finished"; id: string; tool: ToolCallLog }
@@ -111,10 +128,7 @@ export type ServerMessage =
 	| ({ type: "tool_execution_result" } & ToolExecutionResponse)
 	| { type: "timeline_response"; data: TimelineResponse }
 	| { type: "timeline_stats_response"; stats: TimelineStats }
-	| {
-			type: "export_rmarkdown_response";
-			response: ExportRMarkdownResponsePayload;
-	  }
+	| { type: "export_rmarkdown_response"; response: ExportRMarkdownResponsePayload }
 	| { type: "execution_interrupted"; success: boolean }
 	| { type: "session_restarted"; cleared_events: number }
 	| { type: "fs_event"; event: FileSystemEventPayload }
@@ -128,16 +142,8 @@ export type ServerMessage =
 			error?: string | null;
 	  }
 	| { type: "project_list"; projects: ProjectRecord[] }
-	| {
-			type: "project_opened";
-			project: ProjectRecord;
-			state?: Record<string, unknown> | null;
-	  }
-	| {
-			type: "project_state";
-			project_id: string;
-			state?: Record<string, unknown> | null;
-	  }
+	| { type: "project_opened"; project: ProjectRecord; state?: Record<string, unknown> | null }
+	| { type: "project_state"; project_id: string; state?: Record<string, unknown> | null }
 	| { type: "project_state_saved"; project_id: string }
 	| TimelineEventPush;
 

@@ -29,6 +29,9 @@ use super::bundle::ReproductionBundle;
 use super::metadata::BundleMetadata;
 use crate::protocol::{ExecutionActor, ExecutionEvent};
 use serde::{Deserialize, Serialize};
+use std::path::Path;
+use tempfile::tempdir;
+use tokio::{fs, process::Command};
 
 /// Export mode for RMarkdown generation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -42,28 +45,91 @@ pub enum ExportMode {
     Document,
 }
 
+/// Output format for exports.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ExportFormat {
+    RMarkdown,
+    Pdf,
+}
+
+impl Default for ExportFormat {
+    fn default() -> Self {
+        Self::RMarkdown
+    }
+}
+
+/// Code folding preference for HTML output.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CodeFolding {
+    Show,
+    Hide,
+}
+
+impl Default for CodeFolding {
+    fn default() -> Self {
+        Self::Show
+    }
+}
+
+/// Options specific to PDF rendering.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PdfRenderOptions {
+    pub toc: bool,
+    pub include_source: bool,
+    pub highlight_theme: String,
+    pub fig_width: f64,
+    pub fig_height: f64,
+    #[serde(default)]
+    pub latex_preamble: Option<String>,
+}
+
+impl Default for PdfRenderOptions {
+    fn default() -> Self {
+        Self {
+            toc: true,
+            include_source: true,
+            highlight_theme: "tango".to_string(),
+            fig_width: 7.0,
+            fig_height: 5.0,
+            latex_preamble: None,
+        }
+    }
+}
+
 /// Options for RMarkdown export.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RMarkdownOptions {
     pub mode: ExportMode,
+    pub show_code: bool,
+    pub code_folding: CodeFolding,
     pub include_timestamps: bool,
     pub show_actor: bool,
     pub embed_plots: bool,
     pub include_outputs: bool,
     pub include_errors: bool,
     pub include_summary: bool,
+    pub output_head_lines: usize,
+    pub output_tail_lines: usize,
+    pub output_max_lines: usize,
 }
 
 impl Default for RMarkdownOptions {
     fn default() -> Self {
         Self {
             mode: ExportMode::Timeline,
+            show_code: true,
+            code_folding: CodeFolding::Show,
             include_timestamps: true,
             show_actor: true,
             embed_plots: true,
             include_outputs: true,
             include_errors: false,
             include_summary: true,
+            output_head_lines: 20,
+            output_tail_lines: 8,
+            output_max_lines: 200,
         }
     }
 }
@@ -107,7 +173,20 @@ impl RMarkdownGenerator {
 
     // ===== Timeline Mode Helpers =====
 
+    fn chunk_header(&self, chunk_id: &str) -> String {
+        if self.options.show_code {
+            format!("```{{r {}}}\n", chunk_id)
+        } else {
+            format!("```{{r {}, echo=FALSE}}\n", chunk_id)
+        }
+    }
+
     fn generate_yaml_header_timeline(&self, bundle: &ReproductionBundle) -> String {
+        let code_folding = match self.options.code_folding {
+            CodeFolding::Show => "show",
+            CodeFolding::Hide => "hide",
+        };
+
         format!(
             r#"---
 title: "Re-prod Analysis Report (Timeline Export)"
@@ -117,12 +196,22 @@ output:
   html_document:
     toc: true
     toc_depth: 2
-    code_folding: show
+    code_folding: {}
     theme: united
+header-includes:
+  - |
+    <style>
+      .rp-output {{ background: #f6f8fa; padding: 10px 12px; border-radius: 6px; }}
+      .rp-error {{ background: #fff2f0; padding: 10px 12px; border-left: 4px solid #d93025; border-radius: 6px; }}
+    </style>
+  - |
+    \usepackage{{xcolor}}
+    \newenvironment{{rpoutput}}{{\begin{{quote}}\colorbox{{gray!10}}{{\begin{{minipage}}{{0.97\linewidth}}}}}}{{\end{{minipage}}\end{{quote}}}}
+    \newenvironment{{rperror}}{{\begin{{quote}}\colorbox{{red!5}}{{\begin{{minipage}}{{0.97\linewidth}}}}}}{{\end{{minipage}}\end{{quote}}}}
 ---
 
 "#,
-            bundle.metadata.created_at
+            bundle.metadata.created_at, code_folding
         )
     }
 
@@ -189,7 +278,7 @@ output:
         // Code chunks
         for (block_idx, block) in event.blocks.iter().enumerate() {
             let chunk_id = format!("event-{}-block-{}", index, block_idx);
-            section.push_str(&format!("```{{r {}}}\n", chunk_id));
+            section.push_str(&self.chunk_header(&chunk_id));
             section.push_str(&block.code);
             if !block.code.ends_with('\n') {
                 section.push('\n');
@@ -198,23 +287,31 @@ output:
 
             // Output
             if self.options.include_outputs && !event.result.output.is_empty() {
-                section.push_str("**Output**:\n```\n");
-                section.push_str(&event.result.output);
-                if !event.result.output.ends_with('\n') {
+                let (trimmed, truncated) = self.trim_output(&event.result.output);
+                section.push_str("::: {.rp-output}\n```\n");
+                section.push_str(&trimmed);
+                if !trimmed.ends_with('\n') {
                     section.push('\n');
                 }
-                section.push_str("```\n\n");
+                if truncated {
+                    section.push_str("... (output truncated)\n");
+                }
+                section.push_str("```\n:::\n\n");
             }
 
             // Error
             if self.options.include_errors {
                 if let Some(error) = &event.result.error {
-                    section.push_str("**Error**:\n```\n");
-                    section.push_str(error);
-                    if !error.ends_with('\n') {
+                    let (trimmed, truncated) = self.trim_output(error);
+                    section.push_str("::: {.rp-error}\n```\n");
+                    section.push_str(&trimmed);
+                    if !trimmed.ends_with('\n') {
                         section.push('\n');
                     }
-                    section.push_str("```\n\n");
+                    if truncated {
+                        section.push_str("... (error truncated)\n");
+                    }
+                    section.push_str("```\n:::\n\n");
                 }
             }
         }
@@ -228,6 +325,39 @@ output:
 
         section.push_str("---\n\n");
         section
+    }
+
+    fn trim_output(&self, text: &str) -> (String, bool) {
+        let lines: Vec<&str> = text.lines().collect();
+        let total = lines.len();
+        if total <= self.options.output_max_lines {
+            return (text.to_string(), false);
+        }
+
+        let head = self.options.output_head_lines.min(total);
+        let tail = self
+            .options
+            .output_tail_lines
+            .min(total.saturating_sub(head));
+
+        if head + tail >= total {
+            return (text.to_string(), false);
+        }
+
+        let mut result = String::new();
+        for line in lines.iter().take(head) {
+            result.push_str(line);
+            result.push('\n');
+        }
+        let skipped = total.saturating_sub(head + tail);
+        result.push_str(&format!("... ({} lines truncated) ...\n", skipped));
+        if tail > 0 {
+            for line in lines.iter().skip(total - tail) {
+                result.push_str(line);
+                result.push('\n');
+            }
+        }
+        (result, true)
     }
 
     fn generate_summary(&self, bundle: &ReproductionBundle) -> String {
@@ -290,6 +420,11 @@ output:
     // ===== Document Mode Helpers =====
 
     fn generate_yaml_header_document(&self, document_path: &str) -> String {
+        let code_folding = match self.options.code_folding {
+            CodeFolding::Show => "show",
+            CodeFolding::Hide => "hide",
+        };
+
         let title = std::path::Path::new(document_path)
             .file_stem()
             .and_then(|s| s.to_str())
@@ -303,12 +438,23 @@ date: "{}"
 output:
   html_document:
     toc: true
-    code_folding: show
+    code_folding: {}
+header-includes:
+  - |
+    <style>
+      .rp-output {{ background: #f6f8fa; padding: 10px 12px; border-radius: 6px; }}
+      .rp-error {{ background: #fff2f0; padding: 10px 12px; border-left: 4px solid #d93025; border-radius: 6px; }}
+    </style>
+  - |
+    \usepackage{{xcolor}}
+    \newenvironment{{rpoutput}}{{\begin{{quote}}\colorbox{{gray!10}}{{\begin{{minipage}}{{0.97\linewidth}}}}}}{{\end{{minipage}}\end{{quote}}}}
+    \newenvironment{{rperror}}{{\begin{{quote}}\colorbox{{red!5}}{{\begin{{minipage}}{{0.97\linewidth}}}}}}{{\end{{minipage}}\end{{quote}}}}
 ---
 
 "#,
             title,
-            chrono::Utc::now().format("%Y-%m-%d")
+            chrono::Utc::now().format("%Y-%m-%d"),
+            code_folding
         )
     }
 
@@ -337,7 +483,7 @@ This document contains the R code from `{}`.
                 // Flush previous section if any
                 if !current_section.trim().is_empty() {
                     section_number += 1;
-                    content.push_str(&format!("```{{r chunk-{}}}\n", section_number));
+                    content.push_str(&self.chunk_header(&format!("chunk-{}", section_number)));
                     content.push_str(&current_section);
                     if !current_section.ends_with('\n') {
                         content.push('\n');
@@ -365,7 +511,7 @@ This document contains the R code from `{}`.
         // Flush final section
         if !current_section.trim().is_empty() {
             section_number += 1;
-            content.push_str(&format!("```{{r chunk-{}}}\n", section_number));
+            content.push_str(&self.chunk_header(&format!("chunk-{}", section_number)));
             content.push_str(&current_section);
             if !current_section.ends_with('\n') {
                 content.push('\n');
@@ -399,6 +545,200 @@ fn format_timestamp(ms: u64) -> String {
     .unwrap_or_else(chrono::Utc::now);
 
     datetime.format("%Y-%m-%d %H:%M:%S UTC").to_string()
+}
+
+/// Render a PDF from RMarkdown content using R.
+pub async fn render_pdf_document(
+    r_path: &str,
+    working_dir: &Path,
+    rmd_content: &str,
+    output_path: &Path,
+    pdf_options: &PdfRenderOptions,
+) -> Result<(), String> {
+    let resolved_output = if output_path.is_relative() {
+        working_dir.join(output_path)
+    } else {
+        output_path.to_path_buf()
+    };
+    let output_dir = resolved_output
+        .parent()
+        .map(Path::to_path_buf)
+        .unwrap_or_else(|| working_dir.to_path_buf());
+
+    if let Some(parent) = resolved_output.parent() {
+        fs::create_dir_all(parent).await.map_err(|e| {
+            format!(
+                "Failed to create output directory {}: {}",
+                parent.display(),
+                e
+            )
+        })?;
+    }
+
+    let temp_dir = tempdir().map_err(|e| format!("Failed to create temp directory: {}", e))?;
+    let rmd_path = temp_dir.path().join("export.Rmd");
+    let script_path = temp_dir.path().join("render.R");
+
+    fs::write(&rmd_path, rmd_content)
+        .await
+        .map_err(|e| format!("Failed to write temporary RMarkdown: {}", e))?;
+
+    let preamble_path = if let Some(preamble) = &pdf_options.latex_preamble {
+        let path = temp_dir.path().join("preamble.tex");
+        fs::write(&path, preamble)
+            .await
+            .map_err(|e| format!("Failed to write LaTeX preamble: {}", e))?;
+        Some(path)
+    } else {
+        None
+    };
+
+    let script = build_pdf_render_script(
+        &rmd_path,
+        &resolved_output,
+        working_dir,
+        &output_dir,
+        pdf_options,
+        preamble_path.as_ref().map(|p| p.as_path()),
+    );
+
+    fs::write(&script_path, script)
+        .await
+        .map_err(|e| format!("Failed to write render script: {}", e))?;
+
+    let output = Command::new(r_path)
+        .args([
+            "--vanilla",
+            "--quiet",
+            script_path.to_string_lossy().as_ref(),
+        ])
+        .current_dir(working_dir)
+        .output()
+        .await
+        .map_err(|e| format!("Failed to start Rscript for PDF export: {}", e))?;
+
+    if !output.status.success() {
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let combined = [stdout.trim(), stderr.trim()]
+            .iter()
+            .filter(|s| !s.is_empty())
+            .cloned()
+            .collect::<Vec<_>>()
+            .join("\n");
+        let message = if combined.is_empty() {
+            "PDF export failed. Check R logs for details.".to_string()
+        } else {
+            combined
+        };
+        return Err(message);
+    }
+
+    Ok(())
+}
+
+fn build_pdf_render_script(
+    rmd_path: &Path,
+    output_path: &Path,
+    working_dir: &Path,
+    output_dir: &Path,
+    options: &PdfRenderOptions,
+    preamble_path: Option<&Path>,
+) -> String {
+    let include_source = if options.include_source {
+        "TRUE"
+    } else {
+        "FALSE"
+    };
+    let toc = if options.toc { "TRUE" } else { "FALSE" };
+    let includes = preamble_path.map_or_else(
+        || "rmarkdown::includes()".to_string(),
+        |path| {
+            format!(
+                "rmarkdown::includes(in_header = \"{}\")",
+                escape_r_string(&path.to_string_lossy())
+            )
+        },
+    );
+
+    let root_dir = escape_r_string(&working_dir.to_string_lossy());
+    let rmd_path = escape_r_string(&rmd_path.to_string_lossy());
+    let output_dir = escape_r_string(&output_dir.to_string_lossy());
+    let output_file = output_path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .map(escape_r_string)
+        .unwrap_or_else(|| "analysis.pdf".to_string());
+    let highlight = escape_r_string(&options.highlight_theme);
+
+    format!(
+        r#"
+render_pdf <- function() {{
+  old_wd <- getwd()
+  on.exit(setwd(old_wd), add = TRUE)
+  setwd("{root_dir}")
+
+  if (!requireNamespace("rmarkdown", quietly = TRUE)) {{
+    stop("PDF export requires the 'rmarkdown' package. Install it with install.packages('rmarkdown').")
+  }}
+
+  has_latex <- nzchar(Sys.which("pdflatex"))
+  if (!has_latex && requireNamespace("tinytex", quietly = TRUE)) {{
+    has_latex <- tinytex::is_tinytex_installed() || tinytex::is_latex_installed()
+  }}
+
+  if (!has_latex) {{
+    stop("PDF export requires LaTeX. Install TinyTeX by running: tinytex::install_tinytex()")
+  }}
+
+  knitr::opts_knit$set(root.dir = "{root_dir}")
+  knitr::opts_chunk$set(
+    echo = {include_source},
+    fig.width = {fig_width},
+    fig.height = {fig_height}
+  )
+
+  output_format <- rmarkdown::pdf_document(
+    toc = {toc},
+    highlight = "{highlight}",
+    fig_width = {fig_width},
+    fig_height = {fig_height},
+    includes = {includes}
+  )
+
+  rmarkdown::render(
+    input = "{rmd_path}",
+    output_file = "{output_file}",
+    output_dir = "{output_dir}",
+    output_format = output_format,
+    quiet = TRUE,
+    envir = new.env(parent = globalenv())
+  )
+}}
+
+tryCatch(
+  render_pdf(),
+  error = function(e) {{
+    message(e$message)
+    quit(status = 1)
+  }}
+)
+"#,
+        root_dir = root_dir,
+        include_source = include_source,
+        fig_width = options.fig_width,
+        fig_height = options.fig_height,
+        toc = toc,
+        highlight = highlight,
+        includes = includes,
+        rmd_path = rmd_path,
+        output_file = output_file,
+        output_dir = output_dir
+    )
+}
+
+fn escape_r_string(value: &str) -> String {
+    value.replace('\\', "\\\\").replace('"', "\\\"")
 }
 
 #[cfg(test)]
@@ -558,7 +898,7 @@ mod tests {
         let bundle = ReproductionBundle::from_events(events);
         let rmd = generator.from_timeline(&bundle);
 
-        assert!(rmd.contains("**Output**:"));
+        assert!(rmd.contains("::: {.rp-output}"));
         assert!(rmd.contains("[1] 1 2 3 4 5"));
     }
 
@@ -592,7 +932,7 @@ mod tests {
         let bundle = ReproductionBundle::from_events(vec![event]);
         let rmd = generator.from_timeline(&bundle);
 
-        assert!(rmd.contains("**Error**:"));
+        assert!(rmd.contains("::: {.rp-error}"));
         assert!(rmd.contains("Error: object not found"));
     }
 
@@ -689,11 +1029,16 @@ ggplot(mtcars, aes(x = wt, y = mpg)) + geom_point()
     fn test_rmarkdown_options_default() {
         let options = RMarkdownOptions::default();
         assert_eq!(options.mode, ExportMode::Timeline);
+        assert!(options.show_code);
+        assert_eq!(options.code_folding, CodeFolding::Show);
         assert!(options.include_timestamps);
         assert!(options.show_actor);
         assert!(options.embed_plots);
         assert!(options.include_outputs);
         assert!(!options.include_errors);
         assert!(options.include_summary);
+        assert_eq!(options.output_head_lines, 20);
+        assert_eq!(options.output_tail_lines, 8);
+        assert_eq!(options.output_max_lines, 200);
     }
 }
