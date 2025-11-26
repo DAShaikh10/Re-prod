@@ -1,19 +1,25 @@
 import { useCallback, useEffect, useReducer } from "react";
-import type { ExportRMarkdownRequestPayload } from "shared";
-import { ExportServiceError, exportRMarkdown } from "@/services/exportService";
+import { exportRMarkdown, ExportServiceError } from "@/services/exportService";
+import { adjustOutputPathForFormat, exportDialogInitialState } from "@/types/exportDialog";
 import type {
 	ExportDialogAction,
 	ExportDialogOptions,
 	ExportDialogState,
 	ExportFormat,
 	ExportOptionKey,
+	ExportPdfOptionKey,
+	ExportPdfOptions,
 } from "@/types/exportDialog";
-import { exportDialogInitialState } from "@/types/exportDialog";
+import type { CodeFolding, ExportRMarkdownRequestPayload } from "shared";
 
 function reducer(state: ExportDialogState, action: ExportDialogAction): ExportDialogState {
 	switch (action.type) {
 		case "set-format":
-			return { ...state, format: action.payload };
+			return {
+				...state,
+				format: action.payload,
+				outputPath: adjustOutputPathForFormat(state.outputPath, action.payload),
+			};
 		case "set-mode":
 			return { ...state, mode: action.payload };
 		case "set-option":
@@ -21,6 +27,13 @@ function reducer(state: ExportDialogState, action: ExportDialogAction): ExportDi
 				...state,
 				options: { ...state.options, [action.key]: action.value },
 			};
+		case "set-pdf-option":
+			return {
+				...state,
+				pdfOptions: { ...state.pdfOptions, [action.key]: action.value },
+			};
+		case "set-code-folding":
+			return { ...state, codeFolding: action.payload };
 		case "set-document-path":
 			return { ...state, documentPath: action.payload };
 		case "set-output-path":
@@ -43,6 +56,10 @@ interface UseExportDialogReturn {
 	setMode: (next: ExportRMarkdownRequestPayload["mode"]) => void;
 	options: ExportDialogOptions;
 	setOption: (key: ExportOptionKey, value: boolean) => void;
+	codeFolding: CodeFolding;
+	setCodeFolding: (next: CodeFolding) => void;
+	pdfOptions: ExportPdfOptions;
+	setPdfOption: <TKey extends ExportPdfOptionKey>(key: TKey, value: ExportPdfOptions[TKey]) => void;
 	documentPath: string;
 	setDocumentPath: (value: string) => void;
 	outputPath: string;
@@ -59,7 +76,17 @@ interface UseExportDialogProps {
 
 export function useExportDialog({ open, onClose }: UseExportDialogProps): UseExportDialogReturn {
 	const [state, dispatch] = useReducer(reducer, exportDialogInitialState);
-	const { format, mode, options, documentPath, outputPath, exporting, error } = state;
+	const {
+		format,
+		mode,
+		options,
+		codeFolding,
+		pdfOptions,
+		documentPath,
+		outputPath,
+		exporting,
+		error,
+	} = state;
 
 	useEffect(() => {
 		if (!open) {
@@ -88,15 +115,19 @@ export function useExportDialog({ open, onClose }: UseExportDialogProps): UseExp
 		dispatch({ type: "set-option", key, value });
 	}, []);
 
+	const setPdfOption = useCallback(
+		<TKey extends ExportPdfOptionKey>(key: TKey, value: ExportPdfOptions[TKey]) => {
+			dispatch({ type: "set-pdf-option", key, value });
+		},
+		[],
+	);
+
 	const handleExport = useCallback(async (): Promise<void> => {
 		dispatch({ type: "set-exporting", payload: true });
 		dispatch({ type: "set-error", payload: "" });
 
 		if (format === "bundle") {
-			dispatch({
-				type: "set-error",
-				payload: "Bundle export is not supported yet.",
-			});
+			dispatch({ type: "set-error", payload: "Bundle export is not supported yet." });
 			dispatch({ type: "set-exporting", payload: false });
 			return;
 		}
@@ -114,14 +145,32 @@ export function useExportDialog({ open, onClose }: UseExportDialogProps): UseExp
 
 		const payload: ExportRMarkdownRequestPayload = {
 			mode,
+			format: format === "pdf" ? "pdf" : "rmarkdown",
 			outputPath,
 			documentPath: mode === "document" ? trimmedDocumentPath : undefined,
+			codeFolding,
 			includeTimestamps: options.includeTimestamps,
 			showActor: options.showActor,
 			embedPlots: options.embedPlots,
 			includeOutputs: options.includeOutputs,
 			includeErrors: options.includeErrors,
 			includeSummary: options.includeSummary,
+			outputTruncation: {
+				headLines: 20,
+				tailLines: 8,
+				maxLines: 200,
+			},
+			pdfOptions:
+				format === "pdf"
+					? {
+							toc: pdfOptions.toc,
+							includeSource: pdfOptions.includeSource,
+							highlightTheme: pdfOptions.highlightTheme,
+							figWidth: pdfOptions.figWidth,
+							figHeight: pdfOptions.figHeight,
+							latexPreamble: pdfOptions.latexPreamble || undefined,
+						}
+					: undefined,
 		};
 
 		try {
@@ -136,7 +185,7 @@ export function useExportDialog({ open, onClose }: UseExportDialogProps): UseExp
 		} finally {
 			dispatch({ type: "set-exporting", payload: false });
 		}
-	}, [format, mode, options, documentPath, outputPath, onClose]);
+	}, [format, mode, options, codeFolding, pdfOptions, documentPath, outputPath, onClose]);
 
 	return {
 		format,
@@ -145,6 +194,10 @@ export function useExportDialog({ open, onClose }: UseExportDialogProps): UseExp
 		setMode: (next) => dispatch({ type: "set-mode", payload: next }),
 		options,
 		setOption,
+		codeFolding,
+		setCodeFolding: (next) => dispatch({ type: "set-code-folding", payload: next }),
+		pdfOptions,
+		setPdfOption,
 		documentPath,
 		setDocumentPath: (value) => dispatch({ type: "set-document-path", payload: value }),
 		outputPath,
