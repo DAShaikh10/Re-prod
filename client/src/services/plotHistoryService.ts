@@ -96,3 +96,63 @@ export async function exportPlot(
 		}
 	});
 }
+
+export async function deletePlot(plotId: string): Promise<void> {
+	return new Promise((resolve, reject) => {
+		const didSend = socketService.send(
+			{ type: "plot_history_delete", plotId },
+			(message) => {
+				if (message.type === "plot_history_deleted") {
+					if (message.error) {
+						reject(new Error(message.error));
+					} else {
+						resolve();
+					}
+					return;
+				}
+
+				if (message.type === "error") {
+					reject(new Error(message.message));
+					return;
+				}
+
+				reject(new Error(`Unexpected plot delete response: ${message.type}`));
+			},
+			(message) => message.type === "plot_history_deleted" || message.type === "error",
+		);
+
+		if (!didSend) {
+			reject(new Error("Failed to delete plot: WebSocket is not connected"));
+		}
+	});
+}
+
+export async function clearPlotHistory(): Promise<void> {
+	return new Promise((resolve, reject) => {
+		const didSend = socketService.send(
+			{ type: "plot_history_clear" },
+			(message) => {
+				if (message.type === "plot_history_cleared") {
+					if (message.error) {
+						reject(new Error(message.error));
+					} else {
+						resolve();
+					}
+					return;
+				}
+
+				if (message.type === "error") {
+					reject(new Error(message.message));
+					return;
+				}
+
+				reject(new Error(`Unexpected plot history clear response: ${message.type}`));
+			},
+			(message) => message.type === "plot_history_cleared" || message.type === "error",
+		);
+
+		if (!didSend) {
+			reject(new Error("Failed to clear plot history: WebSocket is not connected"));
+		}
+	});
+}
