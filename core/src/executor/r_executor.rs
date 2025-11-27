@@ -267,7 +267,7 @@ if (file.exists(.reprod_state_path)) {{
   filename <- sprintf("%s_%d.png", .reprod_plot_prefix, index)
   png(
     file.path(.reprod_plot_dir, filename),
-    width = 800, height = 600,
+    width = {plot_width}, height = {plot_height},
     type = "cairo"
   )
 }}
@@ -319,6 +319,8 @@ quit(status = .reprod_exit_code, runLast = FALSE)
 "#,
             temp_dir = temp_dir_str,
             plot_prefix = plot_prefix,
+            plot_width = DEFAULT_PLOT_WIDTH,
+            plot_height = DEFAULT_PLOT_HEIGHT,
             code = code
         )
     }
