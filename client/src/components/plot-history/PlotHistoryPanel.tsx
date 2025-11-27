@@ -37,10 +37,7 @@ export function PlotHistoryPanel(): JSX.Element {
 		return (
 			<div className="plot-viewer">
 				<div className="plot-meta">
-					<div className="plot-meta__primary">
-						<span className="plot-meta__label">Plot</span>
-						<strong>-</strong>
-					</div>
+					<div className="plot-actions" />
 				</div>
 				<div className="empty-state">
 					<div className="empty-icon">
@@ -58,15 +55,6 @@ export function PlotHistoryPanel(): JSX.Element {
 			{activePlot && (
 				<>
 					<div className="plot-meta">
-						<div className="plot-meta__primary">
-							<span className="plot-meta__label">Plot</span>
-						</div>
-						<div className="plot-meta__details">
-							<span>{formatTime(activePlot.timestamp)}</span>
-							<span>
-								{activePlot.width} × {activePlot.height}
-							</span>
-						</div>
 						<div className="plot-actions">
 							<button
 								className="btn btn-secondary"
@@ -89,6 +77,12 @@ export function PlotHistoryPanel(): JSX.Element {
 							>
 								<IconTrash width={14} height={14} aria-hidden /> Delete
 							</button>
+						</div>
+						<div className="plot-meta__details">
+							<span>{formatTime(activePlot.timestamp)}</span>
+							<span>
+								{activePlot.width} × {activePlot.height}
+							</span>
 						</div>
 					</div>
 					<img src={activePlot.data} alt="Active plot" className="plot-image" loading="lazy" />

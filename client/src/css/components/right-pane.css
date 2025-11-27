@@ -75,13 +75,13 @@
 }
 
 .plot-meta {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  color: var(--text-secondary);
-  font-size: 12px;
-  gap: 8px;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	width: 100%;
+	color: var(--text-secondary);
+	font-size: 12px;
+	gap: 8px;
 }
 
 .plot-meta__primary {
@@ -105,11 +105,11 @@
 }
 
 .plot-actions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  justify-content: flex-start;
-  width: 100%;
+	display: flex;
+	gap: 8px;
+	flex-wrap: wrap;
+	justify-content: flex-start;
+	width: 100%;
 }
 
 .help-content {
