@@ -2,9 +2,7 @@ import { useMemo } from "react";
 import { IconBarChart, IconTrash } from "@/components/shared";
 import { useStore } from "@/core";
 import { deletePlot, exportPlot } from "@/services/plotHistoryService";
-
-const formatTime = (timestamp: number): string =>
-	new Date(timestamp).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+import { formatClockTime } from "@/utils/time";
 
 export function PlotHistoryPanel(): JSX.Element {
 	const plotHistory = useStore((state) => state.plotHistory);
@@ -79,7 +77,9 @@ export function PlotHistoryPanel(): JSX.Element {
 							</button>
 						</div>
 						<div className="plot-meta__details">
-							<span>{formatTime(activePlot.timestamp)}</span>
+							<span>
+								{formatClockTime(activePlot.timestamp, { hour: "2-digit", minute: "2-digit" })}
+							</span>
 							<span>
 								{activePlot.width} × {activePlot.height}
 							</span>

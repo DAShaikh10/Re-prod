@@ -2,7 +2,6 @@ import { ConsolePanel } from "@/components/console";
 import { IconChevronLeft, IconChevronRight, IconTrash, PanelTabs } from "@/components/shared";
 import { TerminalPane } from "@/components/Terminal";
 import { PlotHistoryPanel } from "@/components/plot-history";
-import { setActivePlot } from "@/services/plotHistoryService";
 import { useBottomPaneState } from "@/hooks/useBottomPaneState";
 
 export function BottomPane(): JSX.Element {
@@ -11,37 +10,14 @@ export function BottomPane(): JSX.Element {
 		activeTab,
 		setActiveTab,
 		navigation,
-		allPlots,
-		selectPreviousPlot,
-		selectNextPlot,
+		goToPreviousPlot,
+		goToNextPlot,
 		clearExecutionResults,
 	} = useBottomPaneState();
 
 	const { selectedPlotIndex, totalPlots } = navigation;
 	const showClear = activeTab === "console" || activeTab === "history";
 	const showPlotNav = activeTab === "plots" && totalPlots > 0;
-
-	const handlePreviousPlot = () => {
-		const nextIndex = Math.max(0, navigation.selectedPlotIndex - 1);
-		const targetId = allPlots[nextIndex]?.id;
-		selectPreviousPlot();
-		if (targetId) {
-			void setActivePlot(targetId).catch((error) =>
-				console.warn("Failed to persist active plot", error),
-			);
-		}
-	};
-
-	const handleNextPlot = () => {
-		const nextIndex = Math.min(totalPlots - 1, navigation.selectedPlotIndex + 1);
-		const targetId = allPlots[nextIndex]?.id;
-		selectNextPlot();
-		if (targetId) {
-			void setActivePlot(targetId).catch((error) =>
-				console.warn("Failed to persist active plot", error),
-			);
-		}
-	};
 
 	return (
 		<div className="panel panel--transparent bottom-pane">
@@ -68,7 +44,7 @@ export function BottomPane(): JSX.Element {
 							<>
 								<button
 									className="btn btn-icon"
-									onClick={handlePreviousPlot}
+									onClick={goToPreviousPlot}
 									disabled={selectedPlotIndex === 0}
 									title="Previous plot"
 									aria-label="Previous plot"
@@ -80,7 +56,7 @@ export function BottomPane(): JSX.Element {
 								</span>
 								<button
 									className="btn btn-icon"
-									onClick={handleNextPlot}
+									onClick={goToNextPlot}
 									disabled={selectedPlotIndex >= totalPlots - 1}
 									title="Next plot"
 									aria-label="Next plot"

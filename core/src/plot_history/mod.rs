@@ -14,9 +14,10 @@ use image::{DynamicImage, GenericImageView};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-const DEFAULT_MAX_PLOTS: usize = 50;
-const METADATA_FILE: &str = "plots.json";
-pub const PLOT_HISTORY_SUBDIR: &str = ".reprod/plots";
+pub mod constants;
+pub use constants::{
+    DEFAULT_MAX_PLOTS, DEFAULT_PLOT_HEIGHT, DEFAULT_PLOT_WIDTH, METADATA_FILE, PLOT_HISTORY_SUBDIR,
+};
 
 /// Metadata describing a persisted plot image.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -371,6 +372,13 @@ pub enum ExportFormat {
 }
 
 impl ExportFormat {
+    pub fn from_str(value: &str) -> Self {
+        match value.to_ascii_lowercase().as_str() {
+            "pdf" => ExportFormat::Pdf,
+            _ => ExportFormat::Png,
+        }
+    }
+
     pub fn from_path(path: &Path) -> Self {
         match path
             .extension()
@@ -381,6 +389,12 @@ impl ExportFormat {
             Some("pdf") => ExportFormat::Pdf,
             _ => ExportFormat::Png,
         }
+    }
+
+    pub fn resolve(requested: Option<&str>, path: &Path) -> Self {
+        requested
+            .map(ExportFormat::from_str)
+            .unwrap_or_else(|| ExportFormat::from_path(path))
     }
 }
 
@@ -427,9 +441,6 @@ mod tests {
     use super::*;
     use tempfile::tempdir;
 
-    const WIDTH: u32 = 800;
-    const HEIGHT: u32 = 600;
-
     fn png_bytes() -> Vec<u8> {
         // Minimal valid PNG header for testing.
         vec![
@@ -446,8 +457,8 @@ mod tests {
         let first = manager
             .add_plot(
                 Some("first".into()),
-                WIDTH,
-                HEIGHT,
+                DEFAULT_PLOT_WIDTH,
+                DEFAULT_PLOT_HEIGHT,
                 &png_bytes(),
                 None,
                 Some(1),
@@ -472,8 +483,8 @@ mod tests {
         manager
             .add_plot(
                 Some("p1".into()),
-                WIDTH,
-                HEIGHT,
+                DEFAULT_PLOT_WIDTH,
+                DEFAULT_PLOT_HEIGHT,
                 &png_bytes(),
                 None,
                 Some(1),
@@ -482,8 +493,8 @@ mod tests {
         manager
             .add_plot(
                 Some("p2".into()),
-                WIDTH,
-                HEIGHT,
+                DEFAULT_PLOT_WIDTH,
+                DEFAULT_PLOT_HEIGHT,
                 &png_bytes(),
                 None,
                 Some(2),
@@ -492,8 +503,8 @@ mod tests {
         manager
             .add_plot(
                 Some("p3".into()),
-                WIDTH,
-                HEIGHT,
+                DEFAULT_PLOT_WIDTH,
+                DEFAULT_PLOT_HEIGHT,
                 &png_bytes(),
                 None,
                 Some(3),
@@ -514,8 +525,8 @@ mod tests {
         manager
             .add_plot(
                 Some("p1".into()),
-                WIDTH,
-                HEIGHT,
+                DEFAULT_PLOT_WIDTH,
+                DEFAULT_PLOT_HEIGHT,
                 &png_bytes(),
                 Some("plot(x)".into()),
                 Some(10),
