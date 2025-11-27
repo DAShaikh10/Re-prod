@@ -7,6 +7,7 @@ use reprod_core::{
         TimelineResponsePayload, TimelineStatsPayload,
     },
     fs::FileSystemEvent,
+    plot_history::PlotHistoryEntry,
     project::ProjectRecord,
     AIResponse, ChatMessage, Config, ExecutionEvent, ExecutionRequest, ExecutionResult,
     ToolExecutor, ToolManifest, ToolRegistry,
@@ -163,6 +164,25 @@ pub(super) enum WSRequest {
     ProjectStateLoad { project_id: String },
     #[serde(rename = "project_state_save")]
     ProjectStateSave { project_id: String, state: Value },
+    #[serde(rename = "plot_history_get")]
+    PlotHistoryGet,
+    #[serde(rename = "plot_history_set_active")]
+    PlotHistorySetActive { plot_id: String },
+    #[serde(rename = "plot_history_export")]
+    PlotHistoryExport {
+        plot_id: String,
+        path: String,
+        #[serde(default)]
+        format: Option<String>,
+    },
+    #[serde(rename = "plot_history_delete")]
+    PlotHistoryDelete { plot_id: String },
+    #[serde(rename = "plot_history_save")]
+    PlotHistorySave,
+    #[serde(rename = "plot_history_restore")]
+    PlotHistoryRestore,
+    #[serde(rename = "plot_history_clear")]
+    PlotHistoryClear,
 }
 
 #[derive(serde::Serialize)]
@@ -250,6 +270,54 @@ pub(super) enum WSResponse {
     },
     #[serde(rename = "project_state_saved")]
     ProjectStateSaved { project_id: String },
+    #[serde(rename = "plot_history_state")]
+    PlotHistoryState {
+        #[serde(rename = "activePlotId")]
+        active_plot_id: Option<String>,
+        plots: Vec<PlotHistoryEntry>,
+    },
+    #[serde(rename = "plot_history_updated")]
+    PlotHistoryUpdated {
+        #[serde(rename = "activePlotId")]
+        active_plot_id: Option<String>,
+        plots: Vec<PlotHistoryEntry>,
+    },
+    #[serde(rename = "plot_history_exported")]
+    PlotHistoryExported {
+        success: bool,
+        path: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        error: Option<String>,
+    },
+    #[serde(rename = "plot_history_deleted")]
+    PlotHistoryDeleted {
+        #[serde(skip_serializing_if = "Option::is_none")]
+        state: Option<Vec<PlotHistoryEntry>>,
+        #[serde(rename = "activePlotId", skip_serializing_if = "Option::is_none")]
+        active_plot_id: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        error: Option<String>,
+    },
+    #[serde(rename = "plot_history_saved")]
+    PlotHistorySaved,
+    #[serde(rename = "plot_history_restored")]
+    PlotHistoryRestored {
+        #[serde(skip_serializing_if = "Option::is_none")]
+        state: Option<Vec<PlotHistoryEntry>>,
+        #[serde(rename = "activePlotId", skip_serializing_if = "Option::is_none")]
+        active_plot_id: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        error: Option<String>,
+    },
+    #[serde(rename = "plot_history_cleared")]
+    PlotHistoryCleared {
+        #[serde(skip_serializing_if = "Option::is_none")]
+        state: Option<Vec<PlotHistoryEntry>>,
+        #[serde(rename = "activePlotId", skip_serializing_if = "Option::is_none")]
+        active_plot_id: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        error: Option<String>,
+    },
 }
 
 #[allow(dead_code)] // Reserved for future AI planning feature

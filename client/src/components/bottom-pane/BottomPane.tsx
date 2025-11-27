@@ -1,12 +1,7 @@
 import { ConsolePanel } from "@/components/console";
-import {
-	IconBarChart,
-	IconChevronLeft,
-	IconChevronRight,
-	IconTrash,
-	PanelTabs,
-} from "@/components/shared";
+import { IconChevronLeft, IconChevronRight, IconTrash, PanelTabs } from "@/components/shared";
 import { TerminalPane } from "@/components/Terminal";
+import { PlotHistoryPanel } from "@/components/plot-history";
 import { useBottomPaneState } from "@/hooks/useBottomPaneState";
 
 export function BottomPane(): JSX.Element {
@@ -15,10 +10,8 @@ export function BottomPane(): JSX.Element {
 		activeTab,
 		setActiveTab,
 		navigation,
-		allPlots,
-		currentPlot,
-		selectPreviousPlot,
-		selectNextPlot,
+		goToPreviousPlot,
+		goToNextPlot,
 		clearExecutionResults,
 	} = useBottomPaneState();
 
@@ -51,7 +44,7 @@ export function BottomPane(): JSX.Element {
 							<>
 								<button
 									className="btn btn-icon"
-									onClick={selectPreviousPlot}
+									onClick={goToPreviousPlot}
 									disabled={selectedPlotIndex === 0}
 									title="Previous plot"
 									aria-label="Previous plot"
@@ -63,7 +56,7 @@ export function BottomPane(): JSX.Element {
 								</span>
 								<button
 									className="btn btn-icon"
-									onClick={selectNextPlot}
+									onClick={goToNextPlot}
 									disabled={selectedPlotIndex >= totalPlots - 1}
 									title="Next plot"
 									aria-label="Next plot"
@@ -80,29 +73,7 @@ export function BottomPane(): JSX.Element {
 				{activeTab === "history" && <ConsolePanel view="history" />}
 				{activeTab === "terminal" && <TerminalPane />}
 
-				{activeTab === "plots" && (
-					<div className="plots-container">
-						{allPlots.length === 0 ? (
-							<div className="empty-state">
-								<div className="empty-icon">
-									<IconBarChart width={48} height={48} aria-hidden />
-								</div>
-								<p>No plots yet</p>
-								<p className="empty-hint">Run R code to generate visualizations</p>
-							</div>
-						) : (
-							<div className="plot-viewer">
-								{currentPlot && (
-									<img
-										src={currentPlot.data}
-										alt={`Plot ${selectedPlotIndex + 1}`}
-										className="plot-image"
-									/>
-								)}
-							</div>
-						)}
-					</div>
-				)}
+				{activeTab === "plots" && <PlotHistoryPanel />}
 				{activeTab === "help" && (
 					<div className="help-container">
 						<div className="help-content">

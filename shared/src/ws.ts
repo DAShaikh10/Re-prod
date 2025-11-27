@@ -45,6 +45,24 @@ export interface PdfExportOptions {
 	latexPreamble?: string | null;
 }
 
+export interface PlotHistoryEntryPayload {
+	id: string;
+	timestamp: number;
+	width: number;
+	height: number;
+	filename: string;
+	storagePath: string;
+	data: string;
+	code?: string | null;
+}
+
+export interface PlotHistoryStatePayload {
+	activePlotId?: string | null;
+	plots: PlotHistoryEntryPayload[];
+}
+
+export type PlotHistoryExportFormat = "png" | "pdf";
+
 export interface ExportRMarkdownRequestPayload {
 	mode: ExportMode;
 	format?: ExportFormat;
@@ -104,7 +122,14 @@ export type ClientMessage =
 			type: "project_state_save";
 			projectId: string;
 			state: Record<string, unknown>;
-	  };
+	  }
+	| { type: "plot_history_get" }
+	| { type: "plot_history_set_active"; plotId: string }
+	| { type: "plot_history_export"; plotId: string; path: string; format?: PlotHistoryExportFormat }
+	| { type: "plot_history_delete"; plotId: string }
+	| { type: "plot_history_save" }
+	| { type: "plot_history_restore" }
+	| { type: "plot_history_clear" };
 
 type TimelineEventPush = Extract<TimelineMessage, { type: "timeline_event_added" }>;
 
@@ -145,6 +170,38 @@ export type ServerMessage =
 	| { type: "project_opened"; project: ProjectRecord; state?: Record<string, unknown> | null }
 	| { type: "project_state"; project_id: string; state?: Record<string, unknown> | null }
 	| { type: "project_state_saved"; project_id: string }
+	| {
+			type: "plot_history_state";
+			activePlotId?: string | null;
+			plots: PlotHistoryEntryPayload[];
+	  }
+	| {
+			type: "plot_history_updated";
+			activePlotId?: string | null;
+			plots: PlotHistoryEntryPayload[];
+	  }
+	| { type: "plot_history_exported"; success: boolean; path: string; error?: string | null }
+	| {
+			type: "plot_history_deleted";
+			state?: PlotHistoryEntryPayload[];
+			activePlotId?: string | null;
+			error?: string | null;
+	  }
+	| {
+			type: "plot_history_saved";
+	  }
+	| {
+			type: "plot_history_restored";
+			state?: PlotHistoryEntryPayload[];
+			activePlotId?: string | null;
+			error?: string | null;
+	  }
+	| {
+			type: "plot_history_cleared";
+			state?: PlotHistoryEntryPayload[];
+			activePlotId?: string | null;
+			error?: string | null;
+	  }
 	| TimelineEventPush;
 
 export type ServerMessageType = ServerMessage["type"];

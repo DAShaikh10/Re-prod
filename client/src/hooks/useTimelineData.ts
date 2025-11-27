@@ -100,7 +100,9 @@ export function useTimelineData() {
 		};
 
 		void fetchMoreEvents();
-	}, [offset, isConnected, filters, sort, limit, events, setEvents, setLoading, setError]);
+		// We intentionally omit `events` from deps to avoid infinite fetch loops when new data is set.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [offset, isConnected, filters, sort, limit, setEvents, setLoading, setError]);
 
 	useEffect(() => {
 		if (!isConnected) {

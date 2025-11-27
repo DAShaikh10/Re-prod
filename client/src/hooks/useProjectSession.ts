@@ -9,6 +9,7 @@ import {
 	getSessionSnapshot,
 	refreshTimelineData,
 } from "@/services/sessionPersistence";
+import { requestPlotHistory } from "@/services/plotHistoryService";
 import { socketService } from "@/services/socket";
 
 function resetWorkspace(options: { useSample?: boolean } = {}): void {
@@ -26,6 +27,7 @@ export function useProjectSession(): void {
 	const setProject = useStore((state) => state.setProject);
 	const setProjects = useStore((state) => state.setProjects);
 	const setLastRestoredState = useStore((state) => state.setLastRestoredState);
+	const resetPlotHistory = useStore((state) => state.resetPlotHistory);
 	const previousProjectId = useRef<string | null>(null);
 
 	useEffect(() => {
@@ -36,6 +38,10 @@ export function useProjectSession(): void {
 			previousProjectId.current = nextProjectId;
 
 			setProject(message.project);
+			resetPlotHistory();
+			void requestPlotHistory().catch((error) =>
+				console.warn("Failed to load plot history", error),
+			);
 			if (hasState) {
 				applySessionSnapshot(message.state as any);
 				setLastRestoredState(message.state as Record<string, unknown>);
@@ -92,7 +98,7 @@ export function useProjectSession(): void {
 			offSaved();
 			unsubscribeConnection();
 		};
-	}, [setLastRestoredState, setProject, setProjects]);
+	}, [resetPlotHistory, setLastRestoredState, setProject, setProjects]);
 }
 
 export function persistCurrentProjectState(): void {
