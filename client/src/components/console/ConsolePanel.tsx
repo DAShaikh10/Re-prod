@@ -1,5 +1,6 @@
 import { IconBarChart, IconCheckCircle, IconXCircle } from "@/components/shared";
 import { useConsolePanelState } from "@/hooks/useConsolePanelState";
+import { clearPlotHistory } from "@/services/plotHistoryService";
 import type { ConsoleTabId } from "@/types/panels";
 
 interface ConsolePanelProps {
@@ -8,6 +9,11 @@ interface ConsolePanelProps {
 
 export function ConsolePanel({ view }: ConsolePanelProps): JSX.Element {
 	const { execution, consoleEndRef } = useConsolePanelState();
+	const handleClearPlots = () => {
+		void clearPlotHistory().catch((error) => {
+			console.warn("Failed to clear plot history", error);
+		});
+	};
 
 	return (
 		<div className="panel panel--transparent console-panel">
@@ -17,6 +23,9 @@ export function ConsolePanel({ view }: ConsolePanelProps): JSX.Element {
 						{execution.results.length === 0 ? (
 							<div className="console-welcome">
 								<p>Console ready. Run R code to see output here.</p>
+								<button className="btn btn-secondary" onClick={handleClearPlots}>
+									Clear plot history
+								</button>
 							</div>
 						) : (
 							<>

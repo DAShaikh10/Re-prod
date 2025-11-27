@@ -69,14 +69,21 @@
 	flex-direction: column;
 	gap: 12px;
 	width: min(680px, 100%);
-	max-height: calc(100vh - 140px);
+	flex: 1;
+	min-height: 0;
+	max-height: 100%;
+	overflow: auto;
 	margin: 0 auto;
 }
 
 
 .plot-image {
+	flex: 1 1 auto;
+	width: 100%;
 	max-width: 100%;
-	max-height: calc(100vh - 240px);
+	height: 100%;
+	max-height: 100%;
+	min-height: 0;
 	object-fit: contain;
 	background-color: var(--bg-primary);
 	border: 1px solid var(--border-medium);
@@ -100,6 +107,8 @@
   gap: 6px;
   font-weight: 600;
   color: var(--text-primary);
+  flex: 1;
+  min-width: 0;
 }
 
 .plot-meta__label {
@@ -116,10 +125,10 @@
 
 .plot-actions {
 	display: flex;
-	gap: 8px;
+	gap: 6px;
 	flex-wrap: wrap;
 	justify-content: flex-start;
-	width: 100%;
+	flex: 0 0 auto;
 }
 
 .help-content {
