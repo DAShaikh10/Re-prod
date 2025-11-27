@@ -63,10 +63,14 @@ export async function setActivePlot(plotId: string): Promise<PlotHistoryStatePay
 	});
 }
 
-export async function exportPlot(plotId: string, path: string): Promise<void> {
+export async function exportPlot(
+	plotId: string,
+	path: string,
+	format?: "png" | "pdf",
+): Promise<void> {
 	return new Promise((resolve, reject) => {
 		const didSend = socketService.send(
-			{ type: "plot_history_export", plotId, path },
+			{ type: "plot_history_export", plotId, path, format },
 			(message) => {
 				if (message.type === "plot_history_exported") {
 					if (message.success) {

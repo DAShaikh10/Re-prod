@@ -61,6 +61,8 @@ export interface PlotHistoryStatePayload {
 	plots: PlotHistoryEntryPayload[];
 }
 
+export type PlotHistoryExportFormat = "png" | "pdf";
+
 export interface ExportRMarkdownRequestPayload {
 	mode: ExportMode;
 	format?: ExportFormat;
@@ -123,7 +125,10 @@ export type ClientMessage =
 	  }
 	| { type: "plot_history_get" }
 	| { type: "plot_history_set_active"; plotId: string }
-	| { type: "plot_history_export"; plotId: string; path: string };
+	| { type: "plot_history_export"; plotId: string; path: string; format?: PlotHistoryExportFormat }
+	| { type: "plot_history_delete"; plotId: string }
+	| { type: "plot_history_save" }
+	| { type: "plot_history_restore" };
 
 type TimelineEventPush = Extract<TimelineMessage, { type: "timeline_event_added" }>;
 
@@ -175,6 +180,21 @@ export type ServerMessage =
 			plots: PlotHistoryEntryPayload[];
 	  }
 	| { type: "plot_history_exported"; success: boolean; path: string; error?: string | null }
+	| {
+			type: "plot_history_deleted";
+			state?: PlotHistoryEntryPayload[];
+			activePlotId?: string | null;
+			error?: string | null;
+	  }
+	| {
+			type: "plot_history_saved";
+	  }
+	| {
+			type: "plot_history_restored";
+			state?: PlotHistoryEntryPayload[];
+			activePlotId?: string | null;
+			error?: string | null;
+	  }
 	| TimelineEventPush;
 
 export type ServerMessageType = ServerMessage["type"];

@@ -169,7 +169,18 @@ pub(super) enum WSRequest {
     #[serde(rename = "plot_history_set_active")]
     PlotHistorySetActive { plot_id: String },
     #[serde(rename = "plot_history_export")]
-    PlotHistoryExport { plot_id: String, path: String },
+    PlotHistoryExport {
+        plot_id: String,
+        path: String,
+        #[serde(default)]
+        format: Option<String>,
+    },
+    #[serde(rename = "plot_history_delete")]
+    PlotHistoryDelete { plot_id: String },
+    #[serde(rename = "plot_history_save")]
+    PlotHistorySave,
+    #[serde(rename = "plot_history_restore")]
+    PlotHistoryRestore,
 }
 
 #[derive(serde::Serialize)]
@@ -273,6 +284,26 @@ pub(super) enum WSResponse {
     PlotHistoryExported {
         success: bool,
         path: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        error: Option<String>,
+    },
+    #[serde(rename = "plot_history_deleted")]
+    PlotHistoryDeleted {
+        #[serde(skip_serializing_if = "Option::is_none")]
+        state: Option<Vec<PlotHistoryEntry>>,
+        #[serde(rename = "activePlotId", skip_serializing_if = "Option::is_none")]
+        active_plot_id: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        error: Option<String>,
+    },
+    #[serde(rename = "plot_history_saved")]
+    PlotHistorySaved,
+    #[serde(rename = "plot_history_restored")]
+    PlotHistoryRestored {
+        #[serde(skip_serializing_if = "Option::is_none")]
+        state: Option<Vec<PlotHistoryEntry>>,
+        #[serde(rename = "activePlotId", skip_serializing_if = "Option::is_none")]
+        active_plot_id: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
         error: Option<String>,
     },

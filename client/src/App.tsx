@@ -1,5 +1,5 @@
 import { Allotment } from "allotment";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "allotment/dist/style.css";
 import { AIPanel } from "@/components/ai-panel";
 import { BottomPane } from "@/components/bottom-pane";
@@ -14,7 +14,7 @@ import {
 	SessionInfoModal,
 	SettingsModal,
 } from "@/components/modals";
-import { TimelineDialog } from "@/components/timeline";
+import { TimelineDialog, type TimelineDialogRef } from "@/components/timeline";
 import { useStore } from "@/core";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useProjectSession } from "@/hooks/useProjectSession";
@@ -28,6 +28,7 @@ function App(): JSX.Element {
 	const theme = useStore((state) => state.settings.theme);
 	const setAIPanelRef = useStore((state) => state.setAIPanelRef);
 	const setTimelinePanelRef = useStore((state) => state.setTimelinePanelRef);
+	const timelineDialogRef = useRef<TimelineDialogRef | null>(null);
 	const [exportDialogOpen, setExportDialogOpen] = useState(false);
 	const [shortcutsOpen, setShortcutsOpen] = useState(false);
 	const [aboutOpen, setAboutOpen] = useState(false);
@@ -46,6 +47,10 @@ function App(): JSX.Element {
 	useEffect(() => {
 		document.documentElement.dataset.theme = theme;
 	}, [theme]);
+
+	useEffect(() => {
+		setTimelinePanelRef(timelineDialogRef.current);
+	}, [setTimelinePanelRef]);
 
 	useEffect(() => {
 		const globalScope = window as typeof window & Record<string, () => void>;
@@ -101,7 +106,7 @@ function App(): JSX.Element {
 			</div>
 			<StatusBar />
 			<ExportDialog open={exportDialogOpen} onClose={() => setExportDialogOpen(false)} />
-			<TimelineDialog ref={setTimelinePanelRef} />
+			<TimelineDialog ref={timelineDialogRef} />
 			<KeyboardShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
 			<AboutModal open={aboutOpen} onClose={() => setAboutOpen(false)} />
 			<SessionInfoModal open={sessionInfoOpen} onClose={() => setSessionInfoOpen(false)} />
