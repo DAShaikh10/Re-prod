@@ -1,5 +1,7 @@
 use std::collections::VecDeque;
 use std::fs;
+use std::fs::File;
+use std::io::BufWriter;
 use std::ops::Not;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -10,8 +12,6 @@ use base64::Engine;
 use image::io::Reader as ImageReader;
 use image::{DynamicImage, GenericImageView};
 use serde::{Deserialize, Serialize};
-use std::fs::File;
-use std::io::BufWriter;
 use uuid::Uuid;
 
 const DEFAULT_MAX_PLOTS: usize = 50;
@@ -247,6 +247,17 @@ impl PlotHistoryManager {
             return self.snapshot().map(Some);
         }
         Ok(None)
+    }
+
+    /// Clear all plots and metadata.
+    pub fn clear_all(&mut self) -> Result<PlotHistorySnapshot> {
+        for plot in self.plots.iter() {
+            self.remove_file(plot);
+        }
+        self.plots.clear();
+        self.active = None;
+        self.save_state()?;
+        self.snapshot()
     }
 
     /// Produce a UI-friendly snapshot containing base64-encoded images.

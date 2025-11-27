@@ -29,8 +29,9 @@ use ai_handler::handle_ai_message;
 use common::{error_response, WSRequest, WSResponse};
 use export_handler::handle_export_request;
 use plot_history_handler::{
-    handle_plot_history_delete, handle_plot_history_export, handle_plot_history_get,
-    handle_plot_history_restore, handle_plot_history_save, handle_plot_history_set_active,
+    handle_plot_history_clear, handle_plot_history_delete, handle_plot_history_export,
+    handle_plot_history_get, handle_plot_history_restore, handle_plot_history_save,
+    handle_plot_history_set_active,
 };
 use session_handler::{handle_interrupt, handle_restart};
 use timeline_handler::{handle_timeline_query, handle_timeline_stats_query};
@@ -194,6 +195,7 @@ async fn handle_ws_request(
         }
         WSRequest::PlotHistorySave => handle_plot_history_save(runtime).await,
         WSRequest::PlotHistoryRestore => handle_plot_history_restore(runtime).await,
+        WSRequest::PlotHistoryClear => handle_plot_history_clear(runtime).await,
         _ => Vec::new(),
     }
 }

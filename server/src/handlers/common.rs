@@ -181,6 +181,8 @@ pub(super) enum WSRequest {
     PlotHistorySave,
     #[serde(rename = "plot_history_restore")]
     PlotHistoryRestore,
+    #[serde(rename = "plot_history_clear")]
+    PlotHistoryClear,
 }
 
 #[derive(serde::Serialize)]
@@ -300,6 +302,15 @@ pub(super) enum WSResponse {
     PlotHistorySaved,
     #[serde(rename = "plot_history_restored")]
     PlotHistoryRestored {
+        #[serde(skip_serializing_if = "Option::is_none")]
+        state: Option<Vec<PlotHistoryEntry>>,
+        #[serde(rename = "activePlotId", skip_serializing_if = "Option::is_none")]
+        active_plot_id: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        error: Option<String>,
+    },
+    #[serde(rename = "plot_history_cleared")]
+    PlotHistoryCleared {
         #[serde(skip_serializing_if = "Option::is_none")]
         state: Option<Vec<PlotHistoryEntry>>,
         #[serde(rename = "activePlotId", skip_serializing_if = "Option::is_none")]

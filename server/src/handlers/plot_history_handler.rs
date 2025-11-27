@@ -112,3 +112,19 @@ pub(super) async fn handle_plot_history_restore(runtime: &Arc<ProjectRuntime>) -
         }],
     }
 }
+
+pub(super) async fn handle_plot_history_clear(runtime: &Arc<ProjectRuntime>) -> Vec<WSResponse> {
+    let mut manager = runtime.plot_history.lock().await;
+    match manager.clear_all() {
+        Ok(snapshot) => vec![WSResponse::PlotHistoryCleared {
+            state: Some(snapshot.plots),
+            active_plot_id: snapshot.active_plot_id,
+            error: None,
+        }],
+        Err(error) => vec![WSResponse::PlotHistoryCleared {
+            state: None,
+            active_plot_id: manager.active_plot_id(),
+            error: Some(error.to_string()),
+        }],
+    }
+}

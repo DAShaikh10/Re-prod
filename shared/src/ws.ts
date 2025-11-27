@@ -128,7 +128,8 @@ export type ClientMessage =
 	| { type: "plot_history_export"; plotId: string; path: string; format?: PlotHistoryExportFormat }
 	| { type: "plot_history_delete"; plotId: string }
 	| { type: "plot_history_save" }
-	| { type: "plot_history_restore" };
+	| { type: "plot_history_restore" }
+	| { type: "plot_history_clear" };
 
 type TimelineEventPush = Extract<TimelineMessage, { type: "timeline_event_added" }>;
 
@@ -191,6 +192,12 @@ export type ServerMessage =
 	  }
 	| {
 			type: "plot_history_restored";
+			state?: PlotHistoryEntryPayload[];
+			activePlotId?: string | null;
+			error?: string | null;
+	  }
+	| {
+			type: "plot_history_cleared";
 			state?: PlotHistoryEntryPayload[];
 			activePlotId?: string | null;
 			error?: string | null;
