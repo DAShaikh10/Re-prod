@@ -1,6 +1,7 @@
 import { IconBarChart, IconCheckCircle, IconXCircle } from "@/components/shared";
 import { useConsolePanelState } from "@/hooks/useConsolePanelState";
 import { clearPlotHistory } from "@/services/plotHistoryService";
+import { formatClockTime } from "@/utils/time";
 import type { ConsoleTabId } from "@/types/panels";
 
 interface ConsolePanelProps {
@@ -32,9 +33,7 @@ export function ConsolePanel({ view }: ConsolePanelProps): JSX.Element {
 								{execution.results.map((result, index) => (
 									<div key={index} className="console-entry">
 										<div className="console-meta">
-											<span className="console-time">
-												{new Date(result.timestamp).toLocaleTimeString()}
-											</span>
+											<span className="console-time">{formatClockTime(result.timestamp)}</span>
 											<span className="console-duration">({result.duration}ms)</span>
 											{!result.success && <span className="console-error-badge">Error</span>}
 										</div>

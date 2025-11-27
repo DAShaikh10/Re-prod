@@ -1,7 +1,8 @@
 import type { ExecutionLogPlot } from "@shared/types";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PanelTabItem } from "@/components/shared";
 import { useStore } from "@/core";
+import { setActivePlot } from "@/services/plotHistoryService";
 import type {
 	BottomPanePlotTab,
 	BottomPaneTab,
@@ -18,6 +19,8 @@ interface UseBottomPaneStateResult {
 	currentPlot: ExecutionLogPlot | null;
 	selectPreviousPlot: () => void;
 	selectNextPlot: () => void;
+	goToPreviousPlot: () => void;
+	goToNextPlot: () => void;
 	clearExecutionResults: () => void;
 }
 
@@ -113,6 +116,33 @@ export function useBottomPaneState(): UseBottomPaneStateResult {
 		totalPlots: allPlots.length,
 	};
 
+	const persistActivePlot = useCallback((plotId?: string) => {
+		if (!plotId) {
+			return;
+		}
+		void setActivePlot(plotId).catch((error) => {
+			console.warn("Failed to persist active plot", error);
+		});
+	}, []);
+
+	const goToPreviousPlot = useCallback(() => {
+		if (allPlots.length === 0) return;
+
+		const nextIndex = Math.max(0, selectedPlotIndex - 1);
+		const targetId = allPlots[nextIndex]?.id;
+		selectPreviousPlot();
+		persistActivePlot(targetId);
+	}, [allPlots, persistActivePlot, selectPreviousPlot, selectedPlotIndex]);
+
+	const goToNextPlot = useCallback(() => {
+		if (allPlots.length === 0) return;
+
+		const nextIndex = Math.min(allPlots.length - 1, selectedPlotIndex + 1);
+		const targetId = allPlots[nextIndex]?.id;
+		selectNextPlot();
+		persistActivePlot(targetId);
+	}, [allPlots, persistActivePlot, selectNextPlot, selectedPlotIndex]);
+
 	return {
 		tabs,
 		activeTab,
@@ -122,6 +152,8 @@ export function useBottomPaneState(): UseBottomPaneStateResult {
 		currentPlot,
 		selectPreviousPlot,
 		selectNextPlot,
+		goToPreviousPlot,
+		goToNextPlot,
 		clearExecutionResults,
 	};
 }

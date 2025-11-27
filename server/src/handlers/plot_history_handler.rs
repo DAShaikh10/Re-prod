@@ -43,10 +43,7 @@ pub(super) async fn handle_plot_history_export(
 ) -> Vec<WSResponse> {
     let target = PathBuf::from(&path);
     let manager = runtime.plot_history.lock().await;
-    let export_format = match format.as_deref() {
-        Some("pdf") => ExportFormat::Pdf,
-        _ => ExportFormat::from_path(&target),
-    };
+    let export_format = ExportFormat::resolve(format.as_deref(), &target);
 
     match manager.export_plot_with_format(&plot_id, &target, export_format) {
         Ok(()) => vec![WSResponse::PlotHistoryExported {

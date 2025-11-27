@@ -8,7 +8,10 @@ use std::{
 };
 
 use crate::{
-    plot_history::{PlotHistoryEntry, PlotHistoryManager, PLOT_HISTORY_SUBDIR},
+    plot_history::{
+        PlotHistoryEntry, PlotHistoryManager, DEFAULT_PLOT_HEIGHT, DEFAULT_PLOT_WIDTH,
+        PLOT_HISTORY_SUBDIR,
+    },
     CodeBlockKind, CodeBlockMetadata, EnvironmentSnapshot, ExecutionContext, ExecutionEvent,
     ExecutionRequest, ExecutionResult, ExecutionSource, PlotInfo,
 };
@@ -28,9 +31,6 @@ use uuid::Uuid;
 use super::{segment_r_code, NoopTimeline, SegmentationInput, TimelineSink};
 
 type SharedChild = Arc<AsyncMutex<Child>>;
-
-const DEFAULT_PLOT_WIDTH: u32 = 800;
-const DEFAULT_PLOT_HEIGHT: u32 = 600;
 
 #[derive(Clone)]
 struct CapturedPlot {

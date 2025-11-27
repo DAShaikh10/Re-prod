@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { IconInfo, IconRefresh } from "@/components/shared";
 import { buildExecutionRequest, useStore } from "@/core";
 import { ExecutionServiceError, executeRequest } from "@/services/executionService";
+import { formatClockTime, formatDateTime } from "@/utils/time";
 import { ModalShell } from "./ModalShell";
 
 interface SessionInfoModalProps {
@@ -157,11 +158,11 @@ export function SessionInfoModal({ open, onClose }: SessionInfoModalProps): JSX.
 						</div>
 						<div>
 							<dt>Last run</dt>
-							<dd>{lastRunTimestamp ? new Date(lastRunTimestamp).toLocaleString() : "Never"}</dd>
+							<dd>{lastRunTimestamp ? formatDateTime(lastRunTimestamp) : "Never"}</dd>
 						</div>
 						<div>
 							<dt>Last refreshed</dt>
-							<dd>{lastUpdated ? new Date(lastUpdated).toLocaleTimeString() : "Now"}</dd>
+							<dd>{lastUpdated ? formatClockTime(lastUpdated) : "Now"}</dd>
 						</div>
 					</dl>
 				</div>
