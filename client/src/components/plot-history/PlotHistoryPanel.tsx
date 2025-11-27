@@ -53,7 +53,7 @@ export function PlotHistoryPanel(): JSX.Element {
 	return (
 		<div className="plot-viewer">
 			{activePlot && (
-				<>
+				<div className="plot-content">
 					<div className="plot-meta">
 						<div className="plot-actions">
 							<button
@@ -86,7 +86,7 @@ export function PlotHistoryPanel(): JSX.Element {
 						</div>
 					</div>
 					<img src={activePlot.data} alt="Active plot" className="plot-image" loading="lazy" />
-				</>
+				</div>
 			)}
 		</div>
 	);
