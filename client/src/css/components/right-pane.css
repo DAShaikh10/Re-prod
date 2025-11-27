@@ -111,6 +111,14 @@
 	gap: 10px;
 }
 
+.plot-actions {
+	display: flex;
+	gap: 8px;
+	flex-wrap: wrap;
+	justify-content: flex-start;
+	width: 100%;
+}
+
 .plot-timeline {
 	display: flex;
 	gap: 12px;
@@ -118,6 +126,14 @@
 	overflow-x: auto;
 	border-top: 1px solid var(--border-light);
 	background: var(--bg-secondary);
+}
+
+.plot-panel-toolbar {
+	display: flex;
+	justify-content: flex-end;
+	padding: 8px 12px;
+	border-bottom: 1px solid var(--border-light);
+	gap: 8px;
 }
 
 .plot-thumb {

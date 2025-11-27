@@ -1,7 +1,12 @@
 import { useMemo } from "react";
-import { IconBarChart } from "@/components/shared";
+import { IconBarChart, IconTrash } from "@/components/shared";
 import { useStore } from "@/core";
-import { setActivePlot } from "@/services/plotHistoryService";
+import {
+	clearPlotHistory,
+	deletePlot,
+	exportPlot,
+	setActivePlot,
+} from "@/services/plotHistoryService";
 
 const formatTime = (timestamp: number): string =>
 	new Date(timestamp).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
@@ -9,6 +14,7 @@ const formatTime = (timestamp: number): string =>
 export function PlotHistoryPanel(): JSX.Element {
 	const plotHistory = useStore((state) => state.plotHistory);
 	const focusPlotById = useStore((state) => state.focusPlotById);
+	const resetPlotHistory = useStore((state) => state.resetPlotHistory);
 
 	const activePlot = useMemo(() => {
 		const byId = plotHistory.items.find((plot) => plot.id === plotHistory.activePlotId);
@@ -21,6 +27,34 @@ export function PlotHistoryPanel(): JSX.Element {
 		void setActivePlot(plotId).catch((error) =>
 			console.warn("Failed to persist active plot", error),
 		);
+	};
+
+	const handleClear = () => {
+		if (!window.confirm("Clear all plots from history? This will delete stored images.")) {
+			return;
+		}
+		resetPlotHistory();
+		void clearPlotHistory().catch((error) => {
+			console.warn("Failed to clear plot history", error);
+		});
+	};
+
+	const handleDelete = (plotId: string) => {
+		if (!window.confirm("Delete this plot from history?")) {
+			return;
+		}
+		void deletePlot(plotId).catch((error) => {
+			console.warn("Failed to delete plot", error);
+		});
+	};
+
+	const handleExport = (plotId: string, format: "png" | "pdf", filename: string) => {
+		const ext = format === "pdf" ? ".pdf" : ".png";
+		const target =
+			filename.endsWith(".png") && format === "png" ? filename : filename.replace(/\\.png$/i, ext);
+		void exportPlot(plotId, target, format).catch((error) => {
+			console.warn(`Failed to export plot as ${format}`, error);
+		});
 	};
 
 	if (!plotHistory.items.length) {
@@ -40,6 +74,11 @@ export function PlotHistoryPanel(): JSX.Element {
 	return (
 		<div className="plots-container">
 			<div className="plots-panel">
+				<div className="plot-panel-toolbar">
+					<button className="btn btn-secondary" onClick={handleClear}>
+						<IconTrash width={14} height={14} aria-hidden /> Clear history
+					</button>
+				</div>
 				<div className="plot-viewer">
 					{activePlot && (
 						<div className="plot-frame">
@@ -54,6 +93,33 @@ export function PlotHistoryPanel(): JSX.Element {
 										{activePlot.width} × {activePlot.height}
 									</span>
 								</div>
+							</div>
+							<div className="plot-actions">
+								<button
+									className="btn btn-secondary"
+									onClick={() => handleExport(activePlot.id, "png", activePlot.filename)}
+								>
+									Export PNG
+								</button>
+								<button
+									className="btn btn-secondary"
+									onClick={() =>
+										handleExport(
+											activePlot.id,
+											"pdf",
+											activePlot.filename.replace(/\.png$/i, ".pdf"),
+										)
+									}
+								>
+									Export PDF
+								</button>
+								<button
+									className="btn btn-danger"
+									onClick={() => handleDelete(activePlot.id)}
+									title="Delete plot from history"
+								>
+									<IconTrash width={14} height={14} aria-hidden /> Delete
+								</button>
 							</div>
 							<img src={activePlot.data} alt="Active plot" className="plot-image" loading="lazy" />
 						</div>
