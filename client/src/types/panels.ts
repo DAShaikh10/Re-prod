@@ -18,6 +18,7 @@ export type BottomPaneTab = "console" | "history" | "terminal" | BottomPanePlotT
 /** Payload sent when other components want to focus a plot */
 export interface PlotFocusEventDetail {
 	plotIndex: number;
+	plotId?: string;
 }
 
 /** State snapshot for navigating generated plots */

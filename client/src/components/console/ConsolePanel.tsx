@@ -38,10 +38,11 @@ export function ConsolePanel({ view }: ConsolePanelProps): JSX.Element {
 													const previousPlots = execution.results
 														.slice(0, index)
 														.reduce((sum, r) => sum + r.plots.length, 0);
+													const targetPlotId = result.plots[0]?.id;
 
 													window.dispatchEvent(
 														new CustomEvent("focusPlot", {
-															detail: { plotIndex: previousPlots },
+															detail: { plotIndex: previousPlots, plotId: targetPlotId },
 														}),
 													);
 												}}
