@@ -30,5 +30,7 @@ flate2 = "1.0"
 chrono = { version = "0.4", features = ["serde"] }
 notify = "6.1"
 dunce = "1.0"
+image = { version = "0.24", default-features = false, features = ["png", "jpeg", "gif", "bmp"] }
+printpdf = { version = "0.7", features = ["embedded_images"] }
 
 # NO Tauri dependencies - platform-agnostic!

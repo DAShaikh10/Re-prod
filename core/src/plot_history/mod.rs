@@ -1,12 +1,17 @@
 use std::collections::VecDeque;
 use std::fs;
+use std::ops::Not;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use anyhow::{Context, Result};
 use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
 use base64::Engine;
+use image::io::Reader as ImageReader;
+use image::{DynamicImage, GenericImageView};
 use serde::{Deserialize, Serialize};
+use std::fs::File;
+use std::io::BufWriter;
 use uuid::Uuid;
 
 const DEFAULT_MAX_PLOTS: usize = 50;
@@ -179,6 +184,16 @@ impl PlotHistoryManager {
 
     /// Export a plot to a caller-provided path.
     pub fn export_plot<P: AsRef<Path>>(&self, plot_id: &str, target: P) -> Result<()> {
+        self.export_plot_with_format(plot_id, &target, ExportFormat::from_path(target.as_ref()))
+    }
+
+    /// Export a plot with a format override.
+    pub fn export_plot_with_format<P: AsRef<Path>>(
+        &self,
+        plot_id: &str,
+        target: P,
+        format: ExportFormat,
+    ) -> Result<()> {
         let plot = self
             .plots
             .iter()
@@ -186,15 +201,52 @@ impl PlotHistoryManager {
             .ok_or_else(|| anyhow::anyhow!("Plot {} not found", plot_id))?;
 
         let source = self.storage_path.join(&plot.filename);
-        fs::copy(&source, &target).with_context(|| {
-            format!(
-                "Failed to export plot {} to {}",
-                plot_id,
-                target.as_ref().display()
-            )
-        })?;
+        match format {
+            ExportFormat::Png => {
+                fs::copy(&source, &target).with_context(|| {
+                    format!(
+                        "Failed to export plot {} to {}",
+                        plot_id,
+                        target.as_ref().display()
+                    )
+                })?;
+            }
+            ExportFormat::Pdf => {
+                self.export_pdf(&source, target.as_ref()).with_context(|| {
+                    format!(
+                        "Failed to export plot {} to {}",
+                        plot_id,
+                        target.as_ref().display()
+                    )
+                })?;
+            }
+        }
 
         Ok(())
+    }
+
+    /// Remove a plot from history and disk.
+    pub fn delete_plot(&mut self, plot_id: &str) -> Result<Option<PlotHistorySnapshot>> {
+        if let Some(pos) = self.plots.iter().position(|p| p.id == plot_id) {
+            let removed = self.plots.remove(pos).unwrap();
+            self.remove_file(&removed);
+
+            if let Some(active_idx) = self.active {
+                if pos < active_idx && active_idx > 0 {
+                    self.active = Some(active_idx - 1);
+                } else if pos == active_idx {
+                    self.active = self
+                        .plots
+                        .is_empty()
+                        .not()
+                        .then_some(pos.min(self.plots.len().saturating_sub(1)));
+                }
+            }
+
+            self.save_state()?;
+            return self.snapshot().map(Some);
+        }
+        Ok(None)
     }
 
     /// Produce a UI-friendly snapshot containing base64-encoded images.
@@ -211,7 +263,7 @@ impl PlotHistoryManager {
         })
     }
 
-    fn restore_state(&mut self) -> Result<()> {
+    pub fn restore_state(&mut self) -> Result<()> {
         let metadata_path = self.metadata_path();
         if !metadata_path.exists() {
             return Ok(());
@@ -240,7 +292,7 @@ impl PlotHistoryManager {
         Ok(())
     }
 
-    fn save_state(&self) -> Result<()> {
+    pub fn save_state(&self) -> Result<()> {
         let state = PlotHistoryState {
             active_plot: self.active_plot_id(),
             plots: self.plots(),
@@ -285,6 +337,13 @@ impl PlotHistoryManager {
             code: plot.code.clone(),
         })
     }
+
+    fn export_pdf(&self, png_path: &Path, target: &Path) -> Result<()> {
+        let reader = ImageReader::open(png_path)
+            .with_context(|| format!("Failed to open plot image {}", png_path.to_string_lossy()))?;
+        let image = reader.decode().context("Failed to decode plot image")?;
+        write_pdf_from_image(&image, target)
+    }
 }
 
 fn now_ms() -> i64 {
@@ -292,6 +351,64 @@ fn now_ms() -> i64 {
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
         .as_millis() as i64
+}
+
+#[derive(Clone, Copy)]
+pub enum ExportFormat {
+    Png,
+    Pdf,
+}
+
+impl ExportFormat {
+    pub fn from_path(path: &Path) -> Self {
+        match path
+            .extension()
+            .and_then(|ext| ext.to_str())
+            .map(|s| s.to_ascii_lowercase())
+            .as_deref()
+        {
+            Some("pdf") => ExportFormat::Pdf,
+            _ => ExportFormat::Png,
+        }
+    }
+}
+
+fn write_pdf_from_image(image: &DynamicImage, target: &Path) -> Result<()> {
+    use printpdf::{Image, ImageTransform, Mm, PdfDocument};
+
+    let (px_w, px_h) = image.dimensions();
+    let (px_w, px_h) = (px_w.max(1), px_h.max(1));
+    let dpi: f64 = 96.0;
+    let width_mm = (px_w as f64 / dpi) * 25.4;
+    let height_mm = (px_h as f64 / dpi) * 25.4;
+
+    let (doc, page1, layer1) = PdfDocument::new(
+        "Re-prod Plot",
+        Mm(width_mm as f32),
+        Mm(height_mm as f32),
+        "Layer 1",
+    );
+    let current_layer = doc.get_page(page1).get_layer(layer1);
+
+    let pdf_image = Image::from_dynamic_image(image);
+    pdf_image.add_to_layer(
+        current_layer,
+        ImageTransform {
+            translate_x: None,
+            translate_y: None,
+            rotate: None,
+            scale_x: Some(width_mm as f32),
+            scale_y: Some(height_mm as f32),
+            dpi: Some(dpi as f32),
+        },
+    );
+
+    let file =
+        File::create(target).with_context(|| format!("Failed to create {}", target.display()))?;
+    let mut writer = BufWriter::new(file);
+    doc.save(&mut writer)
+        .with_context(|| format!("Failed to write PDF to {}", target.display()))?;
+    Ok(())
 }
 
 #[cfg(test)]

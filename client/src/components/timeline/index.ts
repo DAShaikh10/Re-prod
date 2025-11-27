@@ -1,5 +1,5 @@
 export { Timeline } from "./Timeline";
-export { TimelineDialog } from "./TimelineDialog";
+export { TimelineDialog, type TimelineDialogRef } from "./TimelineDialog";
 export { TimelineEvent } from "./TimelineEvent";
 export { TimelineFilters } from "./TimelineFilters";
 export { TimelineSort } from "./TimelineSort";
