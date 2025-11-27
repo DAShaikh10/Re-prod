@@ -16,6 +16,7 @@ use tokio::sync::mpsc as tokio_mpsc;
 mod ai_handler;
 mod common;
 mod export_handler;
+mod plot_history_handler;
 mod project_requests;
 mod runtime_fs;
 mod session_handler;
@@ -27,6 +28,9 @@ pub use common::AppState;
 use ai_handler::handle_ai_message;
 use common::{error_response, WSRequest, WSResponse};
 use export_handler::handle_export_request;
+use plot_history_handler::{
+    handle_plot_history_export, handle_plot_history_get, handle_plot_history_set_active,
+};
 use session_handler::{handle_interrupt, handle_restart};
 use timeline_handler::{handle_timeline_query, handle_timeline_stats_query};
 use tool_handler::{handle_execute_tool, handle_list_tools};
@@ -175,6 +179,13 @@ async fn handle_ws_request(
             content,
             to,
         } => handle_fs_action(runtime, action, path, content, to),
+        WSRequest::PlotHistoryGet => handle_plot_history_get(runtime).await,
+        WSRequest::PlotHistorySetActive { plot_id } => {
+            handle_plot_history_set_active(runtime, plot_id).await
+        }
+        WSRequest::PlotHistoryExport { plot_id, path } => {
+            handle_plot_history_export(runtime, plot_id, path).await
+        }
         _ => Vec::new(),
     }
 }
@@ -184,11 +195,23 @@ async fn handle_execution_request(
     request: ExecutionRequest,
 ) -> Vec<WSResponse> {
     let executor = runtime.r_executor.lock().await;
-    match executor.execute_with_event(request).await {
-        Ok((result, event)) => vec![
-            WSResponse::ExecutionResult { result },
-            WSResponse::TimelineEventAdded { event },
-        ],
+    match executor.execute_with_event_with_history(request).await {
+        Ok((result, event, history)) => {
+            let mut responses = vec![
+                WSResponse::ExecutionResult { result },
+                WSResponse::TimelineEventAdded { event },
+            ];
+
+            if !history.is_empty() {
+                let active_plot_id = history.last().map(|plot| plot.id.clone());
+                responses.push(WSResponse::PlotHistoryUpdated {
+                    active_plot_id,
+                    plots: history,
+                });
+            }
+
+            responses
+        }
         Err(e) => error_response(e.to_string()),
     }
 }

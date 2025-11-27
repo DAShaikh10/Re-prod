@@ -22,10 +22,16 @@ const normalizeResult = (result: ExecutionResultPayload): ExecutionLogEntry => (
 	stdout: result.output,
 	stderr: result.error || "",
 	plots: result.plots.map((plot) => ({
-		id: plot.filename || `plot-${plot.index}`,
-		path: plot.filename,
-		data: `data:image/png;base64,${plot.base64_data}`,
-		timestamp: Date.now(),
+		id: plot.id || plot.filename || `plot-${plot.index}`,
+		path: plot.storage_path || plot.filename,
+		storagePath: plot.storage_path || null,
+		data: plot.base64_data.startsWith("data:")
+			? plot.base64_data
+			: `data:image/png;base64,${plot.base64_data}`,
+		timestamp: plot.timestamp ?? Date.now(),
+		width: plot.width ?? null,
+		height: plot.height ?? null,
+		code: plot.code ?? null,
 	})),
 	timestamp: Date.now(),
 	duration: result.execution_time_ms,

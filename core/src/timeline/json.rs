@@ -386,9 +386,15 @@ mod tests {
                 },
                 plots: if has_plot {
                     vec![PlotInfo {
+                        id: "plot-id".into(),
                         filename: "plot.png".into(),
                         base64_data: "data".into(),
                         index: 0,
+                        width: None,
+                        height: None,
+                        timestamp: None,
+                        code: None,
+                        storage_path: None,
                     }]
                 } else {
                     vec![]

@@ -1,5 +1,5 @@
 import type { ExecutionLogPlot } from "@shared/types";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { PanelTabItem } from "@/components/shared";
 import { useStore } from "@/core";
 import type {
@@ -25,19 +25,26 @@ const DEFAULT_TAB: BottomPaneTab = "console";
 const TERMINAL_FOCUS_EVENT = "terminal:focus";
 
 export function useBottomPaneState(): UseBottomPaneStateResult {
-	const execution = useStore((state) => state.execution);
 	const clearExecutionResults = useStore((state) => state.clearExecutionResults);
+	const plotHistory = useStore((state) => state.plotHistory);
+	const focusPlotByIndex = useStore((state) => state.focusPlotByIndex);
+	const focusPlotById = useStore((state) => state.focusPlotById);
+	const selectPreviousPlot = useStore((state) => state.selectPreviousPlot);
+	const selectNextPlot = useStore((state) => state.selectNextPlot);
 
 	const [activeTab, setActiveTab] = useState<BottomPaneTab>(DEFAULT_TAB);
-	const [selectedPlotIndex, setSelectedPlotIndex] = useState(0);
 	const previousPlotCount = useRef(0);
 
-	const allPlots = useMemo<ExecutionLogPlot[]>(
-		() => execution.results.flatMap((result) => result.plots),
-		[execution.results],
-	);
+	const allPlots = useMemo<ExecutionLogPlot[]>(() => plotHistory.items, [plotHistory.items]);
 
-	const currentPlot = allPlots[selectedPlotIndex] ?? null;
+	const selectedPlotIndex = useMemo(() => {
+		const index = allPlots.findIndex((plot) => plot.id === plotHistory.activePlotId);
+		if (index !== -1) return index;
+		if (allPlots.length === 0) return -1;
+		return allPlots.length - 1;
+	}, [allPlots, plotHistory.activePlotId]);
+
+	const currentPlot = selectedPlotIndex >= 0 ? allPlots[selectedPlotIndex] : null;
 
 	const tabs = useMemo<PanelTabItem<BottomPaneTab>[]>(() => {
 		const list: PanelTabItem<BottomPaneTab>[] = [
@@ -53,34 +60,36 @@ export function useBottomPaneState(): UseBottomPaneStateResult {
 	useEffect(() => {
 		const handleFocusPlot = (event: Event) => {
 			const detail = (event as PlotFocusCustomEvent).detail;
-			if (typeof detail?.plotIndex !== "number") {
+			setActiveTab("plots");
+			if (detail?.plotId) {
+				focusPlotById(detail.plotId);
 				return;
 			}
-
-			setActiveTab("plots");
-			setSelectedPlotIndex(Math.max(0, Math.min(detail.plotIndex, allPlots.length - 1)));
+			if (typeof detail?.plotIndex === "number") {
+				focusPlotByIndex(Math.max(0, Math.min(detail.plotIndex, allPlots.length - 1)));
+			}
 		};
 
 		window.addEventListener("focusPlot", handleFocusPlot);
 		return () => {
 			window.removeEventListener("focusPlot", handleFocusPlot);
 		};
-	}, [allPlots.length]);
+	}, [allPlots.length, focusPlotById, focusPlotByIndex]);
 
 	useEffect(() => {
 		const previousCount = previousPlotCount.current;
 		if (allPlots.length > previousCount) {
 			setActiveTab("plots");
-			setSelectedPlotIndex(allPlots.length - 1);
+			focusPlotByIndex(allPlots.length - 1);
 		}
 		previousPlotCount.current = allPlots.length;
-	}, [allPlots.length]);
+	}, [allPlots.length, focusPlotByIndex]);
 
 	useEffect(() => {
-		if (selectedPlotIndex >= allPlots.length && allPlots.length > 0) {
-			setSelectedPlotIndex(allPlots.length - 1);
+		if (allPlots.length > 0 && !plotHistory.activePlotId) {
+			focusPlotByIndex(allPlots.length - 1);
 		}
-	}, [allPlots.length, selectedPlotIndex]);
+	}, [allPlots.length, focusPlotByIndex, plotHistory.activePlotId]);
 
 	useEffect(() => {
 		if (typeof window === "undefined") {
@@ -97,18 +106,10 @@ export function useBottomPaneState(): UseBottomPaneStateResult {
 		};
 	}, []);
 
-	const selectPreviousPlot = useCallback(() => {
-		setSelectedPlotIndex((current) => Math.max(0, current - 1));
-	}, []);
-
-	const selectNextPlot = useCallback(() => {
-		setSelectedPlotIndex((current) => Math.min(allPlots.length - 1, current + 1));
-	}, [allPlots.length]);
-
 	const navigation: PlotNavigationState = {
 		activeTab:
 			activeTab === "plots" || activeTab === "help" ? (activeTab as BottomPanePlotTab) : "help",
-		selectedPlotIndex,
+		selectedPlotIndex: selectedPlotIndex >= 0 ? selectedPlotIndex : 0,
 		totalPlots: allPlots.length,
 	};
 

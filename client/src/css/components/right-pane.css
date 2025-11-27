@@ -57,6 +57,12 @@
 	background: linear-gradient(160deg, rgba(248, 249, 253, 0.95), rgba(236, 240, 250, 0.95));
 }
 
+.plots-panel {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+}
+
 .plot-image {
 	max-width: 100%;
 	max-height: 100%;
@@ -64,6 +70,103 @@
 	background-color: var(--bg-primary);
 	border: 1px solid var(--border-medium);
 	box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+}
+
+.plot-frame {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 10px;
+	width: 100%;
+	height: 100%;
+}
+
+.plot-meta {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	width: 100%;
+	color: var(--text-secondary);
+	font-size: 12px;
+	gap: 8px;
+}
+
+.plot-meta__primary {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-weight: 600;
+	color: var(--text-primary);
+}
+
+.plot-meta__label {
+	font-size: 11px;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: var(--text-muted);
+}
+
+.plot-meta__details {
+	display: flex;
+	gap: 10px;
+}
+
+.plot-timeline {
+	display: flex;
+	gap: 12px;
+	padding: 12px 16px;
+	overflow-x: auto;
+	border-top: 1px solid var(--border-light);
+	background: var(--bg-secondary);
+}
+
+.plot-thumb {
+	border: 1px solid var(--border-light);
+	border-radius: 10px;
+	padding: 6px;
+	background: var(--bg-primary);
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	cursor: pointer;
+	transition:
+		border-color 0.15s ease,
+		box-shadow 0.15s ease,
+		transform 0.1s ease;
+	min-width: 118px;
+}
+
+.plot-thumb:hover {
+	border-color: var(--accent-blue);
+	box-shadow: 0 10px 24px rgba(29, 78, 216, 0.15);
+	transform: translateY(-2px);
+}
+
+.plot-thumb--active {
+	border-color: var(--accent-blue);
+	box-shadow: 0 10px 24px rgba(29, 78, 216, 0.25);
+}
+
+.plot-thumb img {
+	width: 100%;
+	height: 80px;
+	object-fit: cover;
+	border-radius: 8px;
+	border: 1px solid var(--border-light);
+	background: var(--bg-primary);
+}
+
+.plot-thumb__meta {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	font-size: 11px;
+	color: var(--text-secondary);
+}
+
+.plot-thumb__index {
+	font-weight: 600;
+	color: var(--text-primary);
 }
 
 .help-content {

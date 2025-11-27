@@ -19,10 +19,16 @@ fn create_test_event(
 ) -> ExecutionEvent {
     let plots = if has_plot {
         vec![PlotInfo {
+            id: format!("{}-plot", event_id),
             filename: format!("{}_plot.png", event_id),
             // Small 1x1 red PNG
             base64_data: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==".to_string(),
             index: 0,
+            width: None,
+            height: None,
+            timestamp: Some(timestamp),
+            code: Some(code.to_string()),
+            storage_path: Some(format!(".reprod/plots/{}_plot.png", event_id)),
         }]
     } else {
         vec![]

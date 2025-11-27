@@ -3,6 +3,7 @@ use reprod_core::{
     ai::tools::{FileSystemTool, RContextTool},
     executor::timeline::JsonTimeline,
     fs::FileSystem,
+    plot_history::PlotHistoryManager,
 };
 use reprod_core::{
     project::{
@@ -25,6 +26,7 @@ pub struct ProjectRuntime {
     pub filesystem_tool: Arc<FileSystemTool>,
     pub r_context_tool: Arc<RContextTool>,
     pub r_executor: Arc<Mutex<RExecutor>>,
+    pub plot_history: Arc<Mutex<PlotHistoryManager>>,
 }
 
 impl ProjectRuntime {
@@ -47,6 +49,10 @@ impl ProjectRuntime {
         });
         let timeline = Arc::new(timeline);
 
+        let plot_history_path = descriptor.root_path.join(".reprod").join("plots");
+        let plot_history_manager = PlotHistoryManager::new(plot_history_path)?;
+        let plot_history = Arc::new(Mutex::new(plot_history_manager));
+
         let temp_dir = base_temp_dir.join(&descriptor.config.id);
         std::fs::create_dir_all(&temp_dir).with_context(|| {
             format!(
@@ -57,6 +63,7 @@ impl ProjectRuntime {
 
         let r_executor = RExecutor::builder(temp_dir, config.r_path.clone())
             .with_shared_timeline(timeline.clone())
+            .with_plot_history(plot_history.clone())
             .with_working_dir(descriptor.root_path.clone())
             .build();
 
@@ -68,6 +75,7 @@ impl ProjectRuntime {
             filesystem_tool: Arc::new(FileSystemTool::new(filesystem_root)),
             r_context_tool: Arc::new(RContextTool::new()),
             r_executor: Arc::new(Mutex::new(r_executor)),
+            plot_history,
         })
     }
 }

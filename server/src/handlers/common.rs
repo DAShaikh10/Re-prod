@@ -7,6 +7,7 @@ use reprod_core::{
         TimelineResponsePayload, TimelineStatsPayload,
     },
     fs::FileSystemEvent,
+    plot_history::PlotHistoryEntry,
     project::ProjectRecord,
     AIResponse, ChatMessage, Config, ExecutionEvent, ExecutionRequest, ExecutionResult,
     ToolExecutor, ToolManifest, ToolRegistry,
@@ -163,6 +164,12 @@ pub(super) enum WSRequest {
     ProjectStateLoad { project_id: String },
     #[serde(rename = "project_state_save")]
     ProjectStateSave { project_id: String, state: Value },
+    #[serde(rename = "plot_history_get")]
+    PlotHistoryGet,
+    #[serde(rename = "plot_history_set_active")]
+    PlotHistorySetActive { plot_id: String },
+    #[serde(rename = "plot_history_export")]
+    PlotHistoryExport { plot_id: String, path: String },
 }
 
 #[derive(serde::Serialize)]
@@ -250,6 +257,25 @@ pub(super) enum WSResponse {
     },
     #[serde(rename = "project_state_saved")]
     ProjectStateSaved { project_id: String },
+    #[serde(rename = "plot_history_state")]
+    PlotHistoryState {
+        #[serde(rename = "activePlotId")]
+        active_plot_id: Option<String>,
+        plots: Vec<PlotHistoryEntry>,
+    },
+    #[serde(rename = "plot_history_updated")]
+    PlotHistoryUpdated {
+        #[serde(rename = "activePlotId")]
+        active_plot_id: Option<String>,
+        plots: Vec<PlotHistoryEntry>,
+    },
+    #[serde(rename = "plot_history_exported")]
+    PlotHistoryExported {
+        success: bool,
+        path: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        error: Option<String>,
+    },
 }
 
 #[allow(dead_code)] // Reserved for future AI planning feature

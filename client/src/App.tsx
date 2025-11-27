@@ -18,6 +18,7 @@ import { TimelineDialog } from "@/components/timeline";
 import { useStore } from "@/core";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useProjectSession } from "@/hooks/useProjectSession";
+import { usePlotHistoryEvents } from "@/hooks/usePlotHistoryEvents";
 import { useSessionControlEvents } from "@/hooks/useSessionControlEvents";
 import { useSettingsPersistence } from "@/hooks/useSettingsPersistence";
 import { useSocketConnection } from "@/hooks/useSocketConnection";
@@ -40,6 +41,7 @@ function App(): JSX.Element {
 	useSocketConnection();
 	useSettingsPersistence();
 	useSessionControlEvents();
+	usePlotHistoryEvents();
 
 	useEffect(() => {
 		document.documentElement.dataset.theme = theme;
