@@ -48,20 +48,20 @@
 }
 
 .plot-viewer {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-direction: column;
   gap: 12px;
   height: 100%;
   width: 100%;
-  padding: 18px;
-  overflow: auto;
-  background: linear-gradient(
-    160deg,
-    rgba(248, 249, 253, 0.95),
-    rgba(236, 240, 250, 0.95)
-  );
+	padding: 18px;
+	overflow: auto;
+	background: linear-gradient(
+		160deg,
+		rgba(248, 249, 253, 0.95),
+		rgba(236, 240, 250, 0.95)
+	);
 }
 
 .plot-content {
@@ -74,7 +74,7 @@
 
 .plot-image {
 	max-width: 100%;
-	max-height: clamp(240px, 45vh, 640px);
+	max-height: 45vh;
 	object-fit: contain;
 	background-color: var(--bg-primary);
 	border: 1px solid var(--border-medium);
