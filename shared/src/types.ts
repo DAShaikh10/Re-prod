@@ -75,6 +75,10 @@ export interface ExecutionLogPlot {
 	path: string;
 	data: string; // base64 encoded image
 	timestamp: number;
+	width?: number | null;
+	height?: number | null;
+	code?: string | null;
+	storagePath?: string | null;
 }
 
 export interface ExecutionLogEntry {

@@ -12,12 +12,8 @@
 //!
 //! let options = RMarkdownOptions {
 //!     mode: ExportMode::Timeline,
-//!     include_timestamps: true,
-//!     show_actor: true,
 //!     embed_plots: true,
-//!     include_outputs: true,
-//!     include_errors: false,
-//!     include_summary: true,
+//!     ..RMarkdownOptions::default()
 //! };
 //!
 //! let generator = RMarkdownGenerator::new(options);
@@ -199,11 +195,6 @@ output:
     code_folding: {}
     theme: united
 header-includes:
-  - |
-    <style>
-      .rp-output {{ background: #f6f8fa; padding: 10px 12px; border-radius: 6px; }}
-      .rp-error {{ background: #fff2f0; padding: 10px 12px; border-left: 4px solid #d93025; border-radius: 6px; }}
-    </style>
   - |
     \usepackage{{xcolor}}
     \newenvironment{{rpoutput}}{{\begin{{quote}}\colorbox{{gray!10}}{{\begin{{minipage}}{{0.97\linewidth}}}}}}{{\end{{minipage}}\end{{quote}}}}
@@ -440,11 +431,6 @@ output:
     toc: true
     code_folding: {}
 header-includes:
-  - |
-    <style>
-      .rp-output {{ background: #f6f8fa; padding: 10px 12px; border-radius: 6px; }}
-      .rp-error {{ background: #fff2f0; padding: 10px 12px; border-left: 4px solid #d93025; border-radius: 6px; }}
-    </style>
   - |
     \usepackage{{xcolor}}
     \newenvironment{{rpoutput}}{{\begin{{quote}}\colorbox{{gray!10}}{{\begin{{minipage}}{{0.97\linewidth}}}}}}{{\end{{minipage}}\end{{quote}}}}
@@ -774,9 +760,15 @@ mod tests {
                 error: None,
                 plots: if has_plot {
                     vec![PlotInfo {
+                        id: "plot-id".to_string(),
                         filename: "plots/plot_001.png".to_string(),
                         base64_data: "iVBORw0KG...".to_string(),
                         index: 0,
+                        width: None,
+                        height: None,
+                        timestamp: None,
+                        code: None,
+                        storage_path: None,
                     }]
                 } else {
                     vec![]

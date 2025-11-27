@@ -18,21 +18,20 @@ type PathDef = {
 
 function renderPath(path: PathDef, index: number) {
 	const { type, ...attrs } = path;
-	const props = { key: index, ...attrs };
 
 	switch (type) {
 		case "path":
-			return <path {...props} />;
+			return <path key={index} {...attrs} />;
 		case "circle":
-			return <circle {...props} />;
+			return <circle key={index} {...attrs} />;
 		case "rect":
-			return <rect {...props} />;
+			return <rect key={index} {...attrs} />;
 		case "line":
-			return <line {...props} />;
+			return <line key={index} {...attrs} />;
 		case "polyline":
-			return <polyline {...props} />;
+			return <polyline key={index} {...attrs} />;
 		case "polygon":
-			return <polygon {...props} />;
+			return <polygon key={index} {...attrs} />;
 		default:
 			return null;
 	}

@@ -8,6 +8,10 @@ use std::{
 };
 
 use crate::{
+    plot_history::{
+        PlotHistoryEntry, PlotHistoryManager, DEFAULT_PLOT_HEIGHT, DEFAULT_PLOT_WIDTH,
+        PLOT_HISTORY_SUBDIR,
+    },
     CodeBlockKind, CodeBlockMetadata, EnvironmentSnapshot, ExecutionContext, ExecutionEvent,
     ExecutionRequest, ExecutionResult, ExecutionSource, PlotInfo,
 };
@@ -27,6 +31,12 @@ use uuid::Uuid;
 use super::{segment_r_code, NoopTimeline, SegmentationInput, TimelineSink};
 
 type SharedChild = Arc<AsyncMutex<Child>>;
+
+#[derive(Clone)]
+struct CapturedPlot {
+    info: PlotInfo,
+    data: Vec<u8>,
+}
 
 #[derive(Clone)]
 struct ActiveChild {
@@ -76,6 +86,7 @@ pub struct RExecutor {
     working_dir: PathBuf,
     timeline: Arc<dyn TimelineSink>,
     command_runner: Arc<dyn CommandRunner>,
+    plot_history: Option<Arc<AsyncMutex<PlotHistoryManager>>>,
 }
 
 impl RExecutor {
@@ -86,6 +97,7 @@ impl RExecutor {
             working_dir: std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")),
             timeline: Arc::new(NoopTimeline),
             command_runner: Arc::new(ProcessCommandRunner::default()),
+            plot_history: None,
         }
     }
 
@@ -94,7 +106,7 @@ impl RExecutor {
     }
 
     pub async fn execute(&self, request: ExecutionRequest) -> Result<ExecutionResult> {
-        let (result, _) = self.execute_with_event(request).await?;
+        let (result, _, _) = self.execute_with_event_with_history(request).await?;
         Ok(result)
     }
 
@@ -102,6 +114,14 @@ impl RExecutor {
         &self,
         request: ExecutionRequest,
     ) -> Result<(ExecutionResult, ExecutionEvent)> {
+        let (result, event, _) = self.execute_with_event_with_history(request).await?;
+        Ok((result, event))
+    }
+
+    pub async fn execute_with_event_with_history(
+        &self,
+        request: ExecutionRequest,
+    ) -> Result<(ExecutionResult, ExecutionEvent, Vec<PlotHistoryEntry>)> {
         let start = Instant::now();
 
         let mut blocks = ensure_blocks(&request);
@@ -124,7 +144,7 @@ impl RExecutor {
             .run(&self.r_path, &script_path, &self.working_dir)
             .await?;
 
-        let plots = self.collect_plots(&plot_prefix).await?;
+        let captures = self.collect_plots(&plot_prefix).await?;
         let _ = fs::remove_file(&script_path).await;
 
         let execution_time_ms = start.elapsed().as_millis() as u64;
@@ -139,6 +159,42 @@ impl RExecutor {
             Some(stderr)
         };
 
+        let mut plots = Vec::with_capacity(captures.len());
+        let mut history_entries = Vec::new();
+
+        for mut capture in captures {
+            capture.info.code = Some(request.code.clone());
+
+            if let Some(manager) = &self.plot_history {
+                let mut manager = manager.lock().await;
+                let meta = manager.add_plot(
+                    Some(capture.info.id.clone()),
+                    capture.info.width.unwrap_or(DEFAULT_PLOT_WIDTH),
+                    capture.info.height.unwrap_or(DEFAULT_PLOT_HEIGHT),
+                    &capture.data,
+                    Some(request.code.clone()),
+                    capture.info.timestamp.map(|t| t as i64),
+                )?;
+
+                let storage_relative = format!("{}/{}", PLOT_HISTORY_SUBDIR, meta.filename);
+                capture.info.filename = storage_relative.clone();
+                capture.info.storage_path = Some(storage_relative.clone());
+
+                history_entries.push(PlotHistoryEntry {
+                    id: meta.id.clone(),
+                    timestamp: meta.timestamp,
+                    width: meta.width,
+                    height: meta.height,
+                    filename: storage_relative.clone(),
+                    storage_path: storage_relative,
+                    data: capture.info.base64_data.clone(),
+                    code: meta.code.clone(),
+                });
+            }
+
+            plots.push(capture.info);
+        }
+
         let result = ExecutionResult {
             success: command_output.success && !command_output.interrupted,
             output: stdout,
@@ -151,7 +207,7 @@ impl RExecutor {
         let event = build_event(&request, &result, environment.clone(), blocks.clone());
         self.timeline.record(event.clone()).await?;
 
-        Ok((result, event))
+        Ok((result, event, history_entries))
     }
 
     pub async fn interrupt(&self) -> Result<bool> {
@@ -267,7 +323,7 @@ quit(status = .reprod_exit_code, runLast = FALSE)
         )
     }
 
-    async fn collect_plots(&self, plot_prefix: &str) -> Result<Vec<PlotInfo>> {
+    async fn collect_plots(&self, plot_prefix: &str) -> Result<Vec<CapturedPlot>> {
         let mut plots = Vec::new();
         let mut index = 1u32;
 
@@ -281,11 +337,21 @@ quit(status = .reprod_exit_code, runLast = FALSE)
 
             let data = fs::read(&path).await?;
             let base64_data = base64::engine::general_purpose::STANDARD.encode(&data);
+            let timestamp = Self::now_ms();
 
-            plots.push(PlotInfo {
-                filename,
-                base64_data,
-                index,
+            plots.push(CapturedPlot {
+                info: PlotInfo {
+                    id: Uuid::new_v4().to_string(),
+                    filename,
+                    base64_data,
+                    index,
+                    width: Some(DEFAULT_PLOT_WIDTH),
+                    height: Some(DEFAULT_PLOT_HEIGHT),
+                    timestamp: Some(timestamp),
+                    code: None,
+                    storage_path: None,
+                },
+                data,
             });
 
             let _ = fs::remove_file(&path).await;
@@ -318,6 +384,7 @@ pub struct RExecutorBuilder {
     working_dir: PathBuf,
     timeline: Arc<dyn TimelineSink>,
     command_runner: Arc<dyn CommandRunner>,
+    plot_history: Option<Arc<AsyncMutex<PlotHistoryManager>>>,
 }
 
 impl RExecutorBuilder {
@@ -328,6 +395,7 @@ impl RExecutorBuilder {
             working_dir: std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")),
             timeline: Arc::new(NoopTimeline),
             command_runner: Arc::new(ProcessCommandRunner::default()),
+            plot_history: None,
         }
     }
 
@@ -352,6 +420,11 @@ impl RExecutorBuilder {
         self
     }
 
+    pub fn with_plot_history(mut self, plot_history: Arc<AsyncMutex<PlotHistoryManager>>) -> Self {
+        self.plot_history = Some(plot_history);
+        self
+    }
+
     pub fn with_working_dir<P>(mut self, working_dir: P) -> Self
     where
         P: Into<PathBuf>,
@@ -367,6 +440,7 @@ impl RExecutorBuilder {
             working_dir: self.working_dir,
             timeline: self.timeline,
             command_runner: self.command_runner,
+            plot_history: self.plot_history,
         }
     }
 }

@@ -281,9 +281,15 @@ mod tests {
                 error: None,
                 plots: if has_plot {
                     vec![PlotInfo {
+                        id: format!("{}-plot", event_id),
                         filename: "plot.png".to_string(),
                         base64_data: "iVBORw0KG...".to_string(),
                         index: 0,
+                        width: None,
+                        height: None,
+                        timestamp: None,
+                        code: None,
+                        storage_path: None,
                     }]
                 } else {
                     vec![]

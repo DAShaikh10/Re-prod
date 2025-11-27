@@ -4,6 +4,7 @@ import { type AIState, createAISlice } from "./slices/aiSlice";
 import { type ConnectionState, createConnectionSlice } from "./slices/connectionSlice";
 import { createEditorSlice, type EditorState } from "./slices/editorSlice";
 import { createExecutionSlice, type ExecutionState } from "./slices/executionSlice";
+import { createPlotHistorySlice, type PlotHistorySlice } from "./slices/plotHistorySlice";
 import { createProjectSlice, type ProjectState } from "./slices/projectSlice";
 import { createSettingsSlice, type SettingsState } from "./slices/settingsSlice";
 import { createTimelineSlice, type TimelineState } from "./slices/timelineSlice";
@@ -15,6 +16,7 @@ export type StoreState = EditorState &
 	SettingsState &
 	ConnectionState &
 	TimelineState &
+	PlotHistorySlice &
 	ViewState &
 	ProjectState;
 
@@ -29,6 +31,7 @@ export const useStore = create<StoreState>()(
 			...createTimelineSlice(...args),
 			...createViewSlice(...args),
 			...createProjectSlice(...args),
+			...createPlotHistorySlice(...args),
 		}),
 		{ name: "Re-prod Store" },
 	),

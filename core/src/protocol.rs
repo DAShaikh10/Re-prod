@@ -14,9 +14,21 @@ pub struct ExecutionResult {
 /// Plot information
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PlotInfo {
+    #[serde(default)]
+    pub id: String,
     pub filename: String,
     pub base64_data: String,
     pub index: u32,
+    #[serde(default)]
+    pub width: Option<u32>,
+    #[serde(default)]
+    pub height: Option<u32>,
+    #[serde(default)]
+    pub timestamp: Option<u64>,
+    #[serde(default)]
+    pub code: Option<String>,
+    #[serde(default)]
+    pub storage_path: Option<String>,
 }
 
 /// Chat message for AI communication
@@ -233,9 +245,15 @@ mod tests {
                 output: "[1] 1 2 3".into(),
                 error: None,
                 plots: vec![PlotInfo {
+                    id: "plot-1".into(),
                     filename: "plot.png".into(),
                     base64_data: "ZGF0YQ==".into(),
                     index: 1,
+                    width: Some(800),
+                    height: Some(600),
+                    timestamp: Some(1_706_000_123_500),
+                    code: Some("plot(1:10)".into()),
+                    storage_path: Some(".reprod/plots/plot.png".into()),
                 }],
                 execution_time_ms: 42,
             },

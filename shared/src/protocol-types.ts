@@ -38,9 +38,15 @@ export interface EnvironmentSnapshot {
 }
 
 export interface PlotInfo {
+	id: string;
 	filename: string;
 	base64_data: string;
 	index: number;
+	width?: number | null;
+	height?: number | null;
+	timestamp?: number | null;
+	code?: string | null;
+	storage_path?: string | null;
 }
 
 export interface ExecutionResult {
