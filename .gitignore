@@ -95,4 +95,6 @@ wt-*/
 # Codex
 .codex/
 
+# Local instruction files (ignore even if previously tracked)
+AGENTS.md
 
