@@ -264,9 +264,56 @@ export function FileBrowserPane(): JSX.Element {
 		[selectRange, toggleSelection, selectSinglePath, toggleFolder],
 	);
 
+	const resolveAbsolutePath = useCallback(
+		(path: string): string => buildAbsolutePath(workspaceRoot, path),
+		[workspaceRoot],
+	);
+
+	const openInSystemViewer = useCallback(
+		async (path: string) => {
+			if (!workspaceRoot) {
+				window.alert(
+					"Workspace root is not available yet. Please try again after the project loads.",
+				);
+				return;
+			}
+			const absolute = resolveAbsolutePath(path);
+			const tauriWindow = window as TauriWindow;
+			const shell = tauriWindow.__TAURI__?.shell;
+
+			if (shell?.open) {
+				try {
+					await shell.open(absolute);
+					return;
+				} catch (error) {
+					console.error("Failed to open file externally", error);
+				}
+			}
+
+			const fileUrl = absolute.startsWith("file://") ? absolute : `file://${absolute}`;
+			const opened = window.open(fileUrl, "_blank", "noopener,noreferrer");
+			if (opened) {
+				return;
+			}
+
+			try {
+				await navigator.clipboard.writeText(absolute);
+				window.alert("Could not open the file. Path copied to clipboard.");
+			} catch (error) {
+				console.error("Failed to open or copy file path", error);
+			}
+		},
+		[resolveAbsolutePath, workspaceRoot],
+	);
+
 	const handleNodeDoubleClick = useCallback(
 		async (node: TreeNode) => {
 			if (node.is_dir) {
+				return;
+			}
+			const ext = getExtension(node.name);
+			if (ext === "pdf") {
+				await openInSystemViewer(node.path);
 				return;
 			}
 			try {
@@ -278,7 +325,7 @@ export function FileBrowserPane(): JSX.Element {
 				console.error("Failed to open file", error);
 			}
 		},
-		[setEditorContent, setEditorFilepath, setEditorIsDirty, toggleFolder],
+		[openInSystemViewer, setEditorContent, setEditorFilepath, setEditorIsDirty, toggleFolder],
 	);
 
 	const handleContextMenu = useCallback(
@@ -420,11 +467,6 @@ export function FileBrowserPane(): JSX.Element {
 			closeContextMenu();
 		},
 		[clipboard, contextMenu, closeContextMenu, performTransfer],
-	);
-
-	const resolveAbsolutePath = useCallback(
-		(path: string): string => buildAbsolutePath(workspaceRoot, path),
-		[workspaceRoot],
 	);
 
 	const handleCopyPath = useCallback(

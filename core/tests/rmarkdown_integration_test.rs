@@ -161,12 +161,14 @@ fn test_rmarkdown_timeline_export_integration() {
     assert!(rmd_content.contains("geometry: \"margin=1in\""));
     assert!(rmd_content.contains("fontsize: 11pt"));
     assert!(rmd_content.contains("\\usepackage{helvet}"));
+    assert!(rmd_content.contains("\\usepackage{sectsty}"));
+    assert!(rmd_content.contains("\\usepackage{framed}"));
+    assert!(rmd_content.contains("\\definecolor{darkblue}"));
     assert!(rmd_content.contains("\\renewcommand{\\familydefault}{\\sfdefault}"));
 
     // Verify session info
     assert!(rmd_content.contains("# Session Information"));
-    assert!(rmd_content.contains("Bundle ID"));
-    assert!(rmd_content.contains("Total Events"));
+    assert!(rmd_content.contains("Created"));
     assert!(rmd_content.contains("Duration"));
 
     // Verify timeline export section
@@ -181,7 +183,7 @@ fn test_rmarkdown_timeline_export_integration() {
     assert!(rmd_content.contains("## Event 5 - AI Assistant"));
 
     // Verify code chunks
-    assert!(rmd_content.contains("```{r event-1-block-0}"));
+    assert!(rmd_content.contains("```{r event-1-block-0, eval=FALSE}"));
     assert!(rmd_content.contains("library(ggplot2)"));
     assert!(rmd_content.contains("library(dplyr)"));
     assert!(rmd_content.contains("data <- read.csv('input.csv')"));
@@ -189,7 +191,7 @@ fn test_rmarkdown_timeline_export_integration() {
     assert!(rmd_content.contains("ggplot(data_clean, aes(x, y)) + geom_point()"));
 
     // Verify outputs
-    assert!(rmd_content.contains("::: {.rp-output}"));
+    assert!(rmd_content.contains("::: {.rpoutput}"));
     assert!(rmd_content.contains("[1] Success"));
 
     // Verify plots
@@ -271,6 +273,9 @@ ggplot(data_clean, aes(x = x, y = y)) +
     assert!(rmd_content.contains("geometry: \"margin=1in\""));
     assert!(rmd_content.contains("fontsize: 11pt"));
     assert!(rmd_content.contains("\\usepackage{helvet}"));
+    assert!(rmd_content.contains("\\usepackage{sectsty}"));
+    assert!(rmd_content.contains("\\usepackage{framed}"));
+    assert!(rmd_content.contains("\\definecolor{darkblue}"));
     assert!(rmd_content.contains("\\renewcommand{\\familydefault}{\\sfdefault}"));
 
     // Verify document overview
@@ -372,7 +377,7 @@ fn test_rmarkdown_export_with_errors() {
     let generator = RMarkdownGenerator::new(options_with_errors.clone());
     let rmd_with_errors = generator.from_timeline(&bundle);
 
-    assert!(rmd_with_errors.contains("::: {.rp-error}"));
+    assert!(rmd_with_errors.contains("::: {.rperror}"));
     assert!(rmd_with_errors.contains("Error: test error"));
 
     // Test with errors excluded
@@ -384,7 +389,7 @@ fn test_rmarkdown_export_with_errors() {
     let generator = RMarkdownGenerator::new(options_without_errors);
     let rmd_without_errors = generator.from_timeline(&bundle);
 
-    assert!(!rmd_without_errors.contains("::: {.rp-error}"));
+    assert!(!rmd_without_errors.contains("::: {.rperror}"));
 
     println!("✓ RMarkdown error handling integration test passed!");
 }
@@ -439,7 +444,7 @@ fn test_rmarkdown_export_options_combinations() {
     assert!(minimal_rmd.contains("x <- rnorm(100)"));
     assert!(!minimal_rmd.contains("User"));
     assert!(!minimal_rmd.contains("AI Assistant"));
-    assert!(!minimal_rmd.contains("::: {.rp-output}"));
+    assert!(!minimal_rmd.contains("::: {.rpoutput}"));
     assert!(!minimal_rmd.contains("![Plot]"));
     assert!(!minimal_rmd.contains("# Session Summary"));
 
@@ -465,7 +470,7 @@ fn test_rmarkdown_export_options_combinations() {
     assert!(full_rmd.contains("Event 1 - User"));
     assert!(full_rmd.contains("Event 2 - AI Assistant"));
     assert!(full_rmd.contains("**Executed**:"));
-    assert!(full_rmd.contains("::: {.rp-output}"));
+    assert!(full_rmd.contains("::: {.rpoutput}"));
     assert!(full_rmd.contains("![Plot](evt-002_plot.png)"));
     assert!(full_rmd.contains("# Session Summary"));
 

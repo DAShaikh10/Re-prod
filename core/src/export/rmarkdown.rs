@@ -171,9 +171,10 @@ impl RMarkdownGenerator {
 
     fn chunk_header(&self, chunk_id: &str) -> String {
         if self.options.show_code {
-            format!("```{{r {}}}\n", chunk_id)
+            // Do not re-run captured code when rendering exports; outputs are already embedded.
+            format!("```{{r {}, eval=FALSE}}\n", chunk_id)
         } else {
-            format!("```{{r {}, echo=FALSE}}\n", chunk_id)
+            format!("```{{r {}, echo=FALSE, eval=FALSE}}\n", chunk_id)
         }
     }
 
@@ -200,8 +201,13 @@ header-includes:
   - |
     \usepackage{{xcolor}}
     \usepackage{{helvet}}
+    \usepackage{{sectsty}}
+    \usepackage{{framed}}
+    \definecolor{{darkblue}}{{RGB}}{{0,0,139}}
+    \definecolor{{shadecolor}}{{RGB}}{{240,247,251}}
+    \sectionfont{{\color{{darkblue}}}}
     \renewcommand{{\familydefault}}{{\sfdefault}}
-    \newenvironment{{rpoutput}}{{\begin{{quote}}\colorbox{{gray!10}}{{\begin{{minipage}}{{0.97\linewidth}}}}}}{{\end{{minipage}}\end{{quote}}}}
+    \newenvironment{{rpoutput}}{{\vspace{{0.5em}}\begin{{snugshade}}}}{{\end{{snugshade}}}}
     \newenvironment{{rperror}}{{\begin{{quote}}\colorbox{{red!5}}{{\begin{{minipage}}{{0.97\linewidth}}}}}}{{\end{{minipage}}\end{{quote}}}}
 ---
 
@@ -212,19 +218,22 @@ header-includes:
 
     fn generate_session_info(&self, bundle: &ReproductionBundle) -> String {
         let duration_sec = bundle.metadata.session.duration_ms as f64 / 1000.0;
+        let created_at_formatted = bundle
+            .metadata
+            .created_at
+            .split('T')
+            .next()
+            .unwrap_or("Unknown Date")
+            .to_string();
+
         format!(
             r#"# Session Information
 
-- **Bundle ID**: {}
 - **Created**: {}
-- **Total Events**: {}
 - **Duration**: {:.1} seconds
 
 "#,
-            bundle.metadata.bundle_id,
-            bundle.metadata.created_at,
-            bundle.metadata.session.total_events,
-            duration_sec
+            created_at_formatted, duration_sec
         )
     }
 
@@ -279,35 +288,44 @@ header-includes:
                 section.push('\n');
             }
             section.push_str("```\n\n");
+        }
 
-            // Output
-            if self.options.include_outputs && !event.result.output.is_empty() {
-                let (trimmed, truncated) = self.trim_output(&event.result.output);
-                section.push_str("::: {.rp-output}\n```\n");
+        // Output (once per event)
+        if self.options.include_outputs && !event.result.output.is_empty() {
+            let (trimmed, truncated) = self.trim_output(&event.result.output);
+            // Wrap output for both HTML (div) and PDF (raw LaTeX env)
+            section.push_str("::: {.rpoutput}\n");
+            section.push_str("```{=latex}\n\\begin{rpoutput}\n```\n");
+            section.push_str("```\n");
+            section.push_str(&trimmed);
+            if !trimmed.ends_with('\n') {
+                section.push('\n');
+            }
+            if truncated {
+                section.push_str("... (output truncated)\n");
+            }
+            section.push_str("```\n");
+            section.push_str("```{=latex}\n\\end{rpoutput}\n```\n");
+            section.push_str(":::\n\n");
+        }
+
+        // Error (once per event)
+        if self.options.include_errors {
+            if let Some(error) = &event.result.error {
+                let (trimmed, truncated) = self.trim_output(error);
+                section.push_str("::: {.rperror}\n");
+                section.push_str("```{=latex}\n\\begin{rperror}\n```\n");
+                section.push_str("```\n");
                 section.push_str(&trimmed);
                 if !trimmed.ends_with('\n') {
                     section.push('\n');
                 }
                 if truncated {
-                    section.push_str("... (output truncated)\n");
+                    section.push_str("... (error truncated)\n");
                 }
-                section.push_str("```\n:::\n\n");
-            }
-
-            // Error
-            if self.options.include_errors {
-                if let Some(error) = &event.result.error {
-                    let (trimmed, truncated) = self.trim_output(error);
-                    section.push_str("::: {.rp-error}\n```\n");
-                    section.push_str(&trimmed);
-                    if !trimmed.ends_with('\n') {
-                        section.push('\n');
-                    }
-                    if truncated {
-                        section.push_str("... (error truncated)\n");
-                    }
-                    section.push_str("```\n:::\n\n");
-                }
+                section.push_str("```\n");
+                section.push_str("```{=latex}\n\\end{rperror}\n```\n");
+                section.push_str(":::\n\n");
             }
         }
 
@@ -440,8 +458,13 @@ header-includes:
   - |
     \usepackage{{xcolor}}
     \usepackage{{helvet}}
+    \usepackage{{sectsty}}
+    \usepackage{{framed}}
+    \definecolor{{darkblue}}{{RGB}}{{0,0,139}}
+    \definecolor{{shadecolor}}{{RGB}}{{240,247,251}}
+    \sectionfont{{\color{{darkblue}}}}
     \renewcommand{{\familydefault}}{{\sfdefault}}
-    \newenvironment{{rpoutput}}{{\begin{{quote}}\colorbox{{gray!10}}{{\begin{{minipage}}{{0.97\linewidth}}}}}}{{\end{{minipage}}\end{{quote}}}}
+    \newenvironment{{rpoutput}}{{\vspace{{0.5em}}\begin{{snugshade}}}}{{\end{{snugshade}}}}
     \newenvironment{{rperror}}{{\begin{{quote}}\colorbox{{red!5}}{{\begin{{minipage}}{{0.97\linewidth}}}}}}{{\end{{minipage}}\end{{quote}}}}
 ---
 
@@ -672,6 +695,8 @@ render_pdf <- function() {{
   on.exit(setwd(old_wd), add = TRUE)
   setwd("{root_dir}")
 
+  options(width = 70) # Set output width for better PDF formatting
+
   if (!requireNamespace("rmarkdown", quietly = TRUE)) {{
     stop("PDF export requires the 'rmarkdown' package. Install it with install.packages('rmarkdown').")
   }}
@@ -685,13 +710,26 @@ render_pdf <- function() {{
     stop("PDF export requires LaTeX. Install TinyTeX by running: tinytex::install_tinytex()")
   }}
 
+  knitr::knit_hooks$set(output = function(x, options) {{
+    if (!is.null(options$results) && options$results == 'hide') {{
+      return(x)
+    }}
+    paste0(
+      "\\begin{{rpoutput}}\n",
+      x,
+      "\\end{{rpoutput}}\n"
+    )
+  }})
+
   knitr::opts_knit$set(root.dir = "{root_dir}")
   knitr::opts_chunk$set(
     echo = {include_source},
     fig.width = {fig_width},
     fig.height = {fig_height},
     message = FALSE,
-    warning = FALSE
+    warning = FALSE,
+    comment = NA,
+    background = '#F5F5F5'
   )
 
   output_format <- rmarkdown::pdf_document(
@@ -901,7 +939,7 @@ mod tests {
         let bundle = ReproductionBundle::from_events(events);
         let rmd = generator.from_timeline(&bundle);
 
-        assert!(rmd.contains("::: {.rp-output}"));
+        assert!(rmd.contains("::: {.rpoutput}"));
         assert!(rmd.contains("[1] 1 2 3 4 5"));
     }
 
@@ -935,7 +973,7 @@ mod tests {
         let bundle = ReproductionBundle::from_events(vec![event]);
         let rmd = generator.from_timeline(&bundle);
 
-        assert!(rmd.contains("::: {.rp-error}"));
+        assert!(rmd.contains("::: {.rperror}"));
         assert!(rmd.contains("Error: object not found"));
     }
 
