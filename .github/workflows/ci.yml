@@ -115,6 +115,8 @@ jobs:
           sudo apt-get install -y libwebkit2gtk-4.1-dev xvfb
 
       - run: pnpm install
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps
       - run: pnpm tauri build --debug
       - run: cargo install tauri-driver
 
