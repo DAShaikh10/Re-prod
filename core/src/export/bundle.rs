@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
 /// Timeline export structure for JSON serialization.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct TimelineExport {
     pub format_version: String,
     pub events: Vec<ExecutionEvent>,
@@ -18,7 +18,7 @@ pub struct ReproductionBundle {
 }
 
 /// Validation report for a bundle.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ValidationReport {
     pub valid: bool,
     pub errors: Vec<String>,
@@ -281,9 +281,16 @@ mod tests {
                 error: None,
                 plots: if has_plot {
                     vec![PlotInfo {
+                        id: format!("{}-plot", event_id),
                         filename: "plot.png".to_string(),
                         base64_data: "iVBORw0KG...".to_string(),
                         index: 0,
+                        width: None,
+                        height: None,
+                        timestamp: None,
+                        code: None,
+                        storage_path: None,
+                        snapshot_path: None,
                     }]
                 } else {
                     vec![]

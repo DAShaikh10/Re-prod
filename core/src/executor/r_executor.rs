@@ -1,26 +1,30 @@
-use std::{
-    path::{Path, PathBuf},
-    sync::Arc,
-    time::{Instant, SystemTime, UNIX_EPOCH},
-};
+use std::{path::PathBuf, sync::Arc, time::Instant};
 
-use crate::{
-    CodeBlockKind, CodeBlockMetadata, EnvironmentSnapshot, ExecutionContext, ExecutionEvent,
-    ExecutionRequest, ExecutionResult, ExecutionSource, PlotInfo,
+use crate::executor::command_runner::{CommandRunner, ProcessCommandRunner};
+use crate::executor::output_parser::parse_command_output;
+use crate::graphics::plot_capture::PlotCapture;
+use crate::plot_history::{
+    PlotHistoryEntry, PlotHistoryManager, DEFAULT_PLOT_HEIGHT, DEFAULT_PLOT_WIDTH,
 };
-use anyhow::{anyhow, Result};
-use async_trait::async_trait;
-use base64::Engine;
-use tokio::{fs, process::Command};
+use crate::{EnvironmentSnapshot, ExecutionEvent, ExecutionRequest, ExecutionResult};
+use anyhow::Result;
+use tokio::fs;
+use tokio::sync::Mutex as AsyncMutex;
+use tracing::info;
 use uuid::Uuid;
 
-use super::{segment_r_code, NoopTimeline, SegmentationInput, TimelineSink};
+use super::execution_utils::{build_event, ensure_blocks};
+use super::RExecutorBuilder;
+use super::{NoopTimeline, TimelineSink};
 
 pub struct RExecutor {
-    temp_dir: PathBuf,
-    r_path: String,
-    timeline: Arc<dyn TimelineSink>,
-    command_runner: Arc<dyn CommandRunner>,
+    pub(crate) temp_dir: PathBuf,
+    pub(crate) r_path: String,
+    pub(crate) working_dir: PathBuf,
+    pub(crate) timeline: Arc<dyn TimelineSink>,
+    pub(crate) command_runner: Arc<dyn CommandRunner>,
+    pub(crate) plot_history: Option<Arc<AsyncMutex<PlotHistoryManager>>>,
+    pub(crate) persistent_mode: bool,
 }
 
 impl RExecutor {
@@ -28,8 +32,11 @@ impl RExecutor {
         Self {
             temp_dir,
             r_path,
+            working_dir: std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")),
             timeline: Arc::new(NoopTimeline),
-            command_runner: Arc::new(ProcessCommandRunner),
+            command_runner: Arc::new(ProcessCommandRunner::default()),
+            plot_history: None,
+            persistent_mode: false,
         }
     }
 
@@ -37,8 +44,16 @@ impl RExecutor {
         RExecutorBuilder::new(temp_dir, r_path)
     }
 
+    pub fn is_persistent_mode(&self) -> bool {
+        self.persistent_mode
+    }
+
+    pub fn working_dir(&self) -> &std::path::Path {
+        &self.working_dir
+    }
+
     pub async fn execute(&self, request: ExecutionRequest) -> Result<ExecutionResult> {
-        let (result, _) = self.execute_with_event(request).await?;
+        let (result, _, _) = self.execute_with_event_with_history(request).await?;
         Ok(result)
     }
 
@@ -46,6 +61,14 @@ impl RExecutor {
         &self,
         request: ExecutionRequest,
     ) -> Result<(ExecutionResult, ExecutionEvent)> {
+        let (result, event, _) = self.execute_with_event_with_history(request).await?;
+        Ok((result, event))
+    }
+
+    pub async fn execute_with_event_with_history(
+        &self,
+        request: ExecutionRequest,
+    ) -> Result<(ExecutionResult, ExecutionEvent, Vec<PlotHistoryEntry>)> {
         let start = Instant::now();
 
         let mut blocks = ensure_blocks(&request);
@@ -59,27 +82,51 @@ impl RExecutor {
         let timestamp = Uuid::new_v4().to_string();
         let plot_prefix = format!("plot_{}", timestamp);
         let script_path = self.temp_dir.join(format!("script_{}.R", timestamp));
+        let plot_capture = self.plot_capture();
 
-        let wrapped_code = self.wrap_code_with_plot_capture(&request.code, &plot_prefix);
-        fs::write(&script_path, wrapped_code).await?;
+        info!(
+            target: "reprod.r.exec",
+            persistent = self.persistent_mode,
+            "wrapping code for execution"
+        );
 
-        let command_output = self.command_runner.run(&self.r_path, &script_path).await?;
+        let plot_width = request.plot_width.unwrap_or(DEFAULT_PLOT_WIDTH);
+        let plot_height = request.plot_height.unwrap_or(DEFAULT_PLOT_HEIGHT);
 
-        let plots = self.collect_plots(&plot_prefix).await?;
+        let wrapped_code = plot_capture.wrap_code(
+            &request.code,
+            &plot_prefix,
+            plot_width,
+            plot_height,
+            self.persistent_mode,
+        );
+        fs::write(&script_path, &wrapped_code).await?;
+
+        let command_output = self
+            .command_runner
+            .run(&self.r_path, &script_path, &self.working_dir)
+            .await?;
+
+        let captures = plot_capture
+            .collect(&plot_prefix, plot_width, plot_height)
+            .await?;
+        let (plots, history_entries) = plot_capture.finalize_plots(captures, &request.code).await?;
+
         let _ = fs::remove_file(&script_path).await;
 
-        let execution_time_ms = start.elapsed().as_millis() as u64;
-        let stdout = String::from_utf8_lossy(&command_output.stdout).to_string();
-        let stderr = String::from_utf8_lossy(&command_output.stderr).to_string();
+        let parsed_output = parse_command_output(&command_output);
+        info!(
+            target: "reprod.r.exec",
+            stdout = %parsed_output.stdout_raw,
+            stderr = %parsed_output.stderr_raw,
+            "R execution output (raw)"
+        );
 
+        let execution_time_ms = start.elapsed().as_millis() as u64;
         let result = ExecutionResult {
-            success: command_output.success,
-            output: stdout,
-            error: if command_output.stderr.is_empty() {
-                None
-            } else {
-                Some(stderr)
-            },
+            success: command_output.success && !command_output.interrupted,
+            output: parsed_output.display_output.clone(),
+            error: parsed_output.error_output.clone(),
             plots,
             execution_time_ms,
         };
@@ -88,344 +135,77 @@ impl RExecutor {
         let event = build_event(&request, &result, environment.clone(), blocks.clone());
         self.timeline.record(event.clone()).await?;
 
-        Ok((result, event))
+        Ok((result, event, history_entries))
     }
 
-    fn wrap_code_with_plot_capture(&self, code: &str, plot_prefix: &str) -> String {
-        let temp_dir_str = self.temp_dir.to_str().unwrap_or("");
+    pub async fn interrupt(&self) -> Result<bool> {
+        self.command_runner.interrupt().await
+    }
 
-        format!(
-            r#"
-# Auto-generated plot capture wrapper
-.reprod_plot_dir <- "{temp_dir}"
-.reprod_plot_prefix <- "{plot_prefix}"
-
-# Open PNG device
-.reprod_open_device <- function(index) {{
-  filename <- sprintf("%s_%d.png", .reprod_plot_prefix, index)
-  png(file.path(.reprod_plot_dir, filename), width = 800, height = 600)
-}}
-
-.reprod_open_device(1)
-
-# User code
-{code}
-
-# Close device to save file
-dev.off()
+    pub async fn reset(&self) -> Result<()> {
+        let _ = self.interrupt().await?;
+        if self.persistent_mode {
+            let reset_prefix = "reset";
+            let script_path = self.temp_dir.join("reset_persistent.R");
+            let plot_capture = self.plot_capture();
+            let reset_code = plot_capture.wrap_code(
+                r#"
+rm(list = ls(all.names = TRUE))
+if (length(dev.list()) > 0) {
+  dev.off(which = dev.list())
+}
 "#,
-            temp_dir = temp_dir_str,
-            plot_prefix = plot_prefix,
-            code = code
-        )
+                reset_prefix,
+                DEFAULT_PLOT_WIDTH,
+                DEFAULT_PLOT_HEIGHT,
+                true,
+            );
+            fs::write(&script_path, reset_code).await?;
+            let _ = self
+                .command_runner
+                .run(&self.r_path, &script_path, &self.working_dir)
+                .await?;
+            let _ = fs::remove_file(&script_path).await;
+        }
+        self.cleanup_temp_dir().await?;
+        Ok(())
     }
 
-    async fn collect_plots(&self, plot_prefix: &str) -> Result<Vec<PlotInfo>> {
-        let mut plots = Vec::new();
-        let mut index = 1u32;
-
-        loop {
-            let filename = format!("{}_{}.png", plot_prefix, index);
-            let path = self.temp_dir.join(&filename);
-
-            if !path.exists() {
-                break;
-            }
-
-            let data = fs::read(&path).await?;
-            let base64_data = base64::engine::general_purpose::STANDARD.encode(&data);
-
-            plots.push(PlotInfo {
-                filename,
-                base64_data,
-                index,
-            });
-
-            let _ = fs::remove_file(&path).await;
-
-            index += 1;
+    pub async fn restart(&self) -> Result<()> {
+        if !self.persistent_mode {
+            return Ok(());
         }
+        let _ = self.interrupt().await?;
+        Ok(())
+    }
 
-        Ok(plots)
+    fn plot_capture(&self) -> PlotCapture {
+        PlotCapture::new(self.temp_dir.clone(), self.plot_history.clone())
+    }
+
+    async fn cleanup_temp_dir(&self) -> Result<()> {
+        let mut entries = fs::read_dir(&self.temp_dir).await?;
+        while let Some(entry) = entries.next_entry().await? {
+            let path = entry.path();
+            let file_type = entry.file_type().await?;
+            if file_type.is_dir() {
+                fs::remove_dir_all(&path).await?;
+            } else {
+                fs::remove_file(&path).await?;
+            }
+        }
+        Ok(())
     }
 
     fn environment_snapshot(&self) -> EnvironmentSnapshot {
         EnvironmentSnapshot {
             r_path: self.r_path.clone(),
-            working_dir: std::env::current_dir()
-                .unwrap_or_else(|_| PathBuf::from("."))
-                .to_string_lossy()
-                .into_owned(),
+            working_dir: self.working_dir.to_string_lossy().into_owned(),
             temp_dir: self.temp_dir.to_string_lossy().into_owned(),
         }
-    }
-
-    fn now_ms() -> u64 {
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_millis() as u64
-    }
-}
-
-pub struct RExecutorBuilder {
-    temp_dir: PathBuf,
-    r_path: String,
-    timeline: Arc<dyn TimelineSink>,
-    command_runner: Arc<dyn CommandRunner>,
-}
-
-impl RExecutorBuilder {
-    fn new(temp_dir: PathBuf, r_path: String) -> Self {
-        Self {
-            temp_dir,
-            r_path,
-            timeline: Arc::new(NoopTimeline),
-            command_runner: Arc::new(ProcessCommandRunner),
-        }
-    }
-
-    pub fn with_timeline<T>(mut self, timeline: T) -> Self
-    where
-        T: TimelineSink + 'static,
-    {
-        self.timeline = Arc::new(timeline);
-        self
-    }
-
-    pub fn with_shared_timeline(mut self, timeline: Arc<dyn TimelineSink>) -> Self {
-        self.timeline = timeline;
-        self
-    }
-
-    pub fn with_command_runner<T>(mut self, runner: T) -> Self
-    where
-        T: CommandRunner + 'static,
-    {
-        self.command_runner = Arc::new(runner);
-        self
-    }
-
-    pub fn build(self) -> RExecutor {
-        RExecutor {
-            temp_dir: self.temp_dir,
-            r_path: self.r_path,
-            timeline: self.timeline,
-            command_runner: self.command_runner,
-        }
-    }
-}
-
-#[async_trait]
-pub trait CommandRunner: Send + Sync {
-    async fn run(&self, r_path: &str, script_path: &Path) -> Result<CommandOutput>;
-}
-
-#[derive(Debug, Clone)]
-pub struct CommandOutput {
-    pub success: bool,
-    pub stdout: Vec<u8>,
-    pub stderr: Vec<u8>,
-}
-
-struct ProcessCommandRunner;
-
-#[async_trait]
-impl CommandRunner for ProcessCommandRunner {
-    async fn run(&self, r_path: &str, script_path: &Path) -> Result<CommandOutput> {
-        let script_str = script_path
-            .to_str()
-            .ok_or_else(|| anyhow!("Invalid path"))?;
-
-        let output = Command::new(r_path)
-            .args(["--vanilla", "--quiet", script_str])
-            .output()
-            .await?;
-
-        Ok(CommandOutput {
-            success: output.status.success(),
-            stdout: output.stdout,
-            stderr: output.stderr,
-        })
-    }
-}
-
-fn ensure_blocks(request: &ExecutionRequest) -> Vec<CodeBlockMetadata> {
-    if !request.blocks.is_empty() {
-        return request.blocks.clone();
-    }
-
-    if matches!(request.context.source, ExecutionSource::Selection) {
-        let line_count = request.code.lines().count().max(1) as u32;
-        return vec![CodeBlockMetadata {
-            id: Uuid::new_v4().to_string(),
-            index: 0,
-            kind: CodeBlockKind::Selection,
-            label: Some("Selection".into()),
-            start_line: 1,
-            end_line: line_count,
-            code: request.code.clone(),
-        }];
-    }
-
-    let filename = request.context.document_path.as_deref();
-    let mut blocks = segment_r_code(SegmentationInput {
-        content: &request.code,
-        filename,
-    });
-
-    if blocks.is_empty() {
-        let line_count = request.code.lines().count().max(1) as u32;
-        blocks.push(CodeBlockMetadata {
-            id: Uuid::new_v4().to_string(),
-            index: 0,
-            kind: CodeBlockKind::Document,
-            label: Some("Document".into()),
-            start_line: 1,
-            end_line: line_count,
-            code: request.code.clone(),
-        });
-    }
-
-    blocks
-}
-
-fn build_event(
-    request: &ExecutionRequest,
-    result: &ExecutionResult,
-    environment: EnvironmentSnapshot,
-    blocks: Vec<CodeBlockMetadata>,
-) -> ExecutionEvent {
-    ExecutionEvent {
-        event_id: Uuid::new_v4().to_string(),
-        context: ExecutionContext {
-            source: request.context.source.clone(),
-            document_path: request.context.document_path.clone(),
-            cell_index: request.context.cell_index,
-            triggered_at_ms: request.context.triggered_at_ms,
-            actor: request.context.actor.clone(),
-        },
-        blocks,
-        result: result.clone(),
-        environment,
-        created_at_ms: RExecutor::now_ms(),
     }
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::executor::InMemoryTimeline;
-    use crate::{ExecutionActor, ExecutionContext};
-    use anyhow::Result;
-    use tokio::sync::Mutex;
-
-    struct MockRunner {
-        output: Mutex<CommandOutput>,
-    }
-
-    #[async_trait]
-    impl CommandRunner for MockRunner {
-        async fn run(&self, _r_path: &str, _script_path: &Path) -> Result<CommandOutput> {
-            let output = self.output.lock().await;
-            Ok(CommandOutput {
-                success: output.success,
-                stdout: output.stdout.clone(),
-                stderr: output.stderr.clone(),
-            })
-        }
-    }
-
-    #[tokio::test]
-    async fn records_event_with_provided_blocks() {
-        let temp_dir = tempfile::tempdir().expect("temp dir");
-        let timeline = InMemoryTimeline::new();
-        let runner = MockRunner {
-            output: Mutex::new(CommandOutput {
-                success: true,
-                stdout: b"hello".to_vec(),
-                stderr: Vec::new(),
-            }),
-        };
-
-        let executor = RExecutor::builder(temp_dir.path().to_path_buf(), "Rscript".into())
-            .with_timeline(timeline.clone())
-            .with_command_runner(runner)
-            .build();
-
-        let request = ExecutionRequest {
-            code: "print('hello')".into(),
-            context: ExecutionContext {
-                source: ExecutionSource::Cell,
-                document_path: Some("analysis.R".into()),
-                cell_index: Some(0),
-                triggered_at_ms: 1,
-                actor: ExecutionActor::User,
-            },
-            blocks: vec![CodeBlockMetadata {
-                id: "block-1".into(),
-                index: 0,
-                kind: CodeBlockKind::Section,
-                label: Some("Setup".into()),
-                start_line: 1,
-                end_line: 2,
-                code: "print('hello')".into(),
-            }],
-        };
-
-        let result = executor.execute(request.clone()).await;
-        assert!(result.is_ok());
-
-        let events = timeline.events();
-        assert_eq!(events.len(), 1);
-        let event = &events[0];
-        assert_eq!(event.context.source, ExecutionSource::Cell);
-        assert_eq!(event.blocks.len(), 1);
-        assert_eq!(event.blocks[0].id, "block-1");
-        assert_eq!(event.result.output, "hello");
-        assert!(event.result.error.is_none());
-    }
-
-    #[tokio::test]
-    async fn segments_blocks_when_not_provided() {
-        let temp_dir = tempfile::tempdir().expect("temp dir");
-        let timeline = InMemoryTimeline::new();
-        let runner = MockRunner {
-            output: Mutex::new(CommandOutput {
-                success: false,
-                stdout: b"".to_vec(),
-                stderr: b"error".to_vec(),
-            }),
-        };
-
-        let executor = RExecutor::builder(temp_dir.path().to_path_buf(), "Rscript".into())
-            .with_timeline(timeline.clone())
-            .with_command_runner(runner)
-            .build();
-
-        let request = ExecutionRequest {
-            code: "# Step ----\nprint('x')".into(),
-            context: ExecutionContext {
-                source: ExecutionSource::WholeDocument,
-                document_path: Some("analysis.R".into()),
-                cell_index: None,
-                triggered_at_ms: 2,
-                actor: ExecutionActor::User,
-            },
-            blocks: Vec::new(),
-        };
-
-        let result = executor.execute(request).await.expect("execution");
-        assert!(!result.success);
-        assert_eq!(result.error.as_deref(), Some("error"));
-
-        let events = timeline.events();
-        assert_eq!(events.len(), 1);
-        let event = &events[0];
-        assert_eq!(event.blocks.len(), 1);
-        let block = &event.blocks[0];
-        assert_eq!(block.kind, CodeBlockKind::Section);
-        assert!(block.code.contains("print('x')"));
-        assert!(event.environment.r_path.contains("Rscript"));
-    }
-}
+#[path = "r_executor_tests.rs"]
+mod r_executor_tests;

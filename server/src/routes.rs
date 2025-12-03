@@ -10,28 +10,6 @@ use reprod_core::{
     ToolManifest,
 };
 
-const PATCH_SYSTEM_PROMPT: &str = r#"You are the Re-prod assistant. When suggesting code changes,
-always emit them in the structured patch format shown below, and include three lines of
-context before and after each chunk:
-
-*** Begin Patch
-*** Update File: analysis.R
-@@
-  # context line
-- old_line
-+ new_line
-  # more context
-*** End Patch
-
-Rules:
-1. Wrap every suggestion in a patch block (`*** Begin Patch` / `*** End Patch`).
-2. Use `Update File`, `Add File`, or `Delete File` to describe the target path.
-3. Include `@@` markers to show the function/section context.
-4. Prefix removed lines with `-` and added lines with `+`.
-5. Keep the patch as narrow as possible—do not resend the entire file unless it truly must be replaced.
-6. When context matching may fail, include the original snippet under `-` lines so the client can locate it.
-"#;
-
 pub async fn health() -> &'static str {
     "OK"
 }
@@ -40,7 +18,8 @@ pub async fn execute_r_code(
     State(state): State<AppState>,
     Json(payload): Json<ExecutionRequest>,
 ) -> Resp<ExecutionResult> {
-    let executor = state.r_executor.lock().await;
+    let runtime = state.projects.default_runtime().await.map_err(err_500)?;
+    let executor = runtime.r_executor.lock().await;
 
     executor.execute(payload).await.map(Json).map_err(err_500)
 }
@@ -52,10 +31,14 @@ pub async fn send_ai_message(
     let cfg = state.config.lock().await.clone();
     let provider = ai::from_config(&cfg);
 
-    let mut messages = Vec::with_capacity(payload.messages.len() + 1);
+    let mut messages = Vec::with_capacity(payload.messages.len() + 2);
     messages.push(ChatMessage {
         role: "system".to_string(),
-        content: PATCH_SYSTEM_PROMPT.to_string(),
+        content: ai::PATCH_SYSTEM_PROMPT.to_string(),
+    });
+    messages.push(ChatMessage {
+        role: "system".to_string(),
+        content: ai::RANGE_SYSTEM_PROMPT.to_string(),
     });
     messages.extend(payload.messages.into_iter());
 
@@ -71,14 +54,24 @@ pub async fn get_api_key(
     State(state): State<AppState>,
 ) -> Resp<ApiKeyResponse> {
     let config = state.config.lock().await;
-
     let api_key = match provider.as_str() {
         ai::PROVIDER_ANTHROPIC => config.anthropic_api_key.clone(),
         ai::PROVIDER_OPENAI => config.openai_api_key.clone(),
         _ => return Err(err_400(format!("Unknown provider: {}", provider))),
     };
+    drop(config);
 
-    api_key
+    let masked_key = api_key.map(|key| {
+        if key.len() <= 10 {
+            "********".to_string()
+        } else {
+            let prefix = &key[0..7];
+            let suffix = &key[key.len() - 4..];
+            format!("{}...{}", prefix, suffix)
+        }
+    });
+
+    masked_key
         .map(|key| Json(ApiKeyResponse { api_key: key }))
         .ok_or_else(|| err_404("API key not configured"))
 }
@@ -97,6 +90,23 @@ pub async fn set_api_key(
     }
 
     config.save().map(|_| StatusCode::OK).map_err(err_500)
+}
+
+pub async fn test_provider(
+    Path(provider_name): Path<String>,
+    State(state): State<AppState>,
+) -> Result<Json<TestProviderResponse>, HttpError> {
+    let config_lock = state.config.lock().await;
+    let provider = ai::factory::from_name_and_config(&provider_name, &config_lock);
+    drop(config_lock); // Release lock
+
+    match provider.test_connection().await {
+        Ok(_) => Ok(Json(TestProviderResponse {
+            status: "success".to_string(),
+            message: "Connection successful".to_string(),
+        })),
+        Err(e) => Err(err_500(format!("Connection test failed: {}", e))),
+    }
 }
 
 pub async fn list_tools(State(state): State<AppState>) -> Json<Vec<ToolManifest>> {
@@ -132,7 +142,8 @@ pub async fn execute_tool(
     State(state): State<AppState>,
     Json(request): Json<ToolExecutionRequest>,
 ) -> Resp<ToolExecutionResult> {
-    let mut r_executor = state.r_executor.lock().await;
+    let runtime = state.projects.default_runtime().await.map_err(err_500)?;
+    let mut r_executor = runtime.r_executor.lock().await;
 
     state
         .tool_executor
@@ -140,7 +151,7 @@ pub async fn execute_tool(
             &request.tool_id,
             &request.capability_id,
             request.parameters,
-            &mut r_executor,
+            &r_executor,
         )
         .await
         .map(|result| Json(crate::conversions::to_proto_tool_result(result)))
@@ -176,4 +187,10 @@ pub struct SetProviderRequest {
 #[derive(serde::Serialize)]
 pub struct GetProviderResponse {
     pub provider: String,
+}
+
+#[derive(serde::Serialize)]
+pub struct TestProviderResponse {
+    pub status: String,
+    pub message: String,
 }

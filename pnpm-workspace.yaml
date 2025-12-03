@@ -1,3 +1,4 @@
 packages:
   - client
+  - desktop/e2e
   - shared

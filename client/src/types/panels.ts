@@ -7,24 +7,25 @@
  */
 
 /** Tabs rendered in the Console panel */
-export type ConsoleTabId = 'console' | 'history';
+export type ConsoleTabId = "console" | "history";
 
 /** Tabs rendered in the consolidated bottom pane (excluding the console) */
-export type BottomPanePlotTab = 'plots' | 'timeline' | 'help';
+export type BottomPanePlotTab = "plots" | "help";
 
 /** Tabs rendered in the consolidated bottom pane */
-export type BottomPaneTab = 'console' | 'history' | BottomPanePlotTab;
+export type BottomPaneTab = "console" | "history" | "terminal" | BottomPanePlotTab;
 
 /** Payload sent when other components want to focus a plot */
 export interface PlotFocusEventDetail {
-  plotIndex: number;
+	plotIndex: number;
+	plotId?: string;
 }
 
 /** State snapshot for navigating generated plots */
 export interface PlotNavigationState {
-  activeTab: BottomPanePlotTab;
-  selectedPlotIndex: number;
-  totalPlots: number;
+	activeTab: BottomPanePlotTab;
+	selectedPlotIndex: number;
+	totalPlots: number;
 }
 
 /** Strongly typed custom event fired from the console */

@@ -29,20 +29,18 @@ bash scripts/setup-branch-protection.sh
 
 **Note:** You need repository admin permissions to run this script.
 
-## Git Hooks Installation
+## Git Hooks Configuration
 
-### `install-hooks.sh`
+We use [Husky](https://typicode.github.io/husky/) to manage git hooks. Hooks are automatically installed when you run `pnpm install`.
 
-Installs pre-push git hooks to ensure code quality before pushing.
-
-**What it checks:**
+**Pre-push hook checks:**
 - Rust formatting: `cargo fmt --check`
 - Rust linting: `cargo clippy`
 - TypeScript linting: `pnpm run lint`
 
-**Usage:**
-```bash
-bash scripts/install-hooks.sh
-```
+**Hook files location:** `.husky/pre-push`
 
-**Note:** This is optional but recommended. Consider migrating to Husky for automatic setup (see Issue #50).
+**To bypass hooks (not recommended):**
+```bash
+git push --no-verify
+```

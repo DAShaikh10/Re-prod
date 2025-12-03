@@ -162,7 +162,7 @@ impl AIProvider for OpenAIProvider {
                     call["function"]["name"].as_str(),
                     call["function"]["arguments"].as_str(),
                 ) {
-                    let input: Value = serde_json::from_str(args).unwrap_or(json!({}));
+                    let input: Value = serde_json::from_str(args).unwrap_or_else(|_| json!({}));
                     tool_calls.push(ToolCall {
                         id: id.to_string(),
                         name: name.to_string(),
@@ -186,5 +186,44 @@ impl AIProvider for OpenAIProvider {
             },
             stop_reason,
         })
+    }
+
+    async fn test_connection(&self) -> Result<(), ReprodError> {
+        let api_key = self
+            .api_key
+            .as_ref()
+            .ok_or_else(|| ReprodError::AIError("OpenAI API key not configured".to_string()))?;
+
+        // Minimal request to verify API key
+        let test_messages = vec![ChatMessage {
+            role: "user".to_string(),
+            content: "hello".to_string(),
+        }];
+
+        let response = self
+            .client
+            .post(&self.base_url)
+            .header("Authorization", format!("Bearer {}", api_key))
+            .header("Content-Type", "application/json")
+            .json(&json!({
+                "model": "gpt-3.5-turbo", // Use a cheaper model for testing
+                "messages": test_messages,
+                "max_tokens": 1, // Request minimal tokens
+            }))
+            .timeout(std::time::Duration::from_secs(10)) // Shorter timeout for testing
+            .send()
+            .await
+            .map_err(|e| ReprodError::AIError(format!("OpenAI connection test failed: {}", e)))?;
+
+        let status = response.status();
+        if status.is_success() {
+            Ok(())
+        } else {
+            let text = response.text().await.unwrap_or_default();
+            Err(ReprodError::AIError(format!(
+                "OpenAI connection test failed with status {}: {}",
+                status, text
+            )))
+        }
     }
 }

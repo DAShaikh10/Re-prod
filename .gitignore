@@ -51,6 +51,7 @@ Cargo.lock
 
 # Tauri
 **/gen/
+desktop/icons/generate_icons.py
 
 # R temporary files
 .Rhistory
@@ -84,4 +85,16 @@ wt-*/
 
 # MCP server configuration (contains environment-specific settings)
 .mcp.json
+
+# Runtime application data
+.reprod/
+
+# Gemini CLI
+.gemini/
+
+# Codex
+.codex/
+
+# Local instruction files (ignore even if previously tracked)
+AGENTS.md
 

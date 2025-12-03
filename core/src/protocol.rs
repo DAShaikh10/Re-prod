@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Result of code execution
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ExecutionResult {
     pub success: bool,
     pub output: String,
@@ -12,22 +12,36 @@ pub struct ExecutionResult {
 }
 
 /// Plot information
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PlotInfo {
+    #[serde(default)]
+    pub id: String,
     pub filename: String,
     pub base64_data: String,
     pub index: u32,
+    #[serde(default)]
+    pub width: Option<u32>,
+    #[serde(default)]
+    pub height: Option<u32>,
+    #[serde(default)]
+    pub timestamp: Option<u64>,
+    #[serde(default)]
+    pub code: Option<String>,
+    #[serde(default)]
+    pub storage_path: Option<String>,
+    #[serde(default)]
+    pub snapshot_path: Option<String>,
 }
 
 /// Chat message for AI communication
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ChatMessage {
     pub role: String,
     pub content: String,
 }
 
 /// Tool call from AI
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ToolCall {
     pub id: String,
     pub name: String,
@@ -35,7 +49,7 @@ pub struct ToolCall {
 }
 
 /// AI response with optional tool calls
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct AIResponse {
     pub content: String,
     pub tool_calls: Option<Vec<ToolCall>>,
@@ -43,7 +57,7 @@ pub struct AIResponse {
 }
 
 /// Tool result to send back to AI
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ToolResult {
     pub tool_use_id: String,
     pub content: String,
@@ -51,7 +65,7 @@ pub struct ToolResult {
 }
 
 /// File change event
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct FileChangeEvent {
     pub event_type: String,
     pub path: String,
@@ -118,13 +132,19 @@ pub struct ExecutionContext {
 }
 
 /// Incoming execution request from UI/backend client.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ExecutionRequest {
     pub code: String,
     #[serde(default)]
     pub context: ExecutionContext,
     #[serde(default)]
     pub blocks: Vec<CodeBlockMetadata>,
+    /// Optional plot width in pixels (defaults to DEFAULT_PLOT_WIDTH if not specified)
+    #[serde(default)]
+    pub plot_width: Option<u32>,
+    /// Optional plot height in pixels (defaults to DEFAULT_PLOT_HEIGHT if not specified)
+    #[serde(default)]
+    pub plot_height: Option<u32>,
 }
 
 /// Snapshot of the environment used when executing R code.
@@ -136,7 +156,7 @@ pub struct EnvironmentSnapshot {
 }
 
 /// Event emitted to the timeline after execution completes.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ExecutionEvent {
     pub event_id: String,
     pub context: ExecutionContext,
@@ -147,7 +167,7 @@ pub struct ExecutionEvent {
 }
 
 /// Request to execute a tool capability
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ToolExecutionRequest {
     pub tool_id: String,
     pub capability_id: String,
@@ -155,7 +175,7 @@ pub struct ToolExecutionRequest {
 }
 
 /// Artifact generated during tool execution
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ArtifactInfo {
     pub path: String,
     pub artifact_type: String,
@@ -164,7 +184,7 @@ pub struct ArtifactInfo {
 }
 
 /// Result of tool execution with provenance metadata
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ToolExecutionResult {
     pub tool_id: String,
     pub capability_id: String,
@@ -200,6 +220,8 @@ mod tests {
                 end_line: 3,
                 code: "# Setup ----\nprint('hello')".to_string(),
             }],
+            plot_width: None,
+            plot_height: None,
         };
 
         let json = serde_json::to_string(&request).expect("serialize");
@@ -233,9 +255,16 @@ mod tests {
                 output: "[1] 1 2 3".into(),
                 error: None,
                 plots: vec![PlotInfo {
+                    id: "plot-1".into(),
                     filename: "plot.png".into(),
                     base64_data: "ZGF0YQ==".into(),
                     index: 1,
+                    width: Some(800),
+                    height: Some(600),
+                    timestamp: Some(1_706_000_123_500),
+                    code: Some("plot(1:10)".into()),
+                    storage_path: Some(".reprod/plots/plot.png".into()),
+                    snapshot_path: None,
                 }],
                 execution_time_ms: 42,
             },
