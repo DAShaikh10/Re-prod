@@ -139,6 +139,12 @@ pub struct ExecutionRequest {
     pub context: ExecutionContext,
     #[serde(default)]
     pub blocks: Vec<CodeBlockMetadata>,
+    /// Optional plot width in pixels (defaults to DEFAULT_PLOT_WIDTH if not specified)
+    #[serde(default)]
+    pub plot_width: Option<u32>,
+    /// Optional plot height in pixels (defaults to DEFAULT_PLOT_HEIGHT if not specified)
+    #[serde(default)]
+    pub plot_height: Option<u32>,
 }
 
 /// Snapshot of the environment used when executing R code.
@@ -214,6 +220,8 @@ mod tests {
                 end_line: 3,
                 code: "# Setup ----\nprint('hello')".to_string(),
             }],
+            plot_width: None,
+            plot_height: None,
         };
 
         let json = serde_json::to_string(&request).expect("serialize");
