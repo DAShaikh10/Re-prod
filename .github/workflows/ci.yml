@@ -116,7 +116,7 @@ jobs:
 
       - run: pnpm install
       - name: Install Playwright browsers
-        run: pnpm exec playwright install --with-deps
+        run: pnpm --filter @reprod/e2e exec playwright install --with-deps
       - run: pnpm tauri build --debug
       - run: cargo install tauri-driver
 
