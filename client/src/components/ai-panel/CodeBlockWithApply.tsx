@@ -1,125 +1,109 @@
-import { useEffect, useState } from 'react';
-import { IconClipboard, IconCheck, IconLightbulb } from '@/components/shared';
-import { CodeBlockDiffPreview } from './CodeBlockDiffPreview';
-import type { CodeBlock } from '@shared/types';
+import type { CodeBlock } from "@shared/types";
+import { useEffect, useState } from "react";
+import { IconCheck, IconClipboard, IconLightbulb } from "@/components/shared";
+import { getCodeActionLabel } from "@/core/ai/codeBlockActions";
+import { CodeBlockDiffPreview } from "./CodeBlockDiffPreview";
 
 interface Props {
-  codeBlock: CodeBlock;
-  onApply: (codeBlock: CodeBlock) => Promise<void>;
+	codeBlock: CodeBlock;
+	onApply: (codeBlock: CodeBlock) => Promise<void>;
+	showDiffPreview: boolean;
 }
 
-export function CodeBlockWithApply({ codeBlock, onApply }: Props): JSX.Element {
-  const [applied, setApplied] = useState(false);
-  const [currentBlock, setCurrentBlock] = useState<CodeBlock>(codeBlock);
+const isStructuredCodeBlock = (block: CodeBlock): boolean => {
+	return Boolean(
+		block.patchText ||
+			(block.patchChunks && block.patchChunks.length > 0) ||
+			(block.simpleChanges && block.simpleChanges.length > 0) ||
+			block.targetRange ||
+			block.originalCode,
+	);
+};
 
-  useEffect(() => {
-    setCurrentBlock(codeBlock);
-    setApplied(false);
-  }, [codeBlock]);
+export function CodeBlockWithApply({ codeBlock, onApply, showDiffPreview }: Props): JSX.Element {
+	const [applied, setApplied] = useState(false);
+	const [currentBlock, setCurrentBlock] = useState<CodeBlock>(codeBlock);
+	const shouldShowDiffPreview = showDiffPreview && isStructuredCodeBlock(currentBlock);
 
-  const handleApply = async (): Promise<void> => {
-    try {
-    await onApply(currentBlock);
-    setApplied(true);
-    } catch (error) {
-      console.error('Failed to apply code block', error);
-    }
-  };
+	useEffect(() => {
+		setCurrentBlock(codeBlock);
+		setApplied(false);
+	}, [codeBlock]);
 
-  const handleCopy = (): void => {
-    navigator.clipboard.writeText(codeBlock.code);
-  };
+	const handleApply = async (): Promise<void> => {
+		try {
+			await onApply(currentBlock);
+			setApplied(true);
+		} catch (error) {
+			console.error("Failed to apply code block", error);
+		}
+	};
 
-  const getActionLabel = (): string => {
-    const targetFile = codeBlock.filepath ? codeBlock.filepath : 'active editor';
+	const handleCopy = (): void => {
+		navigator.clipboard.writeText(codeBlock.code);
+	};
 
-    if (codeBlock.action === 'replace-all') {
-      return `Replace entire ${targetFile}`;
-    }
+	const handleRetry = (): void => {
+		setCurrentBlock((prev) => ({
+			...prev,
+			targetRange: undefined,
+		}));
+	};
 
-    if (codeBlock.action === 'replace-range' && codeBlock.targetRange) {
-      const { startLine, startColumn, endLine, endColumn } = codeBlock.targetRange;
-      return `Replace ${targetFile} ${startLine}:${startColumn}-${endLine}:${endColumn}`;
-    }
+	return (
+		<div className="code-block-container">
+			{codeBlock.explanation && (
+				<div className="code-explanation">
+					<IconLightbulb width={16} height={16} aria-hidden />
+					<span>{codeBlock.explanation}</span>
+				</div>
+			)}
 
-    if (codeBlock.action === 'delete-range' && codeBlock.targetRange) {
-      const { startLine, endLine } = codeBlock.targetRange;
-      return `Delete ${targetFile} lines ${startLine}-${endLine}`;
-    }
+			<div className="code-block">
+				<div className="code-header">
+					<span className="code-language">R</span>
+					<span className="code-target">
+						{codeBlock.filepath ? `${codeBlock.filepath}` : "Current file"} •{" "}
+						{getCodeActionLabel(codeBlock)}
+					</span>
+				</div>
 
-    if (codeBlock.action === 'create-file' && codeBlock.filepath) {
-      return `Create file ${codeBlock.filepath}`;
-    }
+				{shouldShowDiffPreview && (
+					<CodeBlockDiffPreview codeBlock={currentBlock} onRetry={handleRetry} />
+				)}
 
-    if (codeBlock.action === 'insert-at-cursor') {
-      return `Insert at cursor in ${targetFile}`;
-    }
+				<pre className="code-content">
+					<code>{currentBlock.code}</code>
+				</pre>
 
-    return 'Apply suggested change';
-  };
+				<div className="code-actions">
+					<button className="btn" onClick={handleCopy} title="Copy to clipboard">
+						<>
+							<IconClipboard width={16} height={16} aria-hidden />
+							Copy
+						</>
+					</button>
 
-  const handleRetry = (): void => {
-    setCurrentBlock((prev) => ({
-      ...prev,
-      targetRange: undefined,
-    }));
-  };
-
-  return (
-      <div className="code-block-container">
-      {codeBlock.explanation && (
-        <div className="code-explanation">
-          <IconLightbulb width={16} height={16} aria-hidden />
-          <span>{codeBlock.explanation}</span>
-        </div>
-      )}
-
-      <div className="code-block">
-        <div className="code-header">
-          <span className="code-language">R</span>
-          <span className="code-target">
-            {codeBlock.filepath ? `${codeBlock.filepath}` : 'Current file'} • {getActionLabel()}
-          </span>
-        </div>
-
-          <CodeBlockDiffPreview codeBlock={currentBlock} onRetry={handleRetry} />
-
-        <pre className="code-content">
-          <code>{currentBlock.code}</code>
-        </pre>
-
-        <div className="code-actions">
-          <button
-            className="btn"
-            onClick={handleCopy}
-            title="Copy to clipboard"
-          >
-            <>
-              <IconClipboard width={16} height={16} aria-hidden />
-              Copy
-            </>
-          </button>
-
-          <button
-            className="btn btn-primary"
-            onClick={handleApply}
-            disabled={applied}
-            title={applied ? 'Already applied' : 'Apply to editor'}
-          >
-            {applied ? (
-              <>
-                <IconCheck width={16} height={16} aria-hidden />
-                Applied
-              </>
-            ) : (
-              <>
-                <IconCheck width={16} height={16} aria-hidden />
-                Apply to Editor
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+					<button
+						className="btn btn-primary"
+						onClick={handleApply}
+						disabled={applied}
+						title={applied ? "Already applied" : "Apply to editor"}
+					>
+						{applied ? (
+							<>
+								<IconCheck width={16} height={16} aria-hidden />
+								Applied
+							</>
+						) : (
+							<>
+								<IconCheck width={16} height={16} aria-hidden />
+								Apply to Editor
+							</>
+						)}
+					</button>
+				</div>
+			</div>
+		</div>
+	);
 }

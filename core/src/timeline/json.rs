@@ -76,7 +76,7 @@ impl JsonTimeline {
     }
 
     /// Convert ExecutionActor to string for storage
-    fn actor_to_string(actor: &ExecutionActor) -> &'static str {
+    const fn actor_to_string(actor: &ExecutionActor) -> &'static str {
         match actor {
             ExecutionActor::User => "user",
             ExecutionActor::Ai => "ai",
@@ -84,7 +84,7 @@ impl JsonTimeline {
     }
 
     /// Convert ExecutionSource to string for storage
-    fn source_to_string(source: &ExecutionSource) -> &'static str {
+    const fn source_to_string(source: &ExecutionSource) -> &'static str {
         match source {
             ExecutionSource::Selection => "selection",
             ExecutionSource::Cell => "cell",
@@ -300,9 +300,8 @@ impl JsonTimeline {
         })
     }
 
-    /// Clear all events (for testing)
-    #[cfg(test)]
-    pub fn clear(&self) -> Result<usize> {
+    /// Clear all events from the timeline storage.
+    pub fn reset(&self) -> Result<usize> {
         let count = self.read_records()?.len();
 
         // Truncate the file
@@ -319,6 +318,7 @@ impl JsonTimeline {
             .context("Failed to reopen timeline file")?;
 
         *writer = Some(file);
+        drop(writer);
 
         Ok(count)
     }
@@ -335,6 +335,7 @@ impl TimelineSink for JsonTimeline {
             writeln!(file, "{}", json).context("Failed to write timeline record")?;
             file.flush().context("Failed to flush timeline file")?;
         }
+        drop(writer);
 
         Ok(())
     }
@@ -385,9 +386,16 @@ mod tests {
                 },
                 plots: if has_plot {
                     vec![PlotInfo {
+                        id: "plot-id".into(),
                         filename: "plot.png".into(),
                         base64_data: "data".into(),
                         index: 0,
+                        width: None,
+                        height: None,
+                        timestamp: None,
+                        code: None,
+                        storage_path: None,
+                        snapshot_path: None,
                     }]
                 } else {
                     vec![]
