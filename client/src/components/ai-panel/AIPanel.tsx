@@ -4,18 +4,18 @@ import { IconSend, IconSquare } from "@/components/shared";
 import { useAIConversation } from "@/hooks/useAIConversation";
 import { ProviderSwitcher } from "./ProviderSwitcher";
 import { StreamingMessage } from "./StreamingMessage";
+import { commandRegistry } from "@/core/commands/registry";
 
 export interface AIPanelRef {
 	focusInput: () => void;
 }
 
 interface AIPanelProps {
-	onRequireApiKeys: () => void;
 	hasConfiguredProvider: boolean;
 }
 
 export const AIPanel = forwardRef<AIPanelRef, AIPanelProps>(
-	({ onRequireApiKeys, hasConfiguredProvider }, ref) => {
+	({ hasConfiguredProvider, activeProviderLabel }, ref) => {
 		const { input, setInput, messages, isLoading, handleAsk, handleStop, handleApplyCode } =
 			useAIConversation();
 
@@ -57,10 +57,14 @@ export const AIPanel = forwardRef<AIPanelRef, AIPanelProps>(
 			}
 		}, [hasConfiguredProvider, showApiKeyError]);
 
+		const handleOpenSettings = () => {
+			commandRegistry.execute("session.settings");
+		};
+
 		const handleSend = (selectedMode: AIMode) => {
 			if (!hasConfiguredProvider) {
 				setShowApiKeyError(true);
-				onRequireApiKeys();
+				handleOpenSettings();
 				return;
 			}
 
