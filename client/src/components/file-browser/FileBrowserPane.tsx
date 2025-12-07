@@ -263,6 +263,7 @@ export function FileBrowserPane(): JSX.Element {
 			const tauriWindow = window as TauriWindow;
 			const shell = tauriWindow.__TAURI__?.shell;
 
+			// Prefer Tauri shell API when available (desktop opens with OS default app)
 			if (shell?.open) {
 				try {
 					await shell.open(absolute);
@@ -272,6 +273,18 @@ export function FileBrowserPane(): JSX.Element {
 				}
 			}
 
+			// Fallback: try dynamic import (when __TAURI__ stub is absent)
+			try {
+				const mod = await import("@tauri-apps/api/shell");
+				if (mod?.open) {
+					await mod.open(absolute);
+					return;
+				}
+			} catch {
+				// Ignore and fall through to browser fallback
+			}
+
+			// Browser fallback: attempt file:// tab, then clipboard
 			const fileUrl = absolute.startsWith("file://") ? absolute : `file://${absolute}`;
 			const opened = window.open(fileUrl, "_blank", "noopener,noreferrer");
 			if (opened) {
