@@ -10,14 +10,12 @@ export interface AIPanelRef {
 }
 
 interface AIPanelProps {
-	onOpenSettings: () => void;
 	onRequireApiKeys: () => void;
 	hasConfiguredProvider: boolean;
-	activeProviderLabel: string;
 }
 
 export const AIPanel = forwardRef<AIPanelRef, AIPanelProps>(
-	({ onOpenSettings, onRequireApiKeys, hasConfiguredProvider, activeProviderLabel }, ref) => {
+	({ onRequireApiKeys, hasConfiguredProvider }, ref) => {
 		const { input, setInput, messages, isLoading, handleAsk, handleStop, handleApplyCode } =
 			useAIConversation();
 
@@ -85,25 +83,6 @@ export const AIPanel = forwardRef<AIPanelRef, AIPanelProps>(
 				</div>
 				<div className="panel-content">
 					<div className="ai-messages">
-						{showApiKeyError && (
-							<div className="ai-inline-warning" role="alert">
-								<div className="ai-inline-warning-text">
-									<strong>Connect an API key to start chatting.</strong>
-									<span>
-										Configure {activeProviderLabel} or switch providers in Settings to use the AI
-										assistant.
-									</span>
-								</div>
-								<div className="ai-inline-warning-actions">
-									<button type="button" className="btn btn-primary" onClick={onOpenSettings}>
-										Open Settings
-									</button>
-									<button type="button" className="btn" onClick={() => setShowApiKeyError(false)}>
-										Dismiss
-									</button>
-								</div>
-							</div>
-						)}
 						{messages.length === 0 ? (
 							<div className="ai-welcome">
 								<h3>AI Assistant</h3>
