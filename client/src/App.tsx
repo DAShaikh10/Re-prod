@@ -1,5 +1,5 @@
 import { Allotment } from "allotment";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import "allotment/dist/style.css";
 import { AIPanel } from "@/components/ai-panel";
 import { BottomPane } from "@/components/bottom-pane";
@@ -19,38 +19,35 @@ import { useStore } from "@/core";
 import { useSettingsStore } from "@/core/state/slices/settingsStore";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useProjectSession } from "@/hooks/useProjectSession";
-import { usePlotHistoryEvents } from "@/hooks/usePlotHistoryEvents";
-import { useSessionControlEvents } from "@/hooks/useSessionControlEvents";
 import { useSettingsPersistence } from "@/hooks/useSettingsPersistence";
 import { useSocketConnection } from "@/hooks/useSocketConnection";
+import { setupSocketListeners } from "@/core/init/socketListeners";
 
 function App(): JSX.Element {
 	const panes = useStore((state) => state.view.panes);
+	const modals = useStore((state) => state.view.modals);
 	const theme = useStore((state) => state.settings.theme);
 	const setAIPanelRef = useStore((state) => state.setAIPanelRef);
 	const setTimelinePanelRef = useStore((state) => state.setTimelinePanelRef);
+	const setModalOpen = useStore((state) => state.setModalOpen);
+
 	const timelineDialogRef = useRef<TimelineDialogRef | null>(null);
-	const [exportDialogOpen, setExportDialogOpen] = useState(false);
-	const [shortcutsOpen, setShortcutsOpen] = useState(false);
-	const [aboutOpen, setAboutOpen] = useState(false);
-	const [sessionInfoOpen, setSessionInfoOpen] = useState(false);
-	const [settingsOpen, setSettingsOpen] = useState(false);
-	const [projectManagerOpen, setProjectManagerOpen] = useState(false);
 	const { fetchSettings, providers, activeProvider } = useSettingsStore();
 
 	const activeProviderConfig = providers.find((provider) => provider.name === activeProvider);
 	const isActiveProviderConfigured = Boolean(activeProviderConfig?.isConfigured);
-	const activeProviderLabel = activeProviderConfig?.displayName || activeProvider || "AI provider";
-
-	const openSettings = () => setSettingsOpen(true);
 
 	// Enable global keyboard shortcuts
 	useKeyboardShortcuts();
 	useProjectSession();
 	useSocketConnection();
 	useSettingsPersistence();
-	useSessionControlEvents();
-	usePlotHistoryEvents();
+
+	// Initialize socket listeners (global events)
+	useEffect(() => {
+		const cleanup = setupSocketListeners();
+		return cleanup;
+	}, []);
 
 	useEffect(() => {
 		document.documentElement.dataset.theme = theme;
@@ -63,29 +60,6 @@ function App(): JSX.Element {
 	useEffect(() => {
 		void fetchSettings();
 	}, [fetchSettings]);
-
-	const handleRequireApiKeys = () => {
-		openSettings();
-	};
-
-	useEffect(() => {
-		const globalScope = window as typeof window & Record<string, () => void>;
-		globalScope.openExportDialog = () => setExportDialogOpen(true);
-		globalScope.openShortcutsDialog = () => setShortcutsOpen(true);
-		globalScope.openAboutDialog = () => setAboutOpen(true);
-		globalScope.openSessionInfoDialog = () => setSessionInfoOpen(true);
-		globalScope.openSettingsDialog = () => openSettings();
-		globalScope.openProjectsDialog = () => setProjectManagerOpen(true);
-
-		return () => {
-			delete globalScope.openExportDialog;
-			delete globalScope.openShortcutsDialog;
-			delete globalScope.openAboutDialog;
-			delete globalScope.openSessionInfoDialog;
-			delete globalScope.openSettingsDialog;
-			delete globalScope.openProjectsDialog;
-		};
-	}, []);
 
 	return (
 		<div className="app">
@@ -114,26 +88,26 @@ function App(): JSX.Element {
 					{panes.assistant && (
 						<Allotment.Pane minSize={260} preferredSize="25%">
 							<div className="ai-pane-wrapper">
-								<AIPanel
-									ref={setAIPanelRef}
-									onOpenSettings={openSettings}
-									onRequireApiKeys={handleRequireApiKeys}
-									hasConfiguredProvider={isActiveProviderConfigured}
-									activeProviderLabel={activeProviderLabel}
-								/>
+								<AIPanel ref={setAIPanelRef} hasConfiguredProvider={isActiveProviderConfigured} />
 							</div>
 						</Allotment.Pane>
 					)}
 				</Allotment>
 			</div>
-			<StatusBar onOpenSettings={openSettings} />
-			<ExportDialog open={exportDialogOpen} onClose={() => setExportDialogOpen(false)} />
+			<StatusBar />
+			<ExportDialog open={modals.export} onClose={() => setModalOpen("export", false)} />
 			<TimelineDialog ref={timelineDialogRef} />
-			<KeyboardShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
-			<AboutModal open={aboutOpen} onClose={() => setAboutOpen(false)} />
-			<SessionInfoModal open={sessionInfoOpen} onClose={() => setSessionInfoOpen(false)} />
-			<SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
-			<ProjectManagerModal open={projectManagerOpen} onClose={() => setProjectManagerOpen(false)} />
+			<KeyboardShortcutsModal
+				open={modals.shortcuts}
+				onClose={() => setModalOpen("shortcuts", false)}
+			/>
+			<AboutModal open={modals.about} onClose={() => setModalOpen("about", false)} />
+			<SessionInfoModal
+				open={modals.sessionInfo}
+				onClose={() => setModalOpen("sessionInfo", false)}
+			/>
+			<SettingsModal open={modals.settings} onClose={() => setModalOpen("settings", false)} />
+			<ProjectManagerModal open={modals.projects} onClose={() => setModalOpen("projects", false)} />
 		</div>
 	);
 }
