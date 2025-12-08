@@ -263,6 +263,7 @@ export function FileBrowserPane(): JSX.Element {
 			const tauriWindow = window as TauriWindow;
 			const shell = tauriWindow.__TAURI__?.shell;
 
+			// Prefer Tauri shell API when available (desktop opens with OS default app)
 			if (shell?.open) {
 				try {
 					await shell.open(absolute);
@@ -272,6 +273,7 @@ export function FileBrowserPane(): JSX.Element {
 				}
 			}
 
+			// Browser fallback: attempt file:// tab, then clipboard
 			const fileUrl = absolute.startsWith("file://") ? absolute : `file://${absolute}`;
 			const opened = window.open(fileUrl, "_blank", "noopener,noreferrer");
 			if (opened) {
@@ -295,8 +297,14 @@ export function FileBrowserPane(): JSX.Element {
 			}
 			const ext = getExtension(node.name);
 			if (ext === "pdf") {
-				await openInSystemViewer(node.path);
-				return;
+				try {
+					await fileSystem.openExternal(node.path);
+					return;
+				} catch (error) {
+					console.error("Failed to open via backend; falling back", error);
+					await openInSystemViewer(node.path);
+					return;
+				}
 			}
 			try {
 				const content = await fileSystem.readFile(node.path);

@@ -38,16 +38,20 @@ if (file.exists(.reprod_state_path)) {
   }
   tryCatch({
     png_path <- file.path(.reprod_plot_dir, sprintf("%s_%d.png", .reprod_plot_prefix, index))
-    snapshot_path <- NULL
     snapshot <- tryCatch(recordPlot(), error = function(e) NULL)
     actions <- tryCatch(snapshot$actions, error = function(e) NULL)
-    if (!is.null(snapshot) && (is.null(actions) || length(actions) > 0)) {
-      snapshot_path <- file.path(.reprod_plot_dir, sprintf("%s_%d.rds", .reprod_plot_prefix, index))
-      saveRDS(snapshot, snapshot_path)
+
+    # If nothing was actually drawn, skip emitting a plot event
+    if (is.null(snapshot) || (!is.null(actions) && length(actions) == 0)) {
+      return(FALSE)
     }
+
+    snapshot_path <- file.path(.reprod_plot_dir, sprintf("%s_%d.rds", .reprod_plot_prefix, index))
+    saveRDS(snapshot, snapshot_path)
+
     cat("__REPROD_PLOT__|",
         sprintf("%s_%d", .reprod_plot_prefix, index), "|",
-        if (is.null(snapshot_path)) "" else snapshot_path, "|",
+        snapshot_path, "|",
         png_path,
         "\n", sep = "")
     file.exists(png_path)
@@ -84,26 +88,8 @@ if (names(dev.cur()) != "null device") {
   }
 }
 
-# If no plots were produced, try to render the last ggplot object automatically
-try({
-  existing_plots <- list.files(
-    .reprod_plot_dir,
-    pattern = sprintf("^%s_\\d+\\.png$", .reprod_plot_prefix)
-  )
-  if (length(existing_plots) == 0 &&
-      requireNamespace("ggplot2", quietly = TRUE)) {
-    last_plot <- tryCatch(ggplot2::last_plot(), error = function(e) NULL)
-    if (inherits(last_plot, "ggplot")) {
-      next_index <- length(existing_plots) + 1
-      .reprod_open_device(next_index)
-      print(last_plot)
-      tryCatch(.reprod_capture_plot(next_index), error = function(e) {
-        message("REPROD_PLOT_CAPTURE_ERROR: ", conditionMessage(e))
-      })
-      dev.off()
-    }
-  }
-}, silent = TRUE)
+# Previously we auto-rendered ggplot2::last_plot() when no plots were produced.
+# This caused false positives (plots from earlier runs). Disable to avoid phantom plots.
 
 # Persist workspace for next run
 tryCatch(
