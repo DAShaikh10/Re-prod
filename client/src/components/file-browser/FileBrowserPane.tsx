@@ -273,17 +273,6 @@ export function FileBrowserPane(): JSX.Element {
 				}
 			}
 
-			// Fallback: try dynamic import (when __TAURI__ stub is absent)
-			try {
-				const mod = await import("@tauri-apps/api/shell");
-				if (mod?.open) {
-					await mod.open(absolute);
-					return;
-				}
-			} catch {
-				// Ignore and fall through to browser fallback
-			}
-
 			// Browser fallback: attempt file:// tab, then clipboard
 			const fileUrl = absolute.startsWith("file://") ? absolute : `file://${absolute}`;
 			const opened = window.open(fileUrl, "_blank", "noopener,noreferrer");
@@ -308,8 +297,14 @@ export function FileBrowserPane(): JSX.Element {
 			}
 			const ext = getExtension(node.name);
 			if (ext === "pdf") {
-				await openInSystemViewer(node.path);
-				return;
+				try {
+					await fileSystem.openExternal(node.path);
+					return;
+				} catch (error) {
+					console.error("Failed to open via backend; falling back", error);
+					await openInSystemViewer(node.path);
+					return;
+				}
 			}
 			try {
 				const content = await fileSystem.readFile(node.path);
