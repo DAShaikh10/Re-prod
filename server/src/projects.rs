@@ -12,6 +12,7 @@ use reprod_core::{
     },
     Config, RExecutor,
 };
+use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},
@@ -19,6 +20,91 @@ use std::{
     sync::Arc,
 };
 use tokio::sync::Mutex;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct SessionSnapshot {
+    version: u32,
+    saved_at: u64,
+    #[serde(default)]
+    editor: SessionEditor,
+    #[serde(default)]
+    view: SessionView,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct SessionEditor {
+    #[serde(default)]
+    filepath: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct SessionView {
+    #[serde(default)]
+    panes: SessionPanes,
+    #[serde(default)]
+    modals: SessionModals,
+    #[serde(default = "default_zoom")]
+    zoom: f32,
+}
+
+impl Default for SessionView {
+    fn default() -> Self {
+        Self {
+            panes: SessionPanes::default(),
+            modals: SessionModals::default(),
+            zoom: default_zoom(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct SessionPanes {
+    #[serde(default = "true_bool")]
+    files: bool,
+    #[serde(default = "true_bool")]
+    editor: bool,
+    #[serde(default = "true_bool")]
+    assistant: bool,
+}
+
+impl Default for SessionPanes {
+    fn default() -> Self {
+        Self {
+            files: true,
+            editor: true,
+            assistant: true,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct SessionModals {
+    #[serde(default)]
+    export: bool,
+    #[serde(default)]
+    shortcuts: bool,
+    #[serde(default)]
+    about: bool,
+    #[serde(default)]
+    session_info: bool,
+    #[serde(default)]
+    settings: bool,
+    #[serde(default)]
+    projects: bool,
+}
+
+fn true_bool() -> bool {
+    true
+}
+
+fn default_zoom() -> f32 {
+    1.0
+}
 
 pub struct ProjectRuntime {
     pub descriptor: ProjectDescriptor,
@@ -259,9 +345,22 @@ impl ProjectController {
         }
         let content = std::fs::read_to_string(&state_path)
             .with_context(|| format!("Failed to read {}", state_path.display()))?;
-        let value =
+        let value: serde_json::Value =
             serde_json::from_str(&content).context("Failed to parse project state document")?;
-        Ok(Some(value))
+
+        match serde_json::from_value::<SessionSnapshot>(value) {
+            Ok(snapshot) => Ok(Some(
+                serde_json::to_value(snapshot).context("Failed to serialize project state")?,
+            )),
+            Err(error) => {
+                tracing::warn!(
+                    "Ignoring invalid project state for {}: {}",
+                    runtime.descriptor.config.id,
+                    error
+                );
+                Ok(None)
+            }
+        }
     }
 
     pub async fn save_state(&self, project_id: &str, payload: serde_json::Value) -> Result<()> {
@@ -279,8 +378,10 @@ impl ProjectController {
                 )
             })?;
         }
+        let snapshot: SessionSnapshot = serde_json::from_value(payload)
+            .context("Project state payload contains unsupported fields")?;
         let content =
-            serde_json::to_string_pretty(&payload).context("Failed to serialize project state")?;
+            serde_json::to_string_pretty(&snapshot).context("Failed to serialize project state")?;
         std::fs::write(&state_path, content)
             .with_context(|| format!("Failed to write {}", state_path.display()))
     }

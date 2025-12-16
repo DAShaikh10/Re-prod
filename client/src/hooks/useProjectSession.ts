@@ -1,11 +1,12 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import type { ProjectRecord } from "shared";
 
 import { useStore } from "@/core";
 import { useFileSystemStore } from "@/core/fileSystemStore";
-import { DEFAULT_R_SCRIPT } from "@/core/state/slices/editorSlice";
 import { projectService } from "@/services/projectService";
+import type { SessionSnapshot } from "@/services/sessionPersistence";
 import {
+	DEFAULT_VIEW_STATE,
 	applySessionSnapshot,
 	getSessionSnapshot,
 	refreshTimelineData,
@@ -13,15 +14,21 @@ import {
 import { requestPlotHistory } from "@/services/plotHistoryService";
 import { socketService } from "@/services/socket";
 
-function resetWorkspace(options: { useSample?: boolean } = {}): void {
-	const state = useStore.getState();
-	const useSample = options.useSample ?? false;
-	state.setEditorContent(useSample ? DEFAULT_R_SCRIPT : "# New R Script\n\n");
-	state.setEditorFilepath(useSample ? "analysis.R" : "");
-	state.setEditorIsDirty(false);
-	state.clearAIMessages();
-	state.resetExecutionState();
-	state.reset();
+function resetWorkspace(): void {
+	const store = useStore.getState();
+	useStore.setState((state) => ({
+		editor: { ...state.editor, content: "", filepath: "", isDirty: false },
+		view: {
+			panes: { ...DEFAULT_VIEW_STATE.panes },
+			modals: { ...DEFAULT_VIEW_STATE.modals },
+			zoom: DEFAULT_VIEW_STATE.zoom,
+		},
+	}));
+	store.setZoomLevel(DEFAULT_VIEW_STATE.zoom);
+	store.clearAIMessages();
+	store.resetExecutionState();
+	store.reset();
+	useFileSystemStore.getState().setActivePath(null);
 }
 
 export function useProjectSession(): void {
@@ -29,14 +36,10 @@ export function useProjectSession(): void {
 	const setProjects = useStore((state) => state.setProjects);
 	const setLastRestoredState = useStore((state) => state.setLastRestoredState);
 	const resetPlotHistory = useStore((state) => state.resetPlotHistory);
-	const previousProjectId = useRef<string | null>(null);
 
 	useEffect(() => {
-		const handleProjectOpened = (message: { project: ProjectRecord; state?: unknown }) => {
-			const nextProjectId = message.project.id;
-			const hasState = Boolean(message.state);
-			const isSameProject = previousProjectId.current === nextProjectId;
-			previousProjectId.current = nextProjectId;
+		const handleProjectOpened = async (message: { project: ProjectRecord; state?: unknown }) => {
+			const snapshot = message.state as SessionSnapshot | null | undefined;
 
 			setProject(message.project);
 			resetPlotHistory();
@@ -46,23 +49,25 @@ export function useProjectSession(): void {
 			const resetAndLoadRoot = useFileSystemStore.getState().resetAndLoadRoot;
 			void resetAndLoadRoot();
 
-			if (hasState) {
-				applySessionSnapshot(message.state as any);
-				setLastRestoredState(message.state as Record<string, unknown>);
-				const editorState = useStore.getState().editor;
-				if (!editorState.content?.trim()) {
-					resetWorkspace({ useSample: true });
+			if (snapshot) {
+				const applied = await applySessionSnapshot(snapshot);
+				if (applied) {
+					setLastRestoredState(snapshot as unknown as Record<string, unknown>);
+				} else {
+					resetWorkspace();
+					await refreshTimelineData();
+					setLastRestoredState(null);
 				}
-			} else if (!isSameProject) {
-				resetWorkspace({ useSample: true });
-				void refreshTimelineData();
+			} else {
+				resetWorkspace();
+				await refreshTimelineData();
 				setLastRestoredState(null);
 			}
 		};
 
 		const offOpened = socketService.on("project_opened", (message) => {
 			if (message.type === "project_opened") {
-				handleProjectOpened(message);
+				void handleProjectOpened(message);
 			}
 		});
 
@@ -74,8 +79,16 @@ export function useProjectSession(): void {
 
 		const offState = socketService.on("project_state", (message) => {
 			if (message.type === "project_state" && message.state) {
-				applySessionSnapshot(message.state as any);
-				setLastRestoredState(message.state as Record<string, unknown>);
+				void (async () => {
+					const applied = await applySessionSnapshot(message.state as SessionSnapshot);
+					if (applied) {
+						setLastRestoredState(message.state as unknown as Record<string, unknown>);
+					} else {
+						resetWorkspace();
+						await refreshTimelineData();
+						setLastRestoredState(null);
+					}
+				})();
 			}
 		});
 
