@@ -39,7 +39,7 @@ export function useProjectSession(): void {
 
 	useEffect(() => {
 		const handleProjectOpened = async (message: { project: ProjectRecord; state?: unknown }) => {
-			const snapshot = message.state as SessionSnapshot | null | undefined;
+			const snapshot = message.state as unknown as SessionSnapshot | null | undefined;
 
 			setProject(message.project);
 			resetPlotHistory();
@@ -80,7 +80,7 @@ export function useProjectSession(): void {
 		const offState = socketService.on("project_state", (message) => {
 			if (message.type === "project_state" && message.state) {
 				void (async () => {
-					const applied = await applySessionSnapshot(message.state as SessionSnapshot);
+					const applied = await applySessionSnapshot(message.state as unknown as SessionSnapshot);
 					if (applied) {
 						setLastRestoredState(message.state as unknown as Record<string, unknown>);
 					} else {
