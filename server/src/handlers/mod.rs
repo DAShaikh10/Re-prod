@@ -7,11 +7,23 @@ use axum::{
     response::Response,
 };
 use project_requests::handle_project_request;
-use reprod_core::{fs::FileSystemEvent, project::ProjectRecord, ExecutionRequest};
+use reprod_core::{
+    executor::ensure_blocks,
+    fs::FileSystemEvent,
+    project::ProjectRecord,
+    ExecutionEvent,
+    ExecutionRequest,
+    ExecutionResult,
+    RunOutputChunk,
+    RunStatus,
+    RunStream,
+    RunSummary,
+};
 use runtime_fs::{handle_fs_event, spawn_fs_watcher, FsWatcherHandle};
 use serde_json::{self, json};
 use std::sync::Arc;
 use tokio::sync::mpsc as tokio_mpsc;
+use uuid::Uuid;
 
 mod ai_handler;
 mod common;
@@ -20,6 +32,7 @@ mod plot_history_handler;
 mod project_requests;
 mod runtime_fs;
 mod session_handler;
+pub mod stream_buffer;
 mod timeline_handler;
 mod tool_handler;
 
@@ -121,8 +134,15 @@ async fn handle_ws_text(
                     return continue_loop;
                 }
 
-                let responses = handle_ws_request(request, state, current_runtime).await;
-                send_responses(socket, responses).await
+                match request {
+                    WSRequest::Execute { request } => {
+                        handle_execution_request_streaming(socket, current_runtime, request).await
+                    }
+                    other => {
+                        let responses = handle_ws_request(other, state, current_runtime).await;
+                        send_responses(socket, responses).await
+                    }
+                }
             }
             Err(error) => {
                 tracing::warn!("Failed to parse WebSocket request: {}", error);
@@ -144,7 +164,6 @@ async fn handle_ws_request(
     runtime: &Arc<ProjectRuntime>,
 ) -> Vec<WSResponse> {
     match request {
-        WSRequest::Execute { request } => handle_execution_request(runtime, request).await,
         WSRequest::AIMessage {
             messages,
             enable_tools,
@@ -197,24 +216,162 @@ async fn handle_ws_request(
         WSRequest::PlotHistorySave => handle_plot_history_save(runtime).await,
         WSRequest::PlotHistoryRestore => handle_plot_history_restore(runtime).await,
         WSRequest::PlotHistoryClear => handle_plot_history_clear(runtime).await,
+        WSRequest::RunQuery { limit } => match runtime
+            .execution_repo
+            .latest_runs(limit.unwrap_or(50))
+            .await
+        {
+            Ok(events) => build_run_state_responses(runtime, events).await,
+            Err(e) => error_response(format!("Run query failed: {}", e)),
+        },
         _ => Vec::new(),
     }
 }
 
-async fn handle_execution_request(
+async fn handle_execution_request_streaming(
+    socket: &mut WebSocket,
     runtime: &Arc<ProjectRuntime>,
     request: ExecutionRequest,
+) -> bool {
+    let run_id = Uuid::new_v4().to_string();
+    let started_at = common::now_millis() as u64;
+    let mut request = request;
+    request.context.triggered_at_ms = started_at;
+
+    let mut blocks = ensure_blocks(&request);
+    for (idx, block) in blocks.iter_mut().enumerate() {
+        block.index = idx as u32;
+        if block.label.is_none() {
+            block.label = Some(format!("Block {}", idx + 1));
+        }
+    }
+    request.blocks = blocks.clone();
+
+    let environment = {
+        let executor = runtime.r_executor.lock().await;
+        executor.environment_snapshot()
+    };
+
+    let running_event = ExecutionEvent {
+        event_id: run_id.clone(),
+        context: request.context.clone(),
+        blocks,
+        result: ExecutionResult {
+            success: false,
+            output: String::new(),
+            error: None,
+            plots: Vec::new(),
+            execution_time_ms: 0,
+        },
+        environment,
+        created_at_ms: started_at,
+        status: RunStatus::Running,
+        started_at_ms: started_at,
+        finished_at_ms: None,
+        duration_ms: None,
+    };
+
+    if let Err(e) = runtime
+        .execution_repo
+        .create_run(running_event.clone())
+        .await
+    {
+        return send_responses(
+            socket,
+            error_response(format!("Failed to create run: {}", e)),
+        )
+        .await;
+    }
+
+    let started_summary = run_summary_from_event(&running_event);
+    let accepted_and_started = vec![
+        WSResponse::RunAccepted {
+            run_id: run_id.clone(),
+        },
+        WSResponse::RunStarted {
+            run: started_summary,
+        },
+    ];
+    if !send_responses(socket, accepted_and_started).await {
+        return false;
+    }
+
+    let responses =
+        handle_execution_request_body(runtime, request, run_id, running_event).await;
+    send_responses(socket, responses).await
+}
+
+async fn handle_execution_request_body(
+    runtime: &Arc<ProjectRuntime>,
+    request: ExecutionRequest,
+    run_id: String,
+    running_event: ExecutionEvent,
 ) -> Vec<WSResponse> {
+    let mut responses: Vec<WSResponse> = Vec::new();
+
     let executor = runtime.r_executor.lock().await;
     match executor.execute_with_event_with_history(request).await {
-        Ok((result, event, history)) => {
-            let mut responses = vec![
-                WSResponse::ExecutionResult {
-                    result: result.clone(),
-                    event: event.clone(),
-                },
-                WSResponse::TimelineEventAdded { event },
-            ];
+        Ok((result, mut event, history, streamed_chunks)) => {
+            let finished_at = common::now_millis() as u64;
+
+            {
+                let mut buffer = runtime.stream_buffer.lock().await;
+                for mut chunk in streamed_chunks {
+                    chunk.run_id = run_id.clone();
+                    buffer.append(chunk.clone());
+                    responses.push(WSResponse::RunOutput(chunk));
+                }
+            }
+
+            let (stdout, stderr) = {
+                let mut buffer = runtime.stream_buffer.lock().await;
+                buffer.finalize(&run_id)
+            };
+
+            event.event_id = run_id.clone();
+            event.started_at_ms = running_event.started_at_ms;
+            event.finished_at_ms = Some(finished_at);
+            event.duration_ms = Some(finished_at.saturating_sub(running_event.started_at_ms));
+            event.created_at_ms = finished_at;
+            if !stdout.is_empty() {
+                event.result.output = stdout.clone();
+            }
+            if let Some(err) = stderr.clone() {
+                event.result.error = Some(err);
+            }
+            if event.result.output.is_empty() && !result.output.is_empty() {
+                event.result.output = result.output.clone();
+            }
+            if event.result.error.is_none() {
+                event.result.error = result.error.clone();
+            }
+            event.status = if result.success {
+                RunStatus::Succeeded
+            } else {
+                RunStatus::Failed
+            };
+
+            if responses
+                .iter()
+                .all(|r| !matches!(r, WSResponse::RunOutput(_)))
+            {
+                responses.extend(
+                    run_output_chunks_from_event(&event)
+                        .into_iter()
+                        .map(WSResponse::RunOutput),
+                );
+            }
+
+            if let Err(e) = runtime.execution_repo.finish_run(event.clone()).await {
+                responses.extend(error_response(format!("Failed to persist run: {}", e)));
+                return responses;
+            }
+
+            let summary = run_summary_from_event(&event);
+            responses.push(WSResponse::TimelineEventAdded { event: event.clone() });
+            responses.push(WSResponse::RunFinished {
+                run: summary,
+            });
 
             if !history.is_empty() {
                 let active_plot_id = history.last().map(|plot| plot.id.clone());
@@ -223,11 +380,45 @@ async fn handle_execution_request(
                     plots: history,
                 });
             }
-
-            responses
         }
-        Err(e) => error_response(e.to_string()),
+        Err(e) => {
+            let finished_at = common::now_millis() as u64;
+            let (stdout, stderr) = {
+                let mut buffer = runtime.stream_buffer.lock().await;
+                buffer.finalize(&run_id)
+            };
+            let error_message = e.to_string();
+            let mut failed_event = running_event.clone();
+            failed_event.status = RunStatus::Failed;
+            failed_event.created_at_ms = finished_at;
+            failed_event.finished_at_ms = Some(finished_at);
+            failed_event.duration_ms = Some(finished_at.saturating_sub(running_event.started_at_ms));
+            failed_event.result = ExecutionResult {
+                success: false,
+                output: stdout,
+                error: Some(
+                    stderr
+                        .filter(|s| !s.is_empty())
+                        .map(|s| format!("{}\n{}", s, error_message))
+                        .unwrap_or_else(|| error_message.clone()),
+                ),
+                plots: Vec::new(),
+                execution_time_ms: 0,
+            };
+            let _ = runtime.execution_repo.finish_run(failed_event.clone()).await;
+            responses.extend(
+                run_output_chunks_from_event(&failed_event)
+                    .into_iter()
+                    .map(WSResponse::RunOutput),
+            );
+            responses.extend(error_response(e.to_string()));
+            responses.push(WSResponse::RunFinished {
+                run: run_summary_from_event(&failed_event),
+            });
+        }
     }
+
+    responses
 }
 
 fn handle_fs_action(
@@ -369,4 +560,76 @@ pub(in crate::handlers) async fn build_project_opened_response(
         project: record,
         state: project_state,
     }
+}
+
+async fn build_run_state_responses(
+    runtime: &Arc<ProjectRuntime>,
+    events: Vec<ExecutionEvent>,
+) -> Vec<WSResponse> {
+    let runs: Vec<RunSummary> = events.iter().map(run_summary_from_event).collect();
+    let mut responses = common::single_response(WSResponse::RunState { runs });
+
+    for event in events {
+        if matches!(event.status, RunStatus::Running) {
+            let buffered = runtime
+                .stream_buffer
+                .lock()
+                .await
+                .get(&event.event_id);
+            responses.extend(buffered.into_iter().map(WSResponse::RunOutput));
+        } else {
+            responses.extend(
+                run_output_chunks_from_event(&event)
+                    .into_iter()
+                    .map(WSResponse::RunOutput),
+            );
+        }
+    }
+
+    responses
+}
+
+fn run_summary_from_event(event: &ExecutionEvent) -> RunSummary {
+    RunSummary {
+        run_id: event.event_id.clone(),
+        status: event.status.clone(),
+        started_at_ms: event.started_at_ms,
+        finished_at_ms: event.finished_at_ms,
+        duration_ms: event.duration_ms,
+        code: event.blocks.first().map(|b| b.code.clone()),
+        has_stdout: !event.result.output.is_empty(),
+        has_stderr: event.result.error.is_some(),
+        artifacts: None,
+        plots: if event.result.plots.is_empty() {
+            None
+        } else {
+            Some(event.result.plots.clone())
+        },
+        error: event.result.error.clone(),
+    }
+}
+
+fn run_output_chunks_from_event(event: &ExecutionEvent) -> Vec<RunOutputChunk> {
+    let at_ms = event.finished_at_ms.unwrap_or(event.created_at_ms);
+    let mut chunks = Vec::new();
+
+    if !event.result.output.is_empty() {
+        chunks.push(RunOutputChunk {
+            run_id: event.event_id.clone(),
+            stream: RunStream::Stdout,
+            chunk: event.result.output.clone(),
+            at_ms,
+        });
+    }
+
+    if let Some(err) = &event.result.error {
+        chunks.push(RunOutputChunk {
+            run_id: event.event_id.clone(),
+            stream: RunStream::Stderr,
+            chunk: err.clone(),
+            at_ms,
+        });
+    }
+
+    chunks
 }

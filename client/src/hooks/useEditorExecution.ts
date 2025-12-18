@@ -1,14 +1,9 @@
-import type {
-	ExecutionEventPayload,
-	ExecutionLogEntry,
-	ExecutionResultPayload,
-} from "@shared/types";
+import type { ExecutionLogEntry } from "@shared/types";
 import type { editor as MonacoEditor } from "monaco-editor";
 import type { MutableRefObject } from "react";
 import { useCallback, useState } from "react";
 import type { ExecutionTarget } from "@/core";
 import {
-	executionEventToLogEntry,
 	buildExecutionRequest,
 	getAllCode,
 	getExecutionTarget,
@@ -22,28 +17,6 @@ interface UseEditorExecutionProps {
 	editorRef: MutableRefObject<MonacoEditor.IStandaloneCodeEditor | null>;
 	cells: Cell[];
 }
-
-const normalizeResult = (result: ExecutionResultPayload, code: string): ExecutionLogEntry => ({
-	runId: undefined,
-	code,
-	stdout: result.output,
-	stderr: result.error || "",
-	plots: result.plots.map((plot) => ({
-		id: plot.id || plot.filename || `plot-${plot.index}`,
-		path: plot.storage_path || plot.filename,
-		storagePath: plot.storage_path || null,
-		data: plot.base64_data.startsWith("data:")
-			? plot.base64_data
-			: `data:image/png;base64,${plot.base64_data}`,
-		timestamp: plot.timestamp ?? Date.now(),
-		width: plot.width ?? null,
-		height: plot.height ?? null,
-		code: plot.code ?? null,
-	})),
-	timestamp: Date.now(),
-	duration: result.execution_time_ms,
-	success: result.success,
-});
 
 const normalizeFailure = (message: string, code: string): ExecutionLogEntry => ({
 	runId: undefined,
@@ -61,16 +34,9 @@ export function useEditorExecution({ editorRef, cells }: UseEditorExecutionProps
 	const editorFilepath = useStore((state) => state.editor.filepath);
 	const cursorLine = useStore((state) => state.editor.cursorPosition.line);
 	const setIsRunning = useStore((state) => state.setIsRunning);
-	const addExecutionResult = useStore((state) => state.addExecutionResult);
+	const appendExecutionEntry = useStore((state) => state.appendExecutionEntry);
 
 	const [executingCellIndex, setExecutingCellIndex] = useState<number | null>(null);
-
-	const toLogEntry = (event: ExecutionEventPayload, fallbackCode: string): ExecutionLogEntry => {
-		if (event.event_id) {
-			return executionEventToLogEntry(event);
-		}
-		return normalizeResult(event.result, fallbackCode);
-	};
 
 	const executeCode = useCallback(
 		async (target: ExecutionTarget, cellIndex?: number | null) => {
@@ -87,26 +53,19 @@ export function useEditorExecution({ editorRef, cells }: UseEditorExecutionProps
 			});
 
 			try {
-				const { event, result } = await executeRequest(request);
-				const entry = toLogEntry(event, target.code);
-				addExecutionResult(entry);
-
-				// Capture plots returned on the response if event lacked normalized fields
-				if (!event.result.plots.length && result.plots.length) {
-					addExecutionResult(normalizeResult(result, target.code));
-				}
+				await executeRequest(request);
 			} catch (error) {
 				const message =
 					error instanceof ExecutionServiceError
 						? error.message
 						: "Execution failed due to an unexpected error.";
-				addExecutionResult(normalizeFailure(message, target.code));
+				appendExecutionEntry(normalizeFailure(message, target.code));
+				setIsRunning(false);
 			} finally {
 				setExecutingCellIndex(null);
-				setIsRunning(false);
 			}
 		},
-		[addExecutionResult, cells, editorContent, editorFilepath, setIsRunning],
+		[appendExecutionEntry, cells, editorContent, editorFilepath, setIsRunning],
 	);
 
 	const handleRunAll = useCallback(() => {

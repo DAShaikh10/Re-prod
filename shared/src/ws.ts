@@ -4,14 +4,14 @@ import type {
 	AIMode,
 	ChatMessagePayload,
 	CodeBlock,
-	ExecutionEventPayload,
 	ExecutionRequestPayload,
-	ExecutionResultPayload,
 	FileEntryPayload,
 	FileSystemAction,
 	FileSystemEventPayload,
 	PlanStep,
 	ProjectRecord,
+	RunOutputChunk,
+	RunSummary,
 	ToolCallLog,
 	ToolExecutionRequestPayload,
 } from "./types";
@@ -131,12 +131,12 @@ export type ClientMessage =
 	| { type: "plot_history_delete"; plot_id: string }
 	| { type: "plot_history_save" }
 	| { type: "plot_history_restore" }
-	| { type: "plot_history_clear" };
+	| { type: "plot_history_clear" }
+	| { type: "run_query"; limit?: number };
 
 type TimelineEventPush = Extract<TimelineMessage, { type: "timeline_event_added" }>;
 
 export type ServerMessage =
-	| { type: "execution_result"; result: ExecutionResultPayload; event: ExecutionEventPayload }
 	| { type: "ai_response"; response: string }
 	| {
 			type: "ai_response_with_tools";
@@ -204,6 +204,11 @@ export type ServerMessage =
 			activePlotId?: string | null;
 			error?: string | null;
 	  }
+	| { type: "run_state"; runs: RunSummary[] }
+	| { type: "run_accepted"; run_id: string }
+	| { type: "run_started"; run: RunSummary }
+	| ({ type: "run_output" } & RunOutputChunk)
+	| { type: "run_finished"; run: RunSummary }
 	| TimelineEventPush;
 
 export type ServerMessageType = ServerMessage["type"];

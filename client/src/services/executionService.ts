@@ -1,16 +1,6 @@
-import type {
-	ExecutionEventPayload,
-	ExecutionRequestPayload,
-	ExecutionResultPayload,
-} from "@shared/types";
-import type { ServerMessage } from "shared";
+import type { ExecutionRequestPayload, RunOutputChunk, RunSummary } from "@shared/types";
 import { executionMessages } from "@/services/messageBuilders";
 import { socketService } from "./socket";
-
-type ExecutionSuccessMessage = Extract<ServerMessage, { type: "execution_result" }>;
-
-const executionMatcher = (message: ServerMessage): boolean =>
-	message.type === "execution_result" || message.type === "error";
 
 export class ExecutionServiceError extends Error {
 	constructor(message: string) {
@@ -19,39 +9,77 @@ export class ExecutionServiceError extends Error {
 	}
 }
 
-export interface ExecuteResponse {
-	raw: ExecutionSuccessMessage;
-	result: ExecutionResultPayload;
-	event: ExecutionEventPayload;
-}
-
 /**
- * Dispatch an execution request to the backend and resolve with the resulting
- * payload. All socket coordination lives here so UI layers do not have to
- * wire callbacks manually.
+ * Dispatch an execution request to the backend.
+ * The store will be updated via run_* websocket events; no response is awaited here.
  */
-export async function executeRequest(request: ExecutionRequestPayload): Promise<ExecuteResponse> {
-	return new Promise<ExecuteResponse>((resolve, reject) => {
-		const didSend = socketService.send(
-			executionMessages.execute(request),
-			(message) => {
-				if (message.type === "execution_result") {
-					resolve({ raw: message, result: message.result, event: message.event });
-					return;
-				}
-
-				if (message.type === "error") {
-					reject(new ExecutionServiceError(message.message));
-					return;
-				}
-
-				reject(new ExecutionServiceError(`Unexpected execution response: ${message.type}`));
-			},
-			executionMatcher,
-		);
+export async function executeRequest(request: ExecutionRequestPayload): Promise<void> {
+	return new Promise<void>((resolve, reject) => {
+		const didSend = socketService.send(executionMessages.execute(request));
 
 		if (!didSend) {
 			reject(new ExecutionServiceError("WebSocket is not connected"));
+			return;
 		}
+		resolve();
+	});
+}
+
+export interface RunCompletion {
+	runId: string;
+	stdout: string;
+	stderr: string;
+	run: RunSummary;
+}
+
+export async function executeRequestAwaitRunCompletion(
+	request: ExecutionRequestPayload,
+): Promise<RunCompletion> {
+	const accepted = await socketService.request(executionMessages.execute(request), "run_accepted");
+	const runId = accepted.run_id;
+
+	return new Promise<RunCompletion>((resolve, reject) => {
+		let stdout = "";
+		let stderr = "";
+
+		let timeoutId: ReturnType<typeof setTimeout> | null = null;
+		const cleanup = (unsubscribers: Array<() => void>): void => {
+			unsubscribers.forEach((off) => off());
+			if (timeoutId) {
+				clearTimeout(timeoutId);
+				timeoutId = null;
+			}
+		};
+
+		const offOutput = socketService.on("run_output", (message) => {
+			if (message.type !== "run_output") {
+				return;
+			}
+			if (message.run_id !== runId) {
+				return;
+			}
+			const chunk = message as RunOutputChunk;
+			if (chunk.stream === "stdout") {
+				stdout = [stdout, chunk.chunk].filter(Boolean).join("\n");
+			} else {
+				stderr = [stderr, chunk.chunk].filter(Boolean).join("\n");
+			}
+		});
+
+		const offFinished = socketService.on("run_finished", (message) => {
+			if (message.type !== "run_finished") {
+				return;
+			}
+			if (message.run.run_id !== runId) {
+				return;
+			}
+			cleanup([offOutput, offFinished]);
+			resolve({ runId, stdout, stderr, run: message.run });
+		});
+
+		timeoutId = setTimeout(() => {
+			cleanup([offOutput, offFinished]);
+			reject(new ExecutionServiceError(`Timed out waiting for run ${runId}`));
+		}, 30_000);
 	});
 }

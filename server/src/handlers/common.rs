@@ -9,7 +9,7 @@ use reprod_core::{
     fs::FileSystemEvent,
     plot_history::PlotHistoryEntry,
     project::ProjectRecord,
-    AIResponse, ChatMessage, Config, ExecutionEvent, ExecutionRequest, ExecutionResult,
+    AIResponse, ChatMessage, Config, ExecutionEvent, ExecutionRequest, RunOutputChunk, RunSummary,
     ToolExecutor, ToolManifest, ToolRegistry,
 };
 use serde_json::Value;
@@ -185,16 +185,16 @@ pub(super) enum WSRequest {
     PlotHistoryRestore,
     #[serde(rename = "plot_history_clear")]
     PlotHistoryClear,
+    #[serde(rename = "run_query")]
+    RunQuery {
+        #[serde(default)]
+        limit: Option<usize>,
+    },
 }
 
 #[derive(serde::Serialize)]
 #[serde(tag = "type")]
 pub(super) enum WSResponse {
-    #[serde(rename = "execution_result")]
-    ExecutionResult {
-        result: ExecutionResult,
-        event: ExecutionEvent,
-    },
     #[serde(rename = "ai_response")]
     AIResponse { response: String },
     #[serde(rename = "ai_response_with_tools")]
@@ -323,6 +323,16 @@ pub(super) enum WSResponse {
         #[serde(skip_serializing_if = "Option::is_none")]
         error: Option<String>,
     },
+    #[serde(rename = "run_state")]
+    RunState { runs: Vec<RunSummary> },
+    #[serde(rename = "run_accepted")]
+    RunAccepted { run_id: String },
+    #[serde(rename = "run_started")]
+    RunStarted { run: RunSummary },
+    #[serde(rename = "run_output")]
+    RunOutput(RunOutputChunk),
+    #[serde(rename = "run_finished")]
+    RunFinished { run: RunSummary },
 }
 
 #[allow(dead_code)] // Reserved for future AI planning feature

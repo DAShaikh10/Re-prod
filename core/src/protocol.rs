@@ -164,6 +164,18 @@ pub struct ExecutionEvent {
     pub result: ExecutionResult,
     pub environment: EnvironmentSnapshot,
     pub created_at_ms: u64,
+    #[serde(default = "default_run_status")]
+    pub status: RunStatus,
+    #[serde(default)]
+    pub started_at_ms: u64,
+    #[serde(default)]
+    pub finished_at_ms: Option<u64>,
+    #[serde(default)]
+    pub duration_ms: Option<u64>,
+}
+
+pub fn default_run_status() -> RunStatus {
+    RunStatus::Succeeded
 }
 
 /// Request to execute a tool capability
@@ -194,6 +206,58 @@ pub struct ToolExecutionResult {
     pub artifacts: Vec<ArtifactInfo>,
     pub execution_time_ms: u64,
     pub error: Option<String>,
+}
+
+/// Status of a run
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum RunStatus {
+    Queued,
+    Running,
+    Succeeded,
+    Failed,
+    Interrupted,
+}
+
+/// Summary metadata for a run
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct RunSummary {
+    pub run_id: String,
+    pub status: RunStatus,
+    pub started_at_ms: u64,
+    #[serde(default)]
+    pub finished_at_ms: Option<u64>,
+    #[serde(default)]
+    pub duration_ms: Option<u64>,
+    #[serde(default)]
+    pub code: Option<String>,
+    #[serde(default)]
+    pub has_stdout: bool,
+    #[serde(default)]
+    pub has_stderr: bool,
+    #[serde(default)]
+    pub artifacts: Option<Vec<ArtifactInfo>>,
+    #[serde(default)]
+    pub plots: Option<Vec<PlotInfo>>, // optional lightweight plot summary
+    #[serde(default)]
+    pub error: Option<String>,
+}
+
+/// Output chunk streamed during execution
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct RunOutputChunk {
+    pub run_id: String,
+    pub stream: RunStream,
+    pub chunk: String,
+    pub at_ms: u64,
+}
+
+/// Stream kind for run output
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum RunStream {
+    Stdout,
+    Stderr,
 }
 
 #[cfg(test)]
@@ -274,6 +338,10 @@ mod tests {
                 temp_dir: "/tmp/reprod".into(),
             },
             created_at_ms: 1_706_000_123_500,
+            status: RunStatus::Succeeded,
+            started_at_ms: 1_706_000_123_000,
+            finished_at_ms: Some(1_706_000_123_500),
+            duration_ms: Some(500),
         };
 
         let value = serde_json::to_value(&event).expect("serialize");
