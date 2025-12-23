@@ -5,10 +5,16 @@ use axum::{
     http::StatusCode,
     Json,
 };
+use reprod_acp::{
+    config::{load_acp_config, normalize_active_mode, save_acp_config, ACP_MODE_API},
+    detection::{detect_agents, resolve_active_agent_command},
+    types::{AcpAgentConfig, AcpDetectedAgent},
+};
 use reprod_core::{
     ai, ChatMessage, ExecutionRequest, ExecutionResult, ToolExecutionRequest, ToolExecutionResult,
     ToolManifest,
 };
+use serde::Deserialize;
 
 pub async fn health() -> &'static str {
     "OK"
@@ -173,6 +179,56 @@ pub async fn set_provider(
     config.default_ai_provider = payload.provider;
 
     config.save().map(|_| StatusCode::OK).map_err(err_500)
+}
+
+
+pub async fn acp_detect_agents() -> Resp<Vec<AcpDetectedAgent>> {
+    detect_agents().map(Json).map_err(err_500)
+}
+
+pub async fn acp_get_config() -> Resp<AcpAgentConfig> {
+    load_acp_config()
+        .map(|cfg| AcpAgentConfig {
+            active_mode: cfg.active_mode,
+            active_agent: cfg.active_agent,
+        })
+        .map(Json)
+        .map_err(err_500)
+}
+
+#[derive(Deserialize)]
+pub struct SetAcpConfigRequest {
+    pub active_mode: String,
+    pub active_agent: Option<String>,
+}
+
+pub async fn acp_set_config(Json(payload): Json<SetAcpConfigRequest>) -> Resp<AcpAgentConfig> {
+    let normalized_mode =
+        normalize_active_mode(&payload.active_mode).map_err(|err| err_400(err.to_string()))?;
+
+    let mut cfg = load_acp_config().unwrap_or_else(|_| Default::default());
+    cfg.active_mode = normalized_mode.clone();
+    cfg.active_agent = payload.active_agent.clone();
+    if normalized_mode == ACP_MODE_API {
+        cfg.active_agent = None;
+    } else {
+        let selected = cfg
+            .active_agent
+            .clone()
+            .ok_or_else(|| err_400("active_agent must be set for external_agent mode"))?;
+        let detected = detect_agents().map_err(err_500)?;
+        if resolve_active_agent_command(&cfg, &detected).is_none() {
+            return Err(err_400(format!("ACP agent unavailable: {selected}")));
+        }
+        cfg.active_agent = Some(selected);
+    }
+
+    save_acp_config(&cfg).map_err(err_500)?;
+
+    Ok(Json(AcpAgentConfig {
+        active_mode: cfg.active_mode,
+        active_agent: cfg.active_agent,
+    }))
 }
 
 pub async fn execute_tool(

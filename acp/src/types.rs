@@ -83,10 +83,21 @@ pub struct AcpPermissionDecision {
     pub request_id: String,
     pub outcome: AcpPermissionDecisionOutcome,
     pub option_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub remember_scope: Option<AcpPermissionDecisionScope>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[serde(rename_all = "lowercase")]
 #[ts(export, export_to = "../../client/src/types/generated/")]
+pub enum AcpPermissionDecisionScope {
+    None,
+    Session,
+    Project,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../client/src/types/generated/")]
 pub struct AcpDetectedAgent {
     pub id: String,
     pub name: String,

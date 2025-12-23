@@ -19,7 +19,10 @@ use tokio::sync::{mpsc::UnboundedSender, oneshot, Mutex};
 use tokio::time::timeout;
 use tracing::{error, warn};
 
-use crate::acp::{connection::map_permission_request, types::AcpPermissionRequestPayload};
+use crate::{
+    connection::map_permission_request,
+    types::{AcpPermissionDecisionScope, AcpPermissionRequestPayload},
+};
 
 #[cfg(not(test))]
 const PERMISSION_TIMEOUT: Duration = Duration::from_secs(30);
@@ -34,6 +37,8 @@ pub struct ReprodAcpClient {
     pending_permissions: Arc<Mutex<HashMap<String, oneshot::Sender<RequestPermissionOutcome>>>>,
     trust_store: Arc<Mutex<HashMap<String, TrustDecision>>>,
     trust_path: PathBuf,
+    decision_meta: Arc<Mutex<HashMap<String, AcpPermissionDecisionScope>>>,
+    session_trust: Arc<Mutex<HashMap<String, TrustDecision>>>,
 }
 
 impl ReprodAcpClient {
@@ -42,6 +47,7 @@ impl ReprodAcpClient {
         session_update_tx: UnboundedSender<SessionNotification>,
         permission_request_tx: UnboundedSender<AcpPermissionRequestPayload>,
         pending_permissions: Arc<Mutex<HashMap<String, oneshot::Sender<RequestPermissionOutcome>>>>,
+        decision_meta: Arc<Mutex<HashMap<String, AcpPermissionDecisionScope>>>,
     ) -> Self {
         let trust_path = trust_store_path(&workspace_root);
         let trust_store = Arc::new(Mutex::new(
@@ -54,6 +60,8 @@ impl ReprodAcpClient {
             pending_permissions,
             trust_store,
             trust_path,
+            decision_meta,
+            session_trust: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
@@ -71,13 +79,29 @@ impl ReprodAcpClient {
         format!("{base}:{kind}:{location}")
     }
 
-    fn apply_trust(
+    async fn apply_trust(
         &self,
         payload: &AcpPermissionRequestPayload,
         options: &[PermissionOption],
     ) -> Option<RequestPermissionOutcome> {
         let key = self.build_trust_key(payload);
-        let store = self.trust_store.blocking_lock();
+        // Session-remembered trust
+        if let Some(decision) = self.session_trust.lock().await.get(&key).cloned() {
+            let opt_id = match decision {
+                TrustDecision::Allow => pick_option_id(
+                    options,
+                    &[PermissionOptionKind::AllowOnce, PermissionOptionKind::AllowAlways],
+                ),
+                TrustDecision::Reject => pick_option_id(
+                    options,
+                    &[PermissionOptionKind::RejectOnce, PermissionOptionKind::RejectAlways],
+                ),
+            }?;
+            return Some(RequestPermissionOutcome::Selected(
+                SelectedPermissionOutcome::new(opt_id),
+            ));
+        }
+        let store = self.trust_store.lock().await;
         match store.get(&key) {
             Some(TrustDecision::Allow) => {
                 let opt_id = pick_option_id(
@@ -132,6 +156,35 @@ impl ReprodAcpClient {
             if let Err(err) = save_trust_store(&self.trust_path, &*guard) {
                 warn!("Failed to persist ACP trust store: {err}");
             }
+            return;
+        }
+
+        // Session-level remember: if UI indicated session scope, capture AllowOnce/RejectOnce
+        if let Some(scope) = self
+            .decision_meta
+            .lock()
+            .await
+            .remove(&payload.request_id)
+        {
+            if matches!(scope, AcpPermissionDecisionScope::Session) {
+                if let RequestPermissionOutcome::Selected(sel) = outcome {
+                    if let Some(kind) = options
+                        .iter()
+                        .find(|o| o.option_id == sel.option_id)
+                        .map(|o| o.kind)
+                    {
+                        let td = match kind {
+                            PermissionOptionKind::AllowOnce => Some(TrustDecision::Allow),
+                            PermissionOptionKind::RejectOnce => Some(TrustDecision::Reject),
+                            _ => None,
+                        };
+                        if let Some(dec) = td {
+                            let key = self.build_trust_key(payload);
+                            self.session_trust.lock().await.insert(key, dec);
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -184,7 +237,7 @@ impl Client for ReprodAcpClient {
         let mut payload = map_permission_request(args.clone());
         payload.trust_key = self.build_trust_key(&payload);
 
-        if let Some(outcome) = self.apply_trust(&payload, &args.options) {
+        if let Some(outcome) = self.apply_trust(&payload, &args.options).await {
             return Ok(RequestPermissionResponse::new(outcome));
         }
 
@@ -351,6 +404,8 @@ mod tests {
         PermissionOption, PermissionOptionId, PermissionOptionKind, SelectedPermissionOutcome,
         SessionId, ToolCallId, ToolCallUpdate, ToolCallUpdateFields,
     };
+    use std::collections::HashMap;
+    use std::sync::Arc;
     use tokio::task::LocalSet;
 
     #[tokio::test(flavor = "current_thread")]
@@ -364,8 +419,15 @@ mod tests {
                 let (session_tx, _session_rx) = tokio::sync::mpsc::unbounded_channel();
                 let (permission_tx, mut permission_rx) = tokio::sync::mpsc::unbounded_channel();
                 let pending = Arc::new(Mutex::new(HashMap::new()));
-                let client =
-                    ReprodAcpClient::new(workspace, session_tx, permission_tx, pending.clone());
+                let decision_meta: Arc<Mutex<HashMap<String, AcpPermissionDecisionScope>>> =
+                    Arc::new(Mutex::new(HashMap::new()));
+                let client = ReprodAcpClient::new(
+                    workspace,
+                    session_tx,
+                    permission_tx,
+                    pending.clone(),
+                    decision_meta,
+                );
 
                 let req = RequestPermissionRequest::new(
                     SessionId::new("s-test"),
@@ -416,7 +478,15 @@ mod tests {
         let (session_tx, _session_rx) = tokio::sync::mpsc::unbounded_channel();
         let (permission_tx, mut permission_rx) = tokio::sync::mpsc::unbounded_channel();
         let pending = Arc::new(Mutex::new(HashMap::new()));
-        let client = ReprodAcpClient::new(workspace, session_tx, permission_tx, pending);
+        let decision_meta: Arc<Mutex<HashMap<String, AcpPermissionDecisionScope>>> =
+            Arc::new(Mutex::new(HashMap::new()));
+        let client = ReprodAcpClient::new(
+            workspace,
+            session_tx,
+            permission_tx,
+            pending,
+            decision_meta,
+        );
 
         let req = RequestPermissionRequest::new(
             SessionId::new("s-test"),
@@ -450,17 +520,28 @@ mod tests {
 
     #[tokio::test(flavor = "current_thread")]
     async fn applies_trust_store_decisions() {
+        // Ensure trust store writes to a predictable, writable location for the test
+        let config_root = std::env::temp_dir().join(format!(
+            "reprod-config-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::create_dir_all(&config_root);
+        std::env::set_var("REPROD_APP_DIR", &config_root);
+
         let workspace = std::env::temp_dir().join("acp-client-trust");
         let _ = std::fs::create_dir_all(&workspace);
 
         let (session_tx, _session_rx) = tokio::sync::mpsc::unbounded_channel();
         let (permission_tx, mut permission_rx) = tokio::sync::mpsc::unbounded_channel();
         let pending = Arc::new(Mutex::new(HashMap::new()));
+        let decision_meta: Arc<Mutex<HashMap<String, AcpPermissionDecisionScope>>> =
+            Arc::new(Mutex::new(HashMap::new()));
         let client = ReprodAcpClient::new(
             workspace.clone(),
             session_tx,
             permission_tx,
             pending.clone(),
+            decision_meta,
         );
 
         let req = RequestPermissionRequest::new(
@@ -484,6 +565,9 @@ mod tests {
         );
 
         let mut payload = map_permission_request(req.clone());
+        // Align with build_trust_key: base:workspace_root, kind:tool_kind, location:first locations entry
+        payload.tool_kind = Some("file".to_string());
+        payload.locations = vec!["/tmp/foo".to_string()];
         payload.trust_key = format!("{}:file:/tmp/foo", workspace.to_string_lossy());
 
         {
@@ -493,6 +577,7 @@ mod tests {
 
         let outcome = client
             .apply_trust(&payload, &req.options)
+            .await
             .expect("applied trust");
         match &outcome {
             RequestPermissionOutcome::Selected(sel) => {
@@ -528,6 +613,7 @@ mod tests {
         std::fs::write(&file, b"hi").unwrap();
         let resolved = ensure_within_workspace(&workspace, Path::new("subdir/inner.txt"))
             .expect("within workspace");
-        assert!(resolved.starts_with(&workspace));
+        let canon_root = dunce::canonicalize(&workspace).unwrap();
+        assert!(resolved.starts_with(&canon_root));
     }
 }

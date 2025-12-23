@@ -1,12 +1,12 @@
 use std::{path::PathBuf, sync::Arc};
 
-use crate::acp::config::{load_acp_config, save_acp_config};
-use crate::acp::detection::detect_agents;
 use crate::acp::types::{
     AcpAgentConfig, AcpCancelRequest, AcpDetectedAgent, AcpInitializeResponse,
     AcpPermissionDecision, AcpPromptRequest,
 };
 use crate::acp::{build_process_config, AcpManager};
+use reprod_acp::config::{load_acp_config, normalize_active_mode, save_acp_config, ACP_MODE_API};
+use reprod_acp::detection::{detect_agents, resolve_active_agent_command};
 use tauri::{AppHandle, State};
 use tokio::sync::Mutex;
 
@@ -27,24 +27,7 @@ pub async fn acp_initialize(
 
     let acp_cfg = load_acp_config().unwrap_or_default();
     let detected = detect_agents().unwrap_or_default();
-    let resolved_command = command.or_else(|| {
-        if acp_cfg.active_mode == "external_agent" {
-            acp_cfg.active_agent.as_ref().and_then(|active_id| {
-                detected
-                    .iter()
-                    .find(|agent| agent.id == *active_id && agent.available)
-                    .and_then(|agent| {
-                        agent
-                            .path
-                            .as_ref()
-                            .map(|p| p.to_string_lossy().to_string())
-                            .or_else(|| Some(agent.command.clone()))
-                    })
-            })
-        } else {
-            None
-        }
-    });
+    let resolved_command = command.or_else(|| resolve_active_agent_command(&acp_cfg, &detected));
 
     let cfg = build_process_config(&root, resolved_command, args);
 
@@ -65,11 +48,7 @@ pub async fn acp_create_session(state: AcpState<'_>) -> Result<String, String> {
 }
 
 #[tauri::command]
-pub async fn acp_send_prompt(
-    app_handle: AppHandle,
-    state: AcpState<'_>,
-    request: AcpPromptRequest,
-) -> Result<(), String> {
+pub async fn acp_send_prompt(state: AcpState<'_>, request: AcpPromptRequest) -> Result<(), String> {
     let manager = state.lock().await;
     if !manager.session_exists(&request.session_id) {
         return Err("Unknown session".to_string());
@@ -77,7 +56,6 @@ pub async fn acp_send_prompt(
 
     manager
         .send_prompt(
-            &app_handle,
             &request.session_id,
             request.messages.iter().map(|m| m.content.clone()).collect(),
         )
@@ -129,13 +107,10 @@ pub async fn acp_set_agent_config(
     active_agent: Option<String>,
 ) -> Result<AcpAgentConfig, String> {
     let mut cfg = load_acp_config().unwrap_or_default();
-    let normalized_mode = active_mode.to_lowercase();
-    if normalized_mode != "api" && normalized_mode != "external_agent" {
-        return Err("Invalid active_mode; use 'api' or 'external_agent'".to_string());
-    }
+    let normalized_mode = normalize_active_mode(&active_mode).map_err(|err| err.to_string())?;
 
     cfg.active_mode = normalized_mode.clone();
-    cfg.active_agent = if normalized_mode == "api" {
+    cfg.active_agent = if normalized_mode == ACP_MODE_API {
         None
     } else {
         active_agent
