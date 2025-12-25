@@ -64,7 +64,7 @@ export function ExternalAgentSettingsPane(): JSX.Element {
 		if (!enabled) return;
 		if (IS_TAURI) {
 			const { invoke } = await import("@tauri-apps/api/core");
-			await invoke("acp_set_agent_config", { active_mode: mode, active_agent: agent });
+			await invoke("acp_set_agent_config", { activeMode: mode, activeAgent: agent });
 			return;
 		}
 		await fetchJson<AcpAgentConfig>("/api/acp/config", {
