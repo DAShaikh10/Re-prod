@@ -558,6 +558,11 @@ mod tests {
 
         let workspace = std::env::temp_dir().join("acp-client-trust");
         let _ = std::fs::create_dir_all(&workspace);
+        let trust_slug = workspace
+            .to_string_lossy()
+            .replace(std::path::MAIN_SEPARATOR, "_")
+            .replace(':', "_");
+        let trust_path = config_root.join("acp_trust").join(format!("{trust_slug}.json"));
 
         let (session_tx, _session_rx) = tokio::sync::mpsc::unbounded_channel();
         let (permission_tx, mut permission_rx) = tokio::sync::mpsc::unbounded_channel();
@@ -616,7 +621,7 @@ mod tests {
 
         // Round trip persistence
         client.persist_trust(&req.options, &outcome, &payload).await;
-        let stored = load_trust_store(&trust_store_path(&workspace)).unwrap();
+        let stored = load_trust_store(&trust_path).unwrap();
         assert!(stored.contains_key(&payload.trust_key));
 
         // Ensure pending sender cleanup still works when skipping UI
