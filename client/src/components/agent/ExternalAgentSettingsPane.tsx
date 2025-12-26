@@ -64,7 +64,7 @@ export function ExternalAgentSettingsPane(): JSX.Element {
 		if (!enabled) return;
 		if (IS_TAURI) {
 			const { invoke } = await import("@tauri-apps/api/core");
-			await invoke("acp_set_agent_config", { active_mode: mode, active_agent: agent });
+			await invoke("acp_set_agent_config", { activeMode: mode, activeAgent: agent });
 			return;
 		}
 		await fetchJson<AcpAgentConfig>("/api/acp/config", {
@@ -162,7 +162,7 @@ export function ExternalAgentSettingsPane(): JSX.Element {
 						{detectedAgents.length === 0 && <div className="agent-empty">No known agents yet.</div>}
 						{availableAgents.length === 0 && (
 							<div className="agent-empty-note">
-								Install an ACP agent (e.g. claude-code-acp) and refresh.
+								Install an ACP agent (e.g. claude-code-acp, codex-acp) and refresh.
 								{isWindows && " On Windows, ensure the binary (or .cmd) is on PATH."}
 							</div>
 						)}
