@@ -119,7 +119,7 @@ pub enum AcpPermissionDecisionScope {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
-#[ts(export, export_to = "../client/src/types/generated/")]
+#[ts(export, export_to = "../../client/src/types/generated/")]
 pub struct AcpDetectedAgent {
     pub id: String,
     pub name: String,
