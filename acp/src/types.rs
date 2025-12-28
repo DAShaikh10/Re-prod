@@ -38,15 +38,31 @@ pub struct AcpAvailableCommand {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[serde(rename_all = "lowercase")]
+#[ts(export, export_to = "../../client/src/types/generated/")]
+pub enum AcpPlanStepStatus {
+    Pending,
+    Running,
+    Done,
+    Error,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[ts(export, export_to = "../../client/src/types/generated/")]
 pub struct AcpPlanStep {
     pub id: String,
     pub title: String,
-    pub status: String,
+    pub status: AcpPlanStepStatus,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub kind: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none", rename = "startedAt")]
+    pub started_at: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none", rename = "finishedAt")]
+    pub finished_at: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none", rename = "waitingReason")]
+    pub waiting_reason: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
@@ -55,20 +71,34 @@ pub enum AcpSessionUpdate {
     UserMessageChunk { text: String },
     AgentMessageChunk { text: String },
     AgentThoughtChunk { text: String },
+    Plan { steps: Vec<AcpPlanStep> },
     ToolCall {
         id: String,
         title: String,
         kind: String,
         status: String,
         locations: Vec<String>,
+        #[ts(type = "unknown")]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        input: Option<serde_json::Value>,
+        #[ts(type = "unknown")]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        output: Option<serde_json::Value>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        error: Option<String>,
     },
     ToolCallUpdate {
         id: String,
         status: Option<String>,
         content: Option<String>,
-    },
-    Plan {
-        steps: Vec<AcpPlanStep>,
+        #[ts(type = "unknown")]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        input: Option<serde_json::Value>,
+        #[ts(type = "unknown")]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        output: Option<serde_json::Value>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        error: Option<String>,
     },
     AvailableCommands {
         commands: Vec<AcpAvailableCommand>,
@@ -162,6 +192,7 @@ mod tests {
         AcpPromptRequest::export().unwrap();
         AcpSessionUpdateEnvelope::export().unwrap();
         AcpAvailableCommand::export().unwrap();
+        AcpPlanStepStatus::export().unwrap();
         AcpPlanStep::export().unwrap();
         AcpSessionUpdate::export().unwrap();
         AcpCancelRequest::export().unwrap();

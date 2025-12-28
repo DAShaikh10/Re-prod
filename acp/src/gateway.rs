@@ -1,7 +1,11 @@
 use std::path::{Path, PathBuf};
 
-use agent_client_protocol::{ContentBlock, ContentChunk, SessionNotification, SessionUpdate};
+use agent_client_protocol::{
+    ContentBlock, ContentChunk, PlanEntryStatus, SessionNotification, SessionUpdate, ToolCallContent,
+    ToolCallStatus,
+};
 use anyhow::{anyhow, Result};
+use serde_json::Value;
 use tokio::sync::{broadcast, mpsc::UnboundedReceiver};
 use tracing::{info, warn};
 
@@ -11,7 +15,7 @@ use crate::{
     session::AcpSessionManager,
     types::{
         AcpInitializeResponse, AcpPermissionDecision, AcpPermissionRequestPayload, AcpPlanStep,
-        AcpSessionUpdate, AcpSessionUpdateEnvelope,
+        AcpPlanStepStatus, AcpSessionUpdate, AcpSessionUpdate::Done, AcpSessionUpdateEnvelope,
     },
 };
 
@@ -210,6 +214,9 @@ fn map_session_update(update: &SessionUpdate) -> AcpSessionUpdate {
         SessionUpdate::AgentThoughtChunk(chunk) => AcpSessionUpdate::AgentThoughtChunk {
             text: stringify_chunk(chunk),
         },
+        SessionUpdate::Plan(plan) => AcpSessionUpdate::Plan {
+            steps: map_plan_steps(plan),
+        },
         SessionUpdate::ToolCall(tool_call) => AcpSessionUpdate::ToolCall {
             id: tool_call.tool_call_id.to_string(),
             title: tool_call.title.clone(),
@@ -220,6 +227,9 @@ fn map_session_update(update: &SessionUpdate) -> AcpSessionUpdate {
                 .iter()
                 .map(|loc| loc.path.to_string_lossy().to_string())
                 .collect(),
+            input: tool_call.raw_input.clone(),
+            output: tool_output_from(tool_call.raw_output.as_ref(), &tool_call.content),
+            error: tool_error_from(tool_call.status, tool_call.raw_output.as_ref(), &tool_call.content),
         },
         SessionUpdate::ToolCallUpdate(tool_call_update) => {
             let content = tool_call_update.fields.content.as_ref().and_then(|blocks| {
@@ -235,6 +245,18 @@ fn map_session_update(update: &SessionUpdate) -> AcpSessionUpdate {
                     )
                 }
             });
+            let output = tool_call_update
+                .fields
+                .raw_output
+                .clone()
+                .or_else(|| content.clone().map(Value::String));
+            let error = tool_call_update.fields.status.as_ref().and_then(|status| {
+                if matches!(status, ToolCallStatus::Failed) {
+                    output.as_ref().map(|value| value.to_string())
+                } else {
+                    None
+                }
+            });
 
             AcpSessionUpdate::ToolCallUpdate {
                 id: tool_call_update.tool_call_id.to_string(),
@@ -244,6 +266,9 @@ fn map_session_update(update: &SessionUpdate) -> AcpSessionUpdate {
                     .as_ref()
                     .map(|s| format!("{s:?}")),
                 content,
+                input: tool_call_update.fields.raw_input.clone(),
+                output,
+                error,
             }
         }
         SessionUpdate::AvailableCommandsUpdate(commands_update) => {
@@ -258,24 +283,38 @@ fn map_session_update(update: &SessionUpdate) -> AcpSessionUpdate {
                     .collect(),
             }
         }
-        SessionUpdate::Plan(plan) => AcpSessionUpdate::Plan {
-            steps: plan
-                .entries
-                .iter()
-                .enumerate()
-                .map(|(idx, entry)| AcpPlanStep {
-                    id: format!("plan-step-{}", idx),
-                    title: entry.content.clone(),
-                    status: format!("{:?}", entry.status),
-                    kind: Some(format!("{:?}", entry.priority)),
-                    error: None,
-                })
-                .collect(),
+        SessionUpdate::CurrentModeUpdate(update) => AcpSessionUpdate::AgentThoughtChunk {
+            text: format!("mode: {}", update.current_mode_id),
         },
-        SessionUpdate::CurrentModeUpdate(_) => AcpSessionUpdate::Done,
         _ => AcpSessionUpdate::AgentMessageChunk {
             text: format!("{update:?}"),
         },
+    }
+}
+
+fn map_plan_steps(plan: &agent_client_protocol::Plan) -> Vec<AcpPlanStep> {
+    plan.entries
+        .iter()
+        .enumerate()
+        .map(|(index, entry)| AcpPlanStep {
+            id: format!("plan-{}", index + 1),
+            title: entry.content.clone(),
+            status: map_plan_status(&entry.status),
+            kind: Some("plan".to_string()),
+            error: None,
+            started_at: None,
+            finished_at: None,
+            waiting_reason: None,
+        })
+        .collect()
+}
+
+fn map_plan_status(status: &PlanEntryStatus) -> AcpPlanStepStatus {
+    match status {
+        PlanEntryStatus::Pending => AcpPlanStepStatus::Pending,
+        PlanEntryStatus::InProgress => AcpPlanStepStatus::Running,
+        PlanEntryStatus::Completed => AcpPlanStepStatus::Done,
+        _ => AcpPlanStepStatus::Pending,
     }
 }
 
@@ -284,6 +323,41 @@ fn stringify_chunk(chunk: &ContentChunk) -> String {
         ContentBlock::Text(text) => text.text.clone(),
         other => format!("{other:?}"),
     }
+}
+
+fn tool_output_from(raw_output: Option<&Value>, content: &[ToolCallContent]) -> Option<Value> {
+    if let Some(output) = raw_output {
+        return Some(output.clone());
+    }
+    let content_text = stringify_tool_content(content)?;
+    Some(Value::String(content_text))
+}
+
+fn tool_error_from(
+    status: ToolCallStatus,
+    raw_output: Option<&Value>,
+    content: &[ToolCallContent],
+) -> Option<String> {
+    if !matches!(status, ToolCallStatus::Failed) {
+        return None;
+    }
+    if let Some(output) = raw_output {
+        return Some(output.to_string());
+    }
+    stringify_tool_content(content)
+}
+
+fn stringify_tool_content(content: &[ToolCallContent]) -> Option<String> {
+    if content.is_empty() {
+        return None;
+    }
+    Some(
+        content
+            .iter()
+            .map(|block| format!("{block:?}"))
+            .collect::<Vec<_>>()
+            .join("\n"),
+    )
 }
 
 /// Build a ProcessConfig using the current workspace root and optional overrides.
