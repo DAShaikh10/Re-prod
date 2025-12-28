@@ -6,6 +6,7 @@ export type AcpSessionUpdate =
 	| { UserMessageChunk: { text: string } }
 	| { AgentMessageChunk: { text: string } }
 	| { AgentThoughtChunk: { text: string } }
+	| { Plan: { steps: Array<AcpPlanStep> } }
 	| {
 			ToolCall: {
 				id: string;
@@ -13,9 +14,20 @@ export type AcpSessionUpdate =
 				kind: string;
 				status: string;
 				locations: Array<string>;
+				input: unknown;
+				output: unknown;
+				error: string | null;
 			};
 	  }
-	| { ToolCallUpdate: { id: string; status: string | null; content: string | null } }
-	| { Plan: { steps: Array<AcpPlanStep> } }
+	| {
+			ToolCallUpdate: {
+				id: string;
+				status: string | null;
+				content: string | null;
+				input: unknown;
+				output: unknown;
+				error: string | null;
+			};
+	  }
 	| { AvailableCommands: { commands: Array<AcpAvailableCommand> } }
 	| "Done";

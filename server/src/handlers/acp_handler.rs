@@ -17,7 +17,6 @@ pub async fn handle_acp_session_prompt(
     session_id: &str,
     messages: &[AcpPromptMessage],
 ) -> Vec<WSResponse> {
-    // Convert AcpPromptMessage to ChatMessage for system prompt injection
     let chat_messages: Vec<ChatMessage> = messages
         .iter()
         .map(|message| ChatMessage {
@@ -26,15 +25,17 @@ pub async fn handle_acp_session_prompt(
         })
         .collect();
 
-    // Apply system prompts (same as API flow) for consistent behavior
-    let messages_with_prompts = with_system_prompts(&chat_messages, AIMode::Agent);
+    let has_system = chat_messages.iter().any(|message| message.role == "system");
+    let messages_with_prompts = if has_system {
+        chat_messages
+    } else {
+        with_system_prompts(&chat_messages, AIMode::Agent)
+    };
 
-    // Extract contents for the ACP gateway
     let contents: Vec<String> = messages_with_prompts
         .iter()
         .map(|message| {
-            if message.role == "system" {
-                // Format system prompts with role prefix for clarity
+            if !has_system && message.role == "system" {
                 format!("[System]: {}", message.content)
             } else {
                 message.content.clone()
