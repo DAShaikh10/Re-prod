@@ -15,7 +15,7 @@ use agent_client_protocol::{
 };
 use anyhow::{anyhow, bail, Context, Result};
 use dunce::canonicalize;
-use reprod_core::{
+use crate::{
     config::app_config_dir,
     edit::{EditOperation, EditService, EditStatus, EditTextFileRequest, EditTextFileResult},
 };
@@ -26,7 +26,7 @@ use tokio::time::timeout;
 use tracing::{error, warn};
 use uuid::Uuid;
 
-use crate::{
+use super::{
     connection::map_permission_request,
     types::{AcpPermissionDecisionScope, AcpPermissionRequestPayload},
 };
@@ -538,8 +538,8 @@ mod tests {
         PermissionOption, PermissionOptionId, PermissionOptionKind, SelectedPermissionOutcome,
         SessionId, ToolCallId, ToolCallUpdate, ToolCallUpdateFields,
     };
-    use crate::test_support::ENV_LOCK;
-    use reprod_core::config::APP_DIR_ENV;
+    use super::test_support::ENV_LOCK;
+    use crate::config::APP_DIR_ENV;
     use std::collections::HashMap;
     use std::env;
     use std::sync::Arc;
