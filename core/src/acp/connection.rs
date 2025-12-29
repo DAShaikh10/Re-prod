@@ -115,11 +115,9 @@ impl AcpConnection {
                         let init_request = InitializeRequest::new(ProtocolVersion::LATEST)
                             .client_capabilities(
                                 ClientCapabilities::new()
-                                    .fs(
-                                        FileSystemCapability::new()
-                                            .read_text_file(true)
-                                            .write_text_file(true),
-                                    )
+                                    .fs(FileSystemCapability::new()
+                                        .read_text_file(true)
+                                        .write_text_file(true))
                                     .terminal(false),
                             );
                         info!(
@@ -178,7 +176,10 @@ impl AcpConnection {
             async move {
                 while let Some(decision) = permission_response_rx.recv().await {
                     if let Some(scope) = decision.remember_scope.clone() {
-                        decision_meta.lock().await.insert(decision.request_id.clone(), scope);
+                        decision_meta
+                            .lock()
+                            .await
+                            .insert(decision.request_id.clone(), scope);
                     }
                     let sender = { pending.lock().await.remove(&decision.request_id) };
                     if let Some(tx) = sender {
