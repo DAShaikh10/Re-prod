@@ -1,8 +1,8 @@
 use agent_client_protocol::{
-    Agent, CancelNotification, ClientSideConnection, ContentBlock, InitializeRequest,
-    NewSessionRequest, PermissionOptionKind, PromptRequest, PromptResponse, ProtocolVersion,
-    RequestPermissionOutcome, RequestPermissionRequest, SelectedPermissionOutcome, SessionId,
-    SessionNotification,
+    Agent, CancelNotification, ClientCapabilities, ClientSideConnection, ContentBlock,
+    FileSystemCapability, InitializeRequest, NewSessionRequest, PermissionOptionKind,
+    PromptRequest, PromptResponse, ProtocolVersion, RequestPermissionOutcome,
+    RequestPermissionRequest, SelectedPermissionOutcome, SessionId, SessionNotification,
 };
 use anyhow::{anyhow, Context, Result};
 use std::collections::HashMap;
@@ -18,7 +18,7 @@ use tokio::{
     task::LocalSet,
 };
 use tokio_util::compat::{TokioAsyncReadCompatExt, TokioAsyncWriteCompatExt};
-use tracing::error;
+use tracing::{error, info};
 
 use crate::{
     client::ReprodAcpClient,
@@ -112,8 +112,25 @@ impl AcpConnection {
                             }
                         });
 
+                        let init_request = InitializeRequest::new(ProtocolVersion::LATEST)
+                            .client_capabilities(
+                                ClientCapabilities::new()
+                                    .fs(
+                                        FileSystemCapability::new()
+                                            .read_text_file(true)
+                                            .write_text_file(true),
+                                    )
+                                    .terminal(false),
+                            );
+                        info!(
+                            fs_read_text_file = true,
+                            fs_write_text_file = true,
+                            terminal = false,
+                            "ACP initialize request built"
+                        );
+
                         let init_result = conn
-                            .initialize(InitializeRequest::new(ProtocolVersion::LATEST))
+                            .initialize(init_request)
                             .await
                             .context("ACP initialize failed");
                         if let Err(ref err) = init_result {

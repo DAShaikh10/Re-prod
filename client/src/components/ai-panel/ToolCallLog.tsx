@@ -1,4 +1,6 @@
 import type { ToolCallLog as ToolCallLogEntry } from "@/types";
+import { extractDiffFromToolOutput } from "@/core/ai/diffArtifacts";
+import { DiffPreview } from "./DiffPreview";
 
 interface Props {
 	logs?: ToolCallLogEntry[];
@@ -28,13 +30,30 @@ export function ToolCallLog({ logs }: Props): JSX.Element | null {
 							<span className="ai-tool-call__location">{log.locations[0]}</span>
 						)}
 					</summary>
-					{log.output && (
-						<pre className="ai-tool-call__output">
-							{typeof log.output === "object" && "text" in log.output
-								? String(log.output.text)
-								: JSON.stringify(log.output, null, 2)}
-						</pre>
-					)}
+					{log.output &&
+						(() => {
+							const diff = extractDiffFromToolOutput(log.output);
+							if (diff) {
+								return (
+									<>
+										{diff.status === "conflict" && (
+											<pre className="ai-tool-call__error">
+												Conflict detected. Reload the file and retry the edit.
+											</pre>
+										)}
+										<DiffPreview diff={diff} />
+									</>
+								);
+							}
+
+							return (
+								<pre className="ai-tool-call__output">
+									{typeof log.output === "object" && "text" in log.output
+										? String(log.output.text)
+										: JSON.stringify(log.output, null, 2)}
+								</pre>
+							);
+						})()}
 					{log.error && <pre className="ai-tool-call__error">{log.error}</pre>}
 				</details>
 			))}

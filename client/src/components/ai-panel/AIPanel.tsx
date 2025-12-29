@@ -2,7 +2,6 @@ import type { AIMode } from "@/types";
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { IconSend, IconSquare } from "@/components/shared";
 import { useAIConversation } from "@/hooks/useAIConversation";
-import { useStore } from "@/core";
 import { ProviderSwitcher } from "./ProviderSwitcher";
 import { StreamingMessage } from "./StreamingMessage";
 import { commandRegistry } from "@/core/commands/registry";
@@ -17,7 +16,6 @@ interface AIPanelProps {
 
 export const AIPanel = forwardRef<AIPanelRef, AIPanelProps>(({ hasConfiguredProvider }, ref) => {
 	const { aiState, aiActions, promptHistory } = useAIConversation();
-	const availableCommands = useStore((state) => state.ai.availableCommands);
 
 	const messagesEndRef = useRef<HTMLDivElement>(null);
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -132,19 +130,6 @@ export const AIPanel = forwardRef<AIPanelRef, AIPanelProps>(({ hasConfiguredProv
 				<ProviderSwitcher />
 			</div>
 			<div className="panel-content">
-				{availableCommands.length > 0 && (
-					<div className="ai-available-commands">
-						<div className="ai-available-commands__title">Available ACP commands</div>
-						<ul className="ai-available-commands__list">
-							{availableCommands.map((command) => (
-								<li key={command.name}>
-									<strong>{command.name}</strong>
-									<span>{command.description}</span>
-								</li>
-							))}
-						</ul>
-					</div>
-				)}
 				<div className="ai-messages">
 					{aiState.messages.length === 0 ? (
 						<div className="ai-welcome">
