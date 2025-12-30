@@ -2,9 +2,7 @@
 
 ---
 
-<p align="center">
 [English](README.md) | [Japanese](README.ja.md)
-</p>
 
 AI-Powered R Analysis IDE - A modern, AI-native alternative to RStudio.
 
