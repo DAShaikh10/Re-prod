@@ -3,7 +3,11 @@
 ---
 
 <p align="center">
+<<<<<<< HEAD
 [English](README.md) | [Japanese](README.ja.md)
+=======
+  <a href="README.md">English</a> | <a href="README.ja.md">Japanese</a>
+>>>>>>> feature/update-readme
 </p>
 
 AI-Powered R Analysis IDE - A modern, AI-native alternative to RStudio.
