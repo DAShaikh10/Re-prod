@@ -6,12 +6,86 @@ interface Props {
 	logs?: ToolCallLogEntry[];
 }
 
+type SearchResult = {
+	title: string;
+	uri: string;
+	description?: string;
+};
+
 // RStudio-style minimal status icons (no colors, just symbols)
 const STATUS_ICON: Record<ToolCallLogEntry["status"], string> = {
 	pending: "○",
 	running: "◐",
 	done: "✓",
 	error: "✗",
+};
+
+const isFetchTool = (log: ToolCallLogEntry): boolean => {
+	if (log.kind && log.kind.toLowerCase().includes("fetch")) {
+		return true;
+	}
+	return log.name === "web_search";
+};
+
+const extractSearchResults = (payload?: Record<string, unknown>): SearchResult[] | null => {
+	if (!payload || !Array.isArray(payload.results)) return null;
+
+	const results: SearchResult[] = [];
+	for (const entry of payload.results) {
+		if (!entry || typeof entry !== "object") continue;
+		const record = entry as Record<string, unknown>;
+		const title = typeof record.title === "string" ? record.title : "";
+		const uri = typeof record.uri === "string" ? record.uri : "";
+		const description =
+			typeof record.description === "string"
+				? record.description
+				: typeof record.text === "string"
+					? record.text
+					: undefined;
+
+		if (!title && !uri) continue;
+		const result: SearchResult = {
+			title,
+			uri,
+			...(description ? { description } : {}),
+		};
+		results.push(result);
+	}
+
+	return results.length > 0 ? results : null;
+};
+
+const renderSearchResults = (results: SearchResult[]): JSX.Element => {
+	return (
+		<div className="ai-tool-call__search">
+			<div className="ai-tool-call__search-meta">{results.length} result(s)</div>
+			<ul className="ai-tool-call__search-list">
+				{results.map((result, index) => {
+					const label = result.title || result.uri;
+					return (
+						<li key={`${result.uri}-${index}`} className="ai-tool-call__search-item">
+							{result.uri ? (
+								<a
+									className="ai-tool-call__search-title"
+									href={result.uri}
+									target="_blank"
+									rel="noreferrer"
+								>
+									{label}
+								</a>
+							) : (
+								<span className="ai-tool-call__search-title">{label}</span>
+							)}
+							{result.uri && <div className="ai-tool-call__search-uri">{result.uri}</div>}
+							{result.description && (
+								<div className="ai-tool-call__search-desc">{result.description}</div>
+							)}
+						</li>
+					);
+				})}
+			</ul>
+		</div>
+	);
 };
 
 export function ToolCallLog({ logs }: Props): JSX.Element | null {
@@ -30,6 +104,9 @@ export function ToolCallLog({ logs }: Props): JSX.Element | null {
 							<span className="ai-tool-call__location">{log.locations[0]}</span>
 						)}
 					</summary>
+					{log.status === "running" && isFetchTool(log) && (
+						<div className="ai-tool-call__loading">Searching...</div>
+					)}
 					{log.output &&
 						(() => {
 							const diff = extractDiffFromToolOutput(log.output);
@@ -44,6 +121,11 @@ export function ToolCallLog({ logs }: Props): JSX.Element | null {
 										<DiffPreview diff={diff} />
 									</>
 								);
+							}
+
+							const searchResults = extractSearchResults(log.output);
+							if (searchResults) {
+								return renderSearchResults(searchResults);
 							}
 
 							return (
