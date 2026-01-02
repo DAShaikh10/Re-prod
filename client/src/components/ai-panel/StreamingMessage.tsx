@@ -1,11 +1,12 @@
+import ReactMarkdown from "react-markdown";
+import rehypeHighlight from "rehype-highlight";
+import remarkGfm from "remark-gfm";
+import { BrailleSpinner } from "@/components/shared";
 import type { AIMessage, CodeBlock } from "@/types";
+import { classNames } from "@/utils/classNames";
 import { AIPlanCard } from "./AIPlanCard";
 import { CodeBlockWithApply } from "./CodeBlockWithApply";
 import { ToolCallLog } from "./ToolCallLog";
-import { classNames } from "@/utils/classNames";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import rehypeHighlight from "rehype-highlight";
 import "github-markdown-css/github-markdown.css";
 import "./Markdown.css";
 import type { Components } from "react-markdown";
@@ -98,7 +99,7 @@ export function StreamingMessage({ message, onApplyCode }: Props): JSX.Element {
 			<div className="message-content message-streaming">
 				{isStreaming && (
 					<div className="message-streaming-indicator">
-						<span className="spinner" aria-hidden />
+						<BrailleSpinner intervalMs={80} />
 						<span>Streaming response…</span>
 					</div>
 				)}
