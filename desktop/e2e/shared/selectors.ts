@@ -5,7 +5,13 @@
 export const selectors = {
 	// Editor
 	editor: ".monaco-editor textarea",
-	editorTitle: ".editor-panel .panel-title",
+	editorSurface: ".monaco-editor .editor-scrollable",
+	tabBar: ".tab-bar",
+	tab: ".tab-bar .tab",
+	tabActive: ".tab-bar .tab.active",
+	tabLabel: ".tab-label",
+	tabDirty: ".tab-dirty-indicator",
+	tabClose: ".tab-close",
 
 	// File browser
 	fileBrowser: ".file-browser",
