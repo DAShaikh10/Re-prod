@@ -75,7 +75,10 @@ export function setupFileCommands() {
 					cursorPosition: { line: 1, column: 1 },
 				};
 				store.addBuffer(buffer);
-			} catch (error) {}
+			} catch (error) {
+				// Ignore file open errors; user may cancel dialog or file may be unreadable.
+				// User experience: No file is opened, app continues normally.
+			}
 		})
 
 		.command("file.openFolder", openFolderTitle)
@@ -100,11 +103,17 @@ export function setupFileCommands() {
 					useFileSystemStore
 						.getState()
 						.resetAndLoadRoot()
-						.catch(() => {});
+						.catch(() => {
+							// Ignore errors when resetting and loading root; file system may be unavailable or user cancelled.
+							// User experience: File tree may not refresh, but app remains usable.
+						});
 					return;
 				}
 				useStore.getState().setModalOpen("projectSwitch", true);
-			} catch (error) {}
+			} catch (error) {
+				// Ignore errors during folder open; user may cancel dialog or folder may be inaccessible.
+				// User experience: No folder is opened, app continues normally.
+			}
 		})
 
 		.command("file.save", "Save")
