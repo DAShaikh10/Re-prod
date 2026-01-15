@@ -1,7 +1,13 @@
 import assert from "node:assert";
+import {
+	clickRunAll,
+	closeDialog,
+	openExportDialog,
+	openTimelineDialog,
+	setEditorValue,
+} from "./helpers";
 
 const editorSelector = ".monaco-editor textarea";
-const runAllSelector = 'button[title="Run All (Cmd/Ctrl+Shift+Enter)"]';
 const consoleOutputSelector = ".console-stdout";
 const timelineDialogSelector = ".timeline-dialog";
 const exportDialogSelector = ".export-dialog";
@@ -33,9 +39,6 @@ describe("Full user workflow", () => {
 		// ========================================
 		// STEP 2: Write and Execute R Code
 		// ========================================
-		await editorInput.click();
-		await browser.keys(["Control", "a", "NULL"]);
-
 		// Write a simple data analysis workflow
 		const analysisCode = `# Data Analysis Workflow
 # Create sample data
@@ -51,12 +54,10 @@ cat("Mean:", mean_value, "\\n")
 cat("Median:", median_value, "\\n")
 cat("SD:", sd_value, "\\n")`;
 
-		await browser.keys(analysisCode);
+		await setEditorValue(analysisCode);
 
 		// Execute the code
-		const runAllButton = await browser.$(runAllSelector);
-		await runAllButton.waitForClickable({ timeout: 15000 });
-		await runAllButton.click();
+		await clickRunAll();
 
 		// ========================================
 		// STEP 3: Verify Console Output
@@ -79,7 +80,7 @@ cat("SD:", sd_value, "\\n")`;
 		);
 
 		const outputs = await browser.$$(consoleOutputSelector);
-		const outputTexts = await Promise.all(outputs.map(async (output) => await output.getText()));
+		const outputTexts = await outputs.map((output) => output.getText());
 		const hasOutput = outputTexts.some(
 			(text) => text.includes("Mean:") || text.includes("Median:"),
 		);
@@ -89,12 +90,7 @@ cat("SD:", sd_value, "\\n")`;
 		// ========================================
 		// STEP 4: Check Timeline for Execution History
 		// ========================================
-		await browser.execute(() => {
-			(window as any).openTimelineDialog?.();
-		});
-
-		const timelineDialog = await browser.$(timelineDialogSelector);
-		await timelineDialog.waitForDisplayed({ timeout: 10000 });
+		const timelineDialog = await openTimelineDialog();
 
 		// Verify timeline shows the execution
 		const timelineEvents = await browser.$$(timelineEventSelector);
@@ -108,20 +104,12 @@ cat("SD:", sd_value, "\\n")`;
 		}
 
 		// Close timeline dialog
-		await browser.keys("Escape");
-		await browser.waitUntil(async () => !(await timelineDialog.isDisplayed()), {
-			timeout: 5000,
-		});
+		await closeDialog(timelineDialogSelector, ".timeline-dialog-overlay");
 
 		// ========================================
 		// STEP 5: Open Export Dialog
 		// ========================================
-		await browser.execute(() => {
-			(window as any).openExportDialog?.();
-		});
-
-		const exportDialog = await browser.$(exportDialogSelector);
-		await exportDialog.waitForDisplayed({ timeout: 10000 });
+		const exportDialog = await openExportDialog();
 
 		// Verify export options are available
 		const bundleRadio = await browser.$('input[value="bundle"]');
@@ -133,22 +121,17 @@ cat("SD:", sd_value, "\\n")`;
 		);
 
 		// Close export dialog
-		await browser.keys("Escape");
-		await browser.waitUntil(async () => !(await exportDialog.isDisplayed()), {
-			timeout: 5000,
-		});
+		await closeDialog(exportDialogSelector, ".export-dialog-overlay");
 
 		// ========================================
 		// STEP 6: Execute Additional Code
 		// ========================================
-		await editorInput.click();
-		await browser.keys(["Control", "a", "NULL"]);
-		await browser.keys(`# Additional analysis
+		await setEditorValue(`# Additional analysis
 # Create a plot (won't display in console but will execute)
 result <- sum(data)
 cat("Total sum:", result, "\\n")`);
 
-		await runAllButton.click();
+		await clickRunAll();
 
 		// Wait for new execution
 		await browser.waitUntil(
@@ -171,29 +154,22 @@ cat("Total sum:", result, "\\n")`);
 		// ========================================
 		// STEP 7: Verify Timeline Updated
 		// ========================================
-		await browser.execute(() => {
-			(window as any).openTimelineDialog?.();
-		});
+		await openTimelineDialog();
 
-		await timelineDialog.waitForDisplayed({ timeout: 10000 });
-
-		const updatedEvents = await browser.$$(timelineEventSelector);
-		assert.ok(
-			updatedEvents.length >= timelineEvents.length,
-			"Timeline should have been updated with new execution",
-		);
+		const updatedEventCodes = await browser.$$(".timeline-event-code");
+		const updatedCodeTexts = await updatedEventCodes.map((event) => event.getText());
+		const hasResultEvent = updatedCodeTexts.some((text) => text.includes("result <- sum(data)"));
+		assert.ok(hasResultEvent, "Timeline should include the latest execution");
 
 		// Close timeline
-		await browser.keys("Escape");
+		await closeDialog(timelineDialogSelector, ".timeline-dialog-overlay");
 
 		// ========================================
 		// STEP 8: Final Verification
 		// ========================================
 		// Verify app is still responsive
 		const finalOutputs = await browser.$$(consoleOutputSelector);
-		const finalTexts = await Promise.all(
-			finalOutputs.map(async (output) => await output.getText()),
-		);
+		const finalTexts = await finalOutputs.map((output) => output.getText());
 
 		const hasBothOutputs =
 			finalTexts.some((text) => text.includes("Mean:")) &&
@@ -202,9 +178,7 @@ cat("Total sum:", result, "\\n")`);
 		assert.ok(hasBothOutputs, "Console should contain outputs from both executions");
 
 		// Verify editor is still functional
-		await editorInput.click();
-		await browser.keys(["Control", "a", "NULL"]);
-		await browser.keys("# Workflow complete");
+		await setEditorValue("# Workflow complete");
 
 		const editorStillWorks = await editorInput.isDisplayed();
 		assert.ok(editorStillWorks, "Editor should remain functional after workflow");
@@ -212,24 +186,19 @@ cat("Total sum:", result, "\\n")`);
 
 	it("handles workflow with errors and recovery", async () => {
 		const editorInput = await browser.$(editorSelector);
-		await editorInput.click();
 
 		// Execute code with error
-		await browser.keys(["Control", "a", "NULL"]);
-		await browser.keys("x <- 1\ny <- x / 0  # Division by zero warning");
+		await setEditorValue("x <- 1\ny <- x / 0  # Division by zero warning");
 
-		const runAllButton = await browser.$(runAllSelector);
-		await runAllButton.click();
+		await clickRunAll();
 
 		// Wait for execution (may have warning)
 		await browser.pause(3000);
 
 		// Continue with valid code
-		await editorInput.click();
-		await browser.keys(["Control", "a", "NULL"]);
-		await browser.keys("z <- 10\nprint(z * 2)");
+		await setEditorValue("z <- 10\nprint(z * 2)");
 
-		await runAllButton.click();
+		await clickRunAll();
 
 		// Verify recovery
 		await browser.waitUntil(
@@ -250,37 +219,27 @@ cat("Total sum:", result, "\\n")`);
 		);
 
 		// Check timeline still works
-		await browser.execute(() => {
-			(window as any).openTimelineDialog?.();
-		});
-
-		const timelineDialog = await browser.$(timelineDialogSelector);
-		await timelineDialog.waitForDisplayed({ timeout: 10000 });
+		await openTimelineDialog();
 
 		const events = await browser.$$(timelineEventSelector);
 		assert.ok(events.length > 0, "Timeline should track all executions including errors");
 
-		await browser.keys("Escape");
+		await closeDialog(timelineDialogSelector, ".timeline-dialog-overlay");
 	});
 
 	it("completes workflow with multiple code blocks", async () => {
 		const editorInput = await browser.$(editorSelector);
-		await editorInput.click();
 
 		// Execute first block
-		await browser.keys(["Control", "a", "NULL"]);
-		await browser.keys("# Block 1\na <- 5");
+		await setEditorValue("# Block 1\na <- 5");
 
-		const runAllButton = await browser.$(runAllSelector);
-		await runAllButton.click();
+		await clickRunAll();
 		await browser.pause(2000);
 
 		// Execute second block
-		await editorInput.click();
-		await browser.keys(["Control", "a", "NULL"]);
-		await browser.keys("# Block 2\nb <- a * 2\nprint(b)");
+		await setEditorValue("# Block 2\nb <- a * 2\nprint(b)");
 
-		await runAllButton.click();
+		await clickRunAll();
 
 		// Wait for final output
 		await browser.waitUntil(
@@ -301,16 +260,11 @@ cat("Total sum:", result, "\\n")`);
 		);
 
 		// Verify timeline has both executions
-		await browser.execute(() => {
-			(window as any).openTimelineDialog?.();
-		});
-
-		const timelineDialog = await browser.$(timelineDialogSelector);
-		await timelineDialog.waitForDisplayed({ timeout: 10000 });
+		await openTimelineDialog();
 
 		const events = await browser.$$(timelineEventSelector);
 		assert.ok(events.length >= 2, "Timeline should contain multiple execution events");
 
-		await browser.keys("Escape");
+		await closeDialog(timelineDialogSelector, ".timeline-dialog-overlay");
 	});
 });

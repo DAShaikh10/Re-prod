@@ -1,12 +1,15 @@
 import { expect, test } from "@playwright/test";
+import { waitForAppConnected } from "../shared/helpers";
 import { selectors } from "../shared/selectors";
 
 test.describe("File Explorer", () => {
 	test("opens a file and loads editor tab/content", async ({ page }) => {
-		const fixtureFileName = "file-explorer-fixture.R";
-		const fixtureText = "File Explorer fixture loaded";
+		const projectFolder = "alpha";
+		const fixtureFileName = "alpha.R";
+		const fixtureText = "Alpha project loaded";
 
 		await page.goto("/");
+		await waitForAppConnected(page);
 
 		const fileBrowser = page.locator(selectors.fileBrowser);
 		await expect(fileBrowser).toBeVisible({ timeout: 30000 });
@@ -40,10 +43,7 @@ test.describe("File Explorer", () => {
 			await expect(childNode.first()).toBeVisible({ timeout: 30000 });
 		};
 
-		await ensureFolderExpanded("desktop", 0, "e2e", 1);
-		await ensureFolderExpanded("e2e", 1, "shared", 2);
-		await ensureFolderExpanded("shared", 2, "fixtures", 3);
-		await ensureFolderExpanded("fixtures", 3, fixtureFileName, 4);
+		await ensureFolderExpanded(projectFolder, 0, fixtureFileName, 1);
 
 		const fixtureNode = fileTreeNodeByLabel(fixtureFileName).first();
 		await expect(fixtureNode).toBeVisible({ timeout: 30000 });

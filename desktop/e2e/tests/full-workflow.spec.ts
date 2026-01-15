@@ -67,11 +67,13 @@ cat("SD:", sd_value, "\\n")`;
 		await expect(exportDialog).toBeVisible();
 
 		// Verify export options are available
-		const bundleRadio = page.locator(selectors.exportFormatBundleRadio);
 		const rmarkdownRadio = page.locator(selectors.exportFormatRMarkdownRadio);
+		const pdfRadio = page.locator(selectors.exportFormatPdfRadio);
+		const bothRadio = page.locator(selectors.exportFormatBothRadio);
 
-		const hasExportOptions = (await bundleRadio.count()) + (await rmarkdownRadio.count());
-		expect(hasExportOptions).toBeGreaterThan(0);
+		const optionCount =
+			(await rmarkdownRadio.count()) + (await pdfRadio.count()) + (await bothRadio.count());
+		expect(optionCount).toBeGreaterThan(0);
 
 		await closeDialog(page);
 
@@ -93,9 +95,8 @@ cat("Total sum:", result, "\\n")`;
 		// ========================================
 		await openTimelineDialog(page);
 
-		const updatedEvents = page.locator(selectors.timelineEvent);
-		const updatedCount = await updatedEvents.count();
-		expect(updatedCount).toBeGreaterThanOrEqual(eventCount);
+		const newEvent = page.locator(".timeline-event-code", { hasText: "result <- sum(data)" });
+		await expect(newEvent.first()).toBeVisible();
 
 		await closeDialog(page);
 
@@ -108,12 +109,23 @@ cat("Total sum:", result, "\\n")`;
 
 		expect(hasBothOutputs).toBeTruthy();
 
-		// Verify editor is still functional
-		await editor.click();
-		await page.keyboard.press("Control+A");
-		await page.keyboard.type("# Workflow complete");
+		// Verify editor is still functional without relying on click focus
+		await page.evaluate(() => {
+			const monaco = (window as any).monaco;
+			const editors = monaco?.editor?.getEditors?.();
+			if (!editors || editors.length === 0) {
+				throw new Error("Monaco editor not available");
+			}
+			const activeEditor = editors[0];
+			activeEditor.setValue("# Workflow complete");
+			activeEditor.focus();
+		});
 
-		await expect(editor).toBeVisible();
+		await page.waitForFunction(() => {
+			const monaco = (window as any).monaco;
+			const editors = monaco?.editor?.getEditors?.();
+			return editors && editors[0]?.getValue?.().includes("# Workflow complete");
+		});
 	});
 
 	test("handles workflow with errors and recovery", async ({ page }) => {

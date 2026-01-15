@@ -6,18 +6,18 @@ End-to-end test suite for the Re-prod application using **Playwright** (primary)
 
 This test suite uses a **hybrid approach** to maximize coverage and developer productivity:
 
-### Playwright Tests (Primary - All Platforms ✅)
+### Playwright Tests (Primary - Docker/CI ✅)
 - **Location**: `tests/` directory
 - **Target**: Web browser (Chromium)
-- **Platforms**: macOS, Linux, Windows
-- **Use Case**: Daily development, fast feedback, CI on all PRs
+- **Platforms**: Linux (CI) or Docker (local)
+- **Use Case**: Daily development and CI validation (Docker locally)
 - **Benefits**: Works everywhere, fast, great debugging tools
 
-### WebDriverIO Tests (Desktop Validation - Linux/Windows only)
+### WebDriverIO Tests (Desktop Validation - Docker/Linux/Windows)
 - **Location**: `webdriver-specs/` directory
 - **Target**: Tauri desktop application
-- **Platforms**: Linux, Windows only (macOS NOT supported)
-- **Use Case**: Final integration testing on develop→main PRs
+- **Platforms**: Docker (Linux) for local runs, CI/manual runs on Linux/Windows
+- **Use Case**: Desktop validation via Docker or Linux/Windows runners
 - **Benefits**: Tests actual desktop app behavior
 
 ## Test Coverage
@@ -32,155 +32,120 @@ Both test suites cover the same core workflows:
 
 ## ⚠️ Platform Support
 
-**IMPORTANT**: `tauri-driver` (the WebDriver tool for Tauri apps) **only supports Windows and Linux**. macOS is NOT supported because there is no WKWebView driver available.
+**IMPORTANT**: Local E2E runs are disabled outside Docker/CI to avoid OS-specific flakiness. Use the Docker runner on any platform.
 
-- ✅ **Linux**: Full support (recommended for CI/CD)
-- ✅ **Windows**: Full support
-- ❌ **macOS**: NOT supported (neither Intel nor Apple Silicon)
+- ✅ **Docker**: Playwright + WebDriverIO supported (desktop suite takes longer)
+- ✅ **CI (Ubuntu)**: Runs Playwright tests
+- ❌ **Native host runs**: Blocked by guardrails (non-Docker)
 
-**For macOS developers**:
-- **Option 1 (Recommended)**: Push changes and let CI run E2E tests on Linux
-- **Option 2**: Run tests in a Linux Docker container or VM
-- **Option 3**: Use a Linux cloud development environment
-
-See the [Running on macOS (Docker)](#running-on-macos-docker) section below for Docker instructions.
+See the [Running in Docker](#running-in-docker) section below.
 
 ## Prerequisites
 
-### Required Software
+### Required Software (Local)
 
-1. **Node.js & pnpm**
-   - Node.js 18+ ([Download](https://nodejs.org/))
-   - pnpm >=9 (`corepack enable pnpm`)
+- **Docker Desktop** (or Docker Engine) with enough disk space for the image
+- No local Node/Rust/R/tauri-driver setup required (handled inside the image)
 
-2. **Rust & Cargo**
-   - Install from [rustup.rs](https://rustup.rs/)
-
-3. **tauri-driver** (Linux/Windows only)
-   ```bash
-   cargo install tauri-driver
-   ```
-
-4. **R Environment**
-   - **Linux (Ubuntu/Debian)**: `sudo apt-get install r-base`
-   - **Windows**: Download from [CRAN](https://cran.r-project.org/bin/windows/base/)
-   - Verify: `R --version` (should be >=4.3)
-
-5. **Platform-specific dependencies**
-
-   **Linux (Ubuntu/Debian)**:
-   ```bash
-   sudo apt-get update
-   sudo apt-get install -y \
-     libwebkit2gtk-4.1-dev \
-     libgtk-3-dev \
-     libayatana-appindicator3-dev \
-     librsvg2-dev \
-     patchelf
-   ```
-
-   **Windows**:
-   - Microsoft Visual C++ Build Tools
-   - WebView2 Runtime (usually pre-installed on Windows 10/11)
-
-## Running Tests Locally
-
-### Quick Start - Playwright (Recommended for All Platforms)
-
-**Works on macOS, Linux, and Windows!**
+## Running in Docker
 
 From the repository root:
 
 ```bash
-# 1. Install all dependencies (if not already done)
-pnpm install
-
-# 2. Run Playwright E2E tests
-pnpm --filter @reprod/e2e test
-
-# OR with UI mode (great for debugging)
-pnpm --filter @reprod/e2e test:playwright:ui
-
-# OR in headed mode (see the browser)
-pnpm --filter @reprod/e2e test:playwright:headed
+# Run Playwright E2E tests in Docker
+pnpm --filter @reprod/e2e test:docker
 ```
 
-The Playwright tests automatically start the development server for you!
-
-### WebDriverIO Tests (Linux/Windows Only)
-
-For desktop app testing (NOT supported on macOS):
+Run Desktop (WebDriverIO) E2E tests in Docker:
 
 ```bash
-# 1. Install all dependencies
-pnpm install
-
-# 2. Build the Tauri app in debug mode
-pnpm tauri build --debug
-
-# 3. Run WebDriverIO E2E tests
-pnpm --filter @reprod/e2e test:webdriver
+pnpm --filter @reprod/e2e test:docker:webdriver
 ```
+
+This builds the desktop app and runs WebDriverIO under Xvfb, so expect a longer runtime.
+
+To run a specific command inside the container:
+
+```bash
+# Example: run a single Playwright spec
+pnpm --filter @reprod/e2e test:docker -- pnpm --filter @reprod/e2e test tests/open-folder.spec.ts
+```
+
+Optional resource caps:
+
+```bash
+REPROD_E2E_DOCKER_MEMORY=8g REPROD_E2E_DOCKER_CPUS=6 pnpm --filter @reprod/e2e test:docker
+```
+
+```bash
+REPROD_E2E_DOCKER_MODE=webdriver pnpm --filter @reprod/e2e test:docker
+```
+
+Rebuild the image when the Dockerfile changes:
+
+```bash
+pnpm --filter @reprod/e2e test:docker -- --build
+```
+
+The Docker runner uses `--workers=1` by default to reduce memory pressure.
 
 ### Running Specific Tests
 
-**Playwright:**
+**Playwright (Docker):**
 
 ```bash
 # Run only R execution tests
-pnpm --filter @reprod/e2e test r-execution
+pnpm --filter @reprod/e2e test:docker -- pnpm --filter @reprod/e2e test r-execution
 
 # Run only Timeline tests
-pnpm --filter @reprod/e2e test timeline
+pnpm --filter @reprod/e2e test:docker -- pnpm --filter @reprod/e2e test timeline
 
 # Run only Export tests
-pnpm --filter @reprod/e2e test export
+pnpm --filter @reprod/e2e test:docker -- pnpm --filter @reprod/e2e test export
 
 # Run only Error handling tests
-pnpm --filter @reprod/e2e test error-handling
+pnpm --filter @reprod/e2e test:docker -- pnpm --filter @reprod/e2e test error-handling
 
 # Run only Full workflow tests
-pnpm --filter @reprod/e2e test full-workflow
+pnpm --filter @reprod/e2e test:docker -- pnpm --filter @reprod/e2e test full-workflow
 
 # Run specific test file
-pnpm --filter @reprod/e2e test tests/r-execution.spec.ts
+pnpm --filter @reprod/e2e test:docker -- pnpm --filter @reprod/e2e test tests/r-execution.spec.ts
 ```
 
-**WebDriverIO (Linux/Windows):**
+**WebDriverIO (Docker):**
 
 ```bash
-# Run only R execution tests
-pnpm --filter @reprod/e2e test:webdriver -- --spec ./webdriver-specs/r-execution.e2e.ts
+# Run full desktop suite in Docker
+pnpm --filter @reprod/e2e test:docker:webdriver
 
-# Run only Timeline tests
-pnpm --filter @reprod/e2e test:webdriver -- --spec ./webdriver-specs/timeline.e2e.ts
-
-# Other WebDriverIO tests follow same pattern...
+# Run a specific WebDriverIO spec in Docker
+pnpm --filter @reprod/e2e test:docker -- pnpm tauri build --debug && xvfb-run --auto-servernum pnpm --filter @reprod/e2e test:webdriver -- --spec ./webdriver-specs/r-execution.e2e.ts
 ```
 
 ### Debug Mode
 
-**Playwright:**
+**Playwright (Docker):**
 
 ```bash
-# Interactive debug mode with Playwright Inspector
-pnpm --filter @reprod/e2e test:playwright:debug
+# Debug mode (headless in Docker)
+pnpm --filter @reprod/e2e test:docker -- pnpm --filter @reprod/e2e test:playwright:debug
 
-# UI mode (best for debugging)
-pnpm --filter @reprod/e2e test:playwright:ui
+# UI mode (requires Linux host with display)
+pnpm --filter @reprod/e2e test:docker -- pnpm --filter @reprod/e2e test:playwright:ui
 
-# Headed mode (see browser actions)
-pnpm --filter @reprod/e2e test:playwright:headed
+# Headed mode (requires Linux host with display)
+pnpm --filter @reprod/e2e test:docker -- pnpm --filter @reprod/e2e test:playwright:headed
 ```
 
-**WebDriverIO:**
+**WebDriverIO (Docker):**
 
 ```bash
 # Run with verbose logging
-LOG_LEVEL=debug pnpm --filter @reprod/e2e test:webdriver
+pnpm --filter @reprod/e2e test:docker -- LOG_LEVEL=debug pnpm tauri build --debug && xvfb-run --auto-servernum pnpm --filter @reprod/e2e test:webdriver
 
 # Run with debugging enabled
-pnpm --filter @reprod/e2e test:webdriver:debug
+pnpm --filter @reprod/e2e test:docker -- pnpm tauri build --debug && xvfb-run --auto-servernum pnpm --filter @reprod/e2e test:webdriver:debug
 ```
 
 ## Test Structure
@@ -193,7 +158,7 @@ desktop/e2e/
 │   ├── export.spec.ts         # Export dialog and functionality
 │   ├── error-handling.spec.ts # Error scenarios and recovery
 │   └── full-workflow.spec.ts  # Complete user workflows
-├── webdriver-specs/           # WebDriverIO tests (Linux/Windows)
+├── webdriver-specs/           # WebDriverIO tests (Docker/Linux/Windows)
 │   ├── r-execution.e2e.ts    # Basic R code execution
 │   ├── timeline.e2e.ts       # Timeline feature tests
 │   ├── export.e2e.ts         # Export dialog and functionality
@@ -202,6 +167,8 @@ desktop/e2e/
 ├── shared/                    # Shared helpers and selectors
 │   ├── selectors.ts          # Common DOM selectors
 │   └── helpers.ts            # Common test actions
+├── Dockerfile                 # Docker image for Playwright runs
+├── scripts/run-docker.sh       # Docker runner entrypoint
 ├── playwright.config.ts       # Playwright configuration
 ├── wdio.conf.ts              # WebDriverIO configuration
 ├── package.json              # Test dependencies
@@ -291,7 +258,37 @@ Tests complete end-to-end user journeys:
 
 ## Environment Variables
 
-Customize test execution with these environment variables:
+### Docker Runner (Playwright)
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `REPROD_E2E_DOCKER_MEMORY` | Docker memory limit for `test:docker` | `6g` |
+| `REPROD_E2E_DOCKER_CPUS` | Docker CPU limit for `test:docker` | `4` |
+| `REPROD_E2E_DOCKER_MODE` | Default Docker command (`playwright` or `webdriver`) | `playwright` |
+| `REPROD_E2E_DOCKER_KEEP_OLD_IMAGE` | Keep the previous `reprod-e2e` image after a rebuild | `0` |
+| `REPROD_E2E_DOCKER_REUSE_CONTAINER` | Reuse a running container (`1` to reuse, `0` to disable) | `1` |
+| `REPROD_E2E_DOCKER_CONTAINER_NAME` | Docker container name when reusing | `reprod-e2e-runner` |
+| `REPROD_E2E_DOCKER_PREBUILD` | Prebuild the backend (`cargo build -p reprod-server`) before running tests | `1` |
+
+**Example**:
+```bash
+REPROD_E2E_DOCKER_MEMORY=8g REPROD_E2E_DOCKER_CPUS=6 pnpm --filter @reprod/e2e test:docker
+```
+
+The Docker runner is reused by default to avoid creating new containers on each run.
+To force a fresh container for a single run:
+```bash
+REPROD_E2E_DOCKER_REUSE_CONTAINER=0 pnpm --filter @reprod/e2e test:docker
+```
+
+Reset the reusable runner if it gets into a bad state:
+```bash
+docker rm -f reprod-e2e-runner
+```
+
+### WebDriverIO (Desktop)
+
+Customize desktop test execution with these environment variables. For Docker runs, prefix them inside the `test:docker -- ...` command.
 
 | Variable | Description | Default |
 |----------|-------------|---------|
@@ -301,107 +298,85 @@ Customize test execution with these environment variables:
 | `TAURI_DRIVER_PORT` | WebDriver endpoint port | `9515` |
 | `TAURI_DRIVER_PATH` | WebDriver endpoint path | `/` |
 | `TAURI_DRIVER_READY_TIMEOUT` | Driver startup timeout (ms) | `15000` |
-| `TAURI_DRIVER_ARGS` | Additional driver arguments | `--port 9515 --binary <path>` |
+| `TAURI_DRIVER_ARGS` | Additional driver arguments | `--port 9515` |
 | `TAURI_DRIVER_TAURI_OPTIONS` | JSON options for driver | `{}` |
 | `LOG_LEVEL` | Logging verbosity | `info` |
 
 **Example**:
 ```bash
-# Use custom binary path
-TAURI_DRIVER_APP=/path/to/custom/binary pnpm --filter @reprod/e2e test
+# Linux/Windows runner: use custom binary path
+TAURI_DRIVER_APP=/path/to/custom/binary pnpm --filter @reprod/e2e test:webdriver
 
-# Increase timeout for slow systems
-TAURI_DRIVER_READY_TIMEOUT=30000 pnpm --filter @reprod/e2e test
+# Linux/Windows runner: increase timeout for slow systems
+TAURI_DRIVER_READY_TIMEOUT=30000 pnpm --filter @reprod/e2e test:webdriver
 ```
 
 ## CI/CD Integration
 
 ### GitHub Actions
 
-E2E tests run automatically in CI but **only for develop → main PRs** to optimize CI time.
+E2E tests run automatically in CI on PRs to `develop` and `main`, plus pushes to `main`.
 
 **CI Configuration** (`.github/workflows/ci.yml`):
 
 ```yaml
-e2e-tests:
-  # Only run on develop → main PRs
-  if: github.base_ref == 'main' && github.event_name == 'pull_request'
-  runs-on: ubuntu-latest
-  steps:
-    - uses: actions/checkout@v4
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main, develop]
 
-    # Setup R environment
-    - uses: r-lib/actions/setup-r@v2
-      with:
-        r-version: "4.3.0"
-
-    # Setup Node and Rust
-    - uses: pnpm/action-setup@v2
-    - uses: dtolnay/rust-toolchain@stable
-
-    # Install Tauri dependencies + Xvfb
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y libwebkit2gtk-4.1-dev xvfb
-
-    - run: pnpm install
-    - run: pnpm tauri build --debug
-    - run: cargo install tauri-driver
-
-    # Run E2E tests with Xvfb (headless)
-    - name: Run E2E tests
-      run: xvfb-run --auto-servernum pnpm --filter @reprod/e2e test
+jobs:
+  e2e-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: corepack enable pnpm
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: "pnpm"
+      - uses: dtolnay/rust-toolchain@stable
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @reprod/e2e exec playwright install --with-deps chromium
+      - run: pnpm --filter @reprod/e2e test
 ```
 
 ### When E2E Tests Run
 
 | Branch Flow | Event | Quick Checks | E2E Tests |
 |-------------|-------|--------------|-----------|
-| feature → develop | PR | ✅ (3-5 min) | ❌ |
-| develop | push | ✅ (3-5 min) | ❌ |
-| **develop → main** | **PR** | ✅ | ✅ **(15-20 min)** |
-| main | push | ✅ (3-5 min) | ✅ (15-20 min) |
+| feature → develop | PR | ✅ | ✅ |
+| develop → main | PR | ✅ | ✅ |
+| main | push | ✅ | ✅ |
 
-**Rationale**: Feature development needs fast feedback. Full E2E validation happens at the final quality gate (production branch).
+**Rationale**: E2E runs on PRs and main pushes to keep develop/main stable with consistent feedback.
 
 ### CI Strategy
 
-**Feature → Develop PRs:**
-- ✅ Playwright tests (fast, all platforms)
-- ❌ WebDriverIO tests skipped (saves CI time)
-
-**Develop → Main PRs:**
-- ✅ Playwright tests (web browser validation)
-- ✅ WebDriverIO tests (desktop app validation on Linux)
+CI currently runs Playwright (Chromium) only. WebDriverIO desktop tests are manual or run via Docker.
 
 ### Before Creating develop → main PR
 
-⚠️ **IMPORTANT**: Always run E2E tests before creating a PR from develop to main:
+⚠️ **IMPORTANT**: Run E2E tests before creating a PR from develop to main:
 
-**All developers** - Run Playwright tests locally:
+**All developers** - Run Playwright tests in Docker:
 
 ```bash
-# 1. Run Playwright E2E suite (works on all platforms!)
-pnpm --filter @reprod/e2e test
+# 1. Run Playwright E2E suite in Docker
+pnpm --filter @reprod/e2e test:docker
 
 # 2. Verify all tests pass, then create PR
 gh pr create --base main --head develop
 ```
 
-**Linux/Windows developers** (Optional - can also run desktop tests):
+**Desktop app validation (Optional)**:
 
 ```bash
-# 1. Ensure R is installed
-R --version
+# 1. Run the desktop suite in Docker
+pnpm --filter @reprod/e2e test:docker:webdriver
 
-# 2. Build the Tauri app
-pnpm tauri build --debug
-
-# 3. Run WebDriverIO tests
-pnpm --filter @reprod/e2e test:webdriver
-
-# 4. Create PR
+# 2. Create PR
 gh pr create --base main --head develop
 ```
 
@@ -417,10 +392,9 @@ Error: tauri-driver is not supported on this platform
 
 **Cause**: tauri-driver does NOT support macOS (no WKWebView driver available).
 
-**Solution**: Use one of these alternatives:
-- Run tests via CI (GitHub Actions uses Linux)
-- Use Docker to run tests in a Linux container (see [Running on macOS](#running-on-macos-docker))
-- Use a Linux VM or cloud development environment
+**Solution**:
+- Use Docker for Playwright: `pnpm --filter @reprod/e2e test:docker`
+- Run WebDriverIO tests in Docker: `pnpm --filter @reprod/e2e test:docker:webdriver`
 
 **2. "tauri-driver not found"** (Linux/Windows)
 
@@ -435,11 +409,14 @@ tauri-driver --version
 **3. "App binary not found"**
 
 ```bash
-# Rebuild the app
+# Docker: rebuild automatically by rerunning the suite
+pnpm --filter @reprod/e2e test:docker:webdriver
+
+# Linux/Windows runner: rebuild the app
 pnpm tauri build --debug
 
-# Or specify custom path
-TAURI_DRIVER_APP=/path/to/binary pnpm --filter @reprod/e2e test
+# Linux/Windows runner: specify custom path
+TAURI_DRIVER_APP=/path/to/binary pnpm --filter @reprod/e2e test:webdriver
 ```
 
 **4. "R not found" errors**
@@ -459,7 +436,7 @@ sudo apt-get install r-base
 
 ```bash
 # Increase timeout
-TAURI_DRIVER_READY_TIMEOUT=30000 pnpm --filter @reprod/e2e test
+pnpm --filter @reprod/e2e test:docker -- TAURI_DRIVER_READY_TIMEOUT=30000 pnpm tauri build --debug && xvfb-run --auto-servernum pnpm --filter @reprod/e2e test:webdriver
 
 # Check if port 9515 is already in use
 lsof -i :9515
@@ -470,11 +447,10 @@ kill -9 <PID>
 **6. Tests fail on Linux (missing display)**
 
 ```bash
-# Install Xvfb
+# Docker already uses Xvfb for WebDriverIO.
+# Linux runner example:
 sudo apt-get install xvfb
-
-# Run with Xvfb
-xvfb-run --auto-servernum pnpm --filter @reprod/e2e test
+xvfb-run --auto-servernum pnpm --filter @reprod/e2e test:webdriver
 ```
 
 **7. GTK/WebKit errors on Linux**
@@ -514,85 +490,19 @@ sudo apt-get install -y \
    curl http://localhost:9515/status
    ```
 
-## Running on macOS (Docker)
-
-Since tauri-driver doesn't support macOS, you can run E2E tests in a Linux Docker container:
-
-### Option 1: Using Docker (Manual)
-
-**1. Create a Dockerfile for E2E testing:**
-
-```dockerfile
-FROM ubuntu:22.04
-
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    curl \
-    build-essential \
-    libwebkit2gtk-4.1-dev \
-    libgtk-3-dev \
-    libayatana-appindicator3-dev \
-    librsvg2-dev \
-    patchelf \
-    xvfb \
-    r-base \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install Node.js 18+
-RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
-    && apt-get install -y nodejs
-
-# Enable pnpm
-RUN corepack enable pnpm
-
-# Install Rust
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-ENV PATH="/root/.cargo/bin:${PATH}"
-
-# Install tauri-driver
-RUN cargo install tauri-driver
-
-WORKDIR /workspace
-
-# Entry point
-CMD ["/bin/bash"]
-```
-
-**2. Build and run:**
-
-```bash
-# Build Docker image
-docker build -t reprod-e2e .
-
-# Run container with project mounted
-docker run -it -v $(pwd):/workspace reprod-e2e
-
-# Inside container:
-pnpm install
-pnpm tauri build --debug
-xvfb-run --auto-servernum pnpm --filter @reprod/e2e test
-```
-
-### Option 2: Using GitHub CI (Recommended)
-
-The simplest approach for macOS developers is to rely on CI:
-
-1. Push your branch to GitHub
-2. Create a draft PR targeting `develop` or `main`
-3. Check the CI results to see if E2E tests pass
-4. Make fixes if needed and push again
-
-This is the recommended workflow for macOS developers since it requires no local Docker setup.
-
 ## Adding New Tests
 
 ### 1. Create a new spec file
 
 ```bash
-touch desktop/e2e/specs/my-feature.e2e.ts
+# Playwright (Docker)
+touch desktop/e2e/tests/my-feature.spec.ts
+
+# WebDriverIO (Docker)
+touch desktop/e2e/webdriver-specs/my-feature.e2e.ts
 ```
 
-### 2. Write tests using WebDriverIO syntax
+### 2. Write tests using WebDriverIO syntax (desktop)
 
 ```typescript
 import assert from 'node:assert';
@@ -617,7 +527,11 @@ describe('My Feature', () => {
 ### 3. Run your new tests
 
 ```bash
-pnpm --filter @reprod/e2e test -- --spec ./specs/my-feature.e2e.ts
+# Playwright (Docker)
+pnpm --filter @reprod/e2e test:docker -- pnpm --filter @reprod/e2e test tests/my-feature.spec.ts
+
+# WebDriverIO (Docker)
+pnpm --filter @reprod/e2e test:docker -- pnpm tauri build --debug && xvfb-run --auto-servernum pnpm --filter @reprod/e2e test:webdriver -- --spec ./webdriver-specs/my-feature.e2e.ts
 ```
 
 ### Common Selectors

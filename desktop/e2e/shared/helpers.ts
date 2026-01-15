@@ -4,6 +4,22 @@
 
 import type { Page } from "@playwright/test";
 
+const DEFAULT_CONNECTED_TIMEOUT_MS = 240000;
+
+/**
+ * Wait for the app backend websocket to be connected.
+ */
+export async function waitForAppConnected(page: Page, options: { timeout?: number } = {}) {
+	const timeout = options.timeout ?? DEFAULT_CONNECTED_TIMEOUT_MS;
+	await page.waitForFunction(
+		() => {
+			const helper = (window as { reprodTest?: { isConnected?: () => boolean } }).reprodTest;
+			return helper?.isConnected?.();
+		},
+		{ timeout },
+	);
+}
+
 /**
  * Wait for element with timeout
  */
@@ -20,6 +36,8 @@ export async function waitForElement(
  * Execute R code in the editor
  */
 export async function executeRCode(page: Page, code: string) {
+	await waitForAppConnected(page);
+
 	// Wait for Monaco Editor to be ready
 	await page.waitForSelector(".monaco-editor", { timeout: 30000 });
 
@@ -71,10 +89,37 @@ export async function waitForConsoleOutput(
 }
 
 /**
+ * Wait for any console output (stdout or stderr).
+ */
+export async function waitForAnyConsoleOutput(page: Page, options: { timeout?: number } = {}) {
+	const timeout = options.timeout ?? 30000;
+
+	const consoleTab = page.locator('button:has-text("Console")');
+	if (await consoleTab.isVisible()) {
+		await consoleTab.click();
+	}
+
+	await page.waitForFunction(
+		(selector) => document.querySelectorAll(selector).length > 0,
+		".console-stdout,.console-stderr",
+		{ timeout },
+	);
+}
+
+/**
  * Open Timeline dialog
  */
 export async function openTimelineDialog(page: Page) {
+	await page.waitForFunction(() => {
+		const helper = (window as any).reprodTest as { openTimelineDialog?: () => void } | undefined;
+		return typeof helper?.openTimelineDialog === "function";
+	});
 	await page.evaluate(() => {
+		const helper = (window as any).reprodTest as { openTimelineDialog?: () => void } | undefined;
+		if (helper?.openTimelineDialog) {
+			helper.openTimelineDialog();
+			return;
+		}
 		(window as any).openTimelineDialog?.();
 	});
 
@@ -86,7 +131,16 @@ export async function openTimelineDialog(page: Page) {
  * Open Export dialog
  */
 export async function openExportDialog(page: Page) {
+	await page.waitForFunction(() => {
+		const helper = (window as any).reprodTest as { openExportDialog?: () => void } | undefined;
+		return typeof helper?.openExportDialog === "function";
+	});
 	await page.evaluate(() => {
+		const helper = (window as any).reprodTest as { openExportDialog?: () => void } | undefined;
+		if (helper?.openExportDialog) {
+			helper.openExportDialog();
+			return;
+		}
 		(window as any).openExportDialog?.();
 	});
 
@@ -99,7 +153,22 @@ export async function openExportDialog(page: Page) {
  */
 export async function closeDialog(page: Page) {
 	await page.keyboard.press("Escape");
-	await page.waitForTimeout(500); // Give time for animation
+	await page.waitForTimeout(200); // Give time for animation
+
+	const overlaySelectors = [
+		".timeline-dialog-overlay",
+		".export-dialog-overlay",
+		".confirm-dialog-overlay",
+	];
+
+	for (const selector of overlaySelectors) {
+		const overlay = page.locator(selector);
+		if (await overlay.isVisible()) {
+			await overlay.click({ force: true });
+		}
+	}
+
+	await page.waitForTimeout(200);
 }
 
 /**
