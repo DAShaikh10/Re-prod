@@ -1,9 +1,10 @@
 import { expect, test } from "@playwright/test";
 import { closeDialog, executeRCode, openTimelineDialog } from "../shared/helpers";
 import { selectors } from "../shared/selectors";
+import { TEST_CASES } from "../shared/test-registry";
 
 test.describe("Timeline feature", () => {
-	test("opens timeline dialog and displays execution history", async ({ page }) => {
+	test(TEST_CASES["timeline"][0], async ({ page }) => {
 		await page.goto("/");
 
 		// Execute some R code to create timeline events
@@ -34,7 +35,7 @@ test.describe("Timeline feature", () => {
 		await expect(dialog).not.toBeVisible();
 	});
 
-	test("filters timeline events by type", async ({ page }) => {
+	test(TEST_CASES["timeline"][1], async ({ page }) => {
 		await page.goto("/");
 
 		// Execute code to create events
@@ -65,7 +66,7 @@ test.describe("Timeline feature", () => {
 		await closeDialog(page);
 	});
 
-	test("displays timeline statistics correctly", async ({ page }) => {
+	test(TEST_CASES["timeline"][2], async ({ page }) => {
 		await page.goto("/");
 
 		// Execute code
@@ -90,7 +91,7 @@ test.describe("Timeline feature", () => {
 		await closeDialog(page);
 	});
 
-	test("navigates to code location when clicking timeline event", async ({ page }) => {
+	test(TEST_CASES["timeline"][3], async ({ page }) => {
 		await page.goto("/");
 
 		// Execute code

@@ -1,9 +1,10 @@
 import { expect, test } from "@playwright/test";
 import { consoleHasOutput, executeRCode, waitForConsoleOutput } from "../shared/helpers";
 import { selectors } from "../shared/selectors";
+import { TEST_CASES } from "../shared/test-registry";
 
 test.describe("R execution flow", () => {
-	test("runs a simple expression and shows the result", async ({ page }) => {
+	test(TEST_CASES["r-execution"][0], async ({ page }) => {
 		// Navigate to the app
 		await page.goto("/");
 
@@ -22,7 +23,7 @@ test.describe("R execution flow", () => {
 		expect(hasOutput).toBeTruthy();
 	});
 
-	test("handles multiple expressions", async ({ page }) => {
+	test(TEST_CASES["r-execution"][1], async ({ page }) => {
 		await page.goto("/");
 
 		const editor = page.locator(selectors.editor);
@@ -43,7 +44,7 @@ print(x + y)`;
 		expect(hasOutput).toBeTruthy();
 	});
 
-	test("displays formatted output correctly", async ({ page }) => {
+	test(TEST_CASES["r-execution"][2], async ({ page }) => {
 		await page.goto("/");
 
 		const editor = page.locator(selectors.editor);

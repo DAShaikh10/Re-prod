@@ -6,6 +6,7 @@ import {
 	openTimelineDialog,
 	setEditorValue,
 } from "./helpers";
+import { TEST_CASES } from "../shared/test-registry";
 
 const editorSelector = ".monaco-editor textarea";
 const consoleOutputSelector = ".console-stdout";
@@ -26,7 +27,7 @@ const timelineEventSelector = ".timeline-event";
  * 7. Verify timeline updates
  */
 describe("Full user workflow", () => {
-	it("completes a full data analysis workflow", async () => {
+	it(TEST_CASES["full-workflow"][0], async () => {
 		// ========================================
 		// STEP 1: App Launch and Initial State
 		// ========================================
@@ -184,7 +185,7 @@ cat("Total sum:", result, "\\n")`);
 		assert.ok(editorStillWorks, "Editor should remain functional after workflow");
 	});
 
-	it("handles workflow with errors and recovery", async () => {
+	it(TEST_CASES["full-workflow"][1], async () => {
 		const editorInput = await browser.$(editorSelector);
 
 		// Execute code with error
@@ -227,7 +228,7 @@ cat("Total sum:", result, "\\n")`);
 		await closeDialog(timelineDialogSelector, ".timeline-dialog-overlay");
 	});
 
-	it("completes workflow with multiple code blocks", async () => {
+	it(TEST_CASES["full-workflow"][2], async () => {
 		const editorInput = await browser.$(editorSelector);
 
 		// Execute first block

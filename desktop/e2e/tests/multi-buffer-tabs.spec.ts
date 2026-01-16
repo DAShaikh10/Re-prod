@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { waitForAppConnected } from "../shared/helpers";
 import { selectors } from "../shared/selectors";
+import { TEST_CASES } from "../shared/test-registry";
 
 test.describe("Editor tabs", () => {
 	const fileTreeNodeAtDepth = (page: Page, name: string, depth: number) => {
@@ -41,7 +42,7 @@ test.describe("Editor tabs", () => {
 		await fixtureNode.dblclick();
 	};
 
-	test("opens multiple files in tabs and handles dirty close", async ({ page }) => {
+	test(TEST_CASES["multi-buffer-tabs"][0], async ({ page }) => {
 		const firstFile = "alpha.R";
 		const secondFile = "beta.R";
 		const firstFixtureText = "Alpha project loaded";

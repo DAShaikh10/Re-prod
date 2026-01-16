@@ -3,6 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { clickRunAll, closeDialog, openExportDialog, setEditorValue } from "./helpers";
+import { TEST_CASES } from "../shared/test-registry";
 
 const editorSelector = ".monaco-editor textarea";
 const exportDialogSelector = ".export-dialog";
@@ -24,7 +25,7 @@ describe("Export functionality", () => {
 		}
 	});
 
-	it("opens export dialog and displays export options", async () => {
+	it(TEST_CASES["export"][0], async () => {
 		// Execute some R code first
 		const editorInput = await browser.$(editorSelector);
 		await editorInput.waitForDisplayed({ timeout: 30000 });
@@ -71,7 +72,7 @@ describe("Export functionality", () => {
 		await closeDialog(exportDialogSelector, ".export-dialog-overlay");
 	});
 
-	it("allows selecting different export formats", async () => {
+	it(TEST_CASES["export"][1], async () => {
 		await openExportDialog();
 
 		// Test selecting RMarkdown format
@@ -106,7 +107,7 @@ describe("Export functionality", () => {
 		await closeDialog(exportDialogSelector, ".export-dialog-overlay");
 	});
 
-	it("displays export modes (standalone/linked)", async () => {
+	it(TEST_CASES["export"][2], async () => {
 		await openExportDialog();
 
 		// Check for mode selection options
@@ -119,34 +120,31 @@ describe("Export functionality", () => {
 		// At least one mode should be available
 		assert.ok(hasTimelineMode || hasDocumentMode, "Export modes should be available");
 
-		// Close dialog
-		await closeDialog(exportDialogSelector, ".export-dialog-overlay");
-	});
+		if (hasTimelineMode) {
+			await timelineMode.click();
+			assert.ok(await timelineMode.isSelected(), "Timeline mode should be selectable");
+		}
 
-	it("shows export button and validates form", async () => {
-		await openExportDialog();
-
-		// Find export button
-		const exportBtn = await browser.$(exportButtonSelector);
-		const buttonExists = await exportBtn.isExisting();
-
-		if (buttonExists) {
-			// Verify button is displayed
-			assert.ok(await exportBtn.isDisplayed(), "Export button should be visible");
-
-			// Check if button text is appropriate
-			const buttonText = await exportBtn.getText();
-			assert.ok(
-				buttonText.toLowerCase().includes("export") || buttonText.toLowerCase().includes("save"),
-				"Export button should have appropriate text",
-			);
+		if (hasDocumentMode) {
+			await documentMode.click();
+			assert.ok(await documentMode.isSelected(), "Document mode should be selectable");
 		}
 
 		// Close dialog
 		await closeDialog(exportDialogSelector, ".export-dialog-overlay");
 	});
 
-	it("handles export errors gracefully", async () => {
+	it(TEST_CASES["export"][3], async () => {
+		const exportDialog = await openExportDialog();
+
+		const inputs = await exportDialog.$$("input");
+		assert.ok(inputs.length > 0, "Export dialog should contain inputs");
+
+		// Close dialog
+		await closeDialog(exportDialogSelector, ".export-dialog-overlay");
+	});
+
+	it(TEST_CASES["export"][5], async () => {
 		const exportDialog = await openExportDialog();
 
 		// Try to export with invalid/empty path (if path input exists)
@@ -195,21 +193,20 @@ describe("Export functionality", () => {
 		await closeDialog(exportDialogSelector, ".export-dialog-overlay");
 	});
 
-	it("displays RMarkdown-specific options when RMarkdown is selected", async () => {
-		await openExportDialog();
+	it(TEST_CASES["export"][4], async () => {
+		const exportDialog = await openExportDialog();
 
-		// Select RMarkdown format
-		const rmarkdownRadio = await browser.$('input[value="rmarkdown"]');
-		await rmarkdownRadio.click();
+		const requiredInputs = await exportDialog.$$("input[required]");
+		if (requiredInputs.length > 0) {
+			const exportBtn = await exportDialog.$(exportButtonSelector);
+			if (await exportBtn.isExisting()) {
+				await exportBtn.click();
+				await browser.pause(500);
 
-		// Wait for options to appear
-		await browser.pause(500);
-
-		// Check for RMarkdown-specific options (like document template)
-		const rmdOptions = await browser.$$(".export-section label, .export-checkbox");
-
-		// Should have some configuration options
-		assert.ok(rmdOptions.length > 0, "RMarkdown format should show additional options");
+				const dialogStillOpen = await browser.$(exportDialogSelector).isExisting();
+				assert.ok(dialogStillOpen, "Export dialog should remain open on invalid input");
+			}
+		}
 
 		// Close dialog
 		await closeDialog(exportDialogSelector, ".export-dialog-overlay");

@@ -1,9 +1,10 @@
 import { expect, test } from "@playwright/test";
 import { closeDialog, executeRCode, openExportDialog } from "../shared/helpers";
 import { selectors } from "../shared/selectors";
+import { TEST_CASES } from "../shared/test-registry";
 
 test.describe("Export functionality", () => {
-	test("opens export dialog and displays export options", async ({ page }) => {
+	test(TEST_CASES["export"][0], async ({ page }) => {
 		await page.goto("/");
 
 		// Execute some code first
@@ -30,7 +31,7 @@ test.describe("Export functionality", () => {
 		await closeDialog(page);
 	});
 
-	test("allows selecting different export formats", async ({ page }) => {
+	test(TEST_CASES["export"][1], async ({ page }) => {
 		await page.goto("/");
 
 		await executeRCode(page, "x <- 10");
@@ -62,7 +63,7 @@ test.describe("Export functionality", () => {
 		await closeDialog(page);
 	});
 
-	test("allows selecting export mode (timeline vs document)", async ({ page }) => {
+	test(TEST_CASES["export"][2], async ({ page }) => {
 		await page.goto("/");
 
 		await executeRCode(page, "y <- 20");
@@ -87,7 +88,7 @@ test.describe("Export functionality", () => {
 		await closeDialog(page);
 	});
 
-	test("displays export options configuration", async ({ page }) => {
+	test(TEST_CASES["export"][3], async ({ page }) => {
 		await page.goto("/");
 
 		await executeRCode(page, "z <- 30");
@@ -106,7 +107,7 @@ test.describe("Export functionality", () => {
 		await closeDialog(page);
 	});
 
-	test("validates export form inputs", async ({ page }) => {
+	test(TEST_CASES["export"][4], async ({ page }) => {
 		await page.goto("/");
 
 		await executeRCode(page, "value <- 100");
@@ -127,7 +128,7 @@ test.describe("Export functionality", () => {
 		await closeDialog(page);
 	});
 
-	test("handles export errors gracefully", async ({ page }) => {
+	test(TEST_CASES["export"][5], async ({ page }) => {
 		await page.goto("/");
 
 		await executeRCode(page, "test <- 42");

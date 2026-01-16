@@ -1,11 +1,12 @@
 import path from "node:path";
 import { expect, test } from "@playwright/test";
 import { selectors } from "../shared/selectors";
+import { TEST_CASES } from "../shared/test-registry";
 
 const CONNECTED_TIMEOUT_MS = 240000;
 
 test.describe("Open Folder", () => {
-	test("updates file explorer after workspace switch", async ({ page }) => {
+	test(TEST_CASES["open-folder"][0], async ({ page }) => {
 		const repoRoot = path.resolve(process.cwd(), "../..");
 		const fixtureFolder = path.join(repoRoot, "desktop/e2e/shared/fixtures/open-folder");
 		const fixtureFileName = "sample.R";
@@ -57,7 +58,7 @@ test.describe("Open Folder", () => {
 		await expect(repoFile).toHaveCount(0);
 	});
 
-	test("switches workspace and loads file content", async ({ page }) => {
+	test(TEST_CASES["open-folder"][1], async ({ page }) => {
 		const repoRoot = path.resolve(process.cwd(), "../..");
 		const fixtureFolder = path.join(repoRoot, "desktop/e2e/shared/fixtures/open-folder");
 		const fixtureFileName = "sample.R";
@@ -135,7 +136,7 @@ test.describe("Open Folder", () => {
 		);
 	});
 
-	test("ignores non-existent folder paths", async ({ page }) => {
+	test(TEST_CASES["open-folder"][2], async ({ page }) => {
 		const repoRoot = path.resolve(process.cwd(), "../..");
 		const invalidFolder = path.join(repoRoot, "path-does-not-exist");
 

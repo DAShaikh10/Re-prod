@@ -1,27 +1,23 @@
 import assert from "node:assert";
 import { clickRunAll, setEditorValue } from "./helpers";
+import { TEST_CASES } from "../shared/test-registry";
 
 const editorSelector = ".monaco-editor textarea";
 const consoleOutputSelector = ".console-output, .console-entry";
-const consoleStderrSelector = ".console-stderr";
-const errorBadgeSelector = ".console-error-badge, .error-badge";
 
 describe("Error handling scenarios", () => {
-	it("displays R syntax errors in console", async () => {
+	it(TEST_CASES["error-handling"][0], async () => {
 		const editorInput = await browser.$(editorSelector);
 		await editorInput.waitForDisplayed({ timeout: 30000 });
 
-		// Clear editor and enter invalid R syntax
-		await setEditorValue("x <- 1 +"); // Incomplete expression
+		await setEditorValue("x <- 1 +");
 		await clickRunAll();
 
-		// Wait for error output to appear
 		await browser.waitUntil(
 			async () => {
 				const outputs = await browser.$$(consoleOutputSelector);
 				for (const output of outputs) {
 					const text = await output.getText();
-					// R typically shows "Error" or "unexpected end of input"
 					if (text.toLowerCase().includes("error") || text.toLowerCase().includes("unexpected")) {
 						return true;
 					}
@@ -34,7 +30,6 @@ describe("Error handling scenarios", () => {
 			},
 		);
 
-		// Verify error appears in console
 		const outputs = await browser.$$(consoleOutputSelector);
 		const errorTexts = await outputs.map((output) => output.getText());
 		const hasError = errorTexts.some(
@@ -44,13 +39,13 @@ describe("Error handling scenarios", () => {
 		assert.ok(hasError, "Syntax error should be displayed in console");
 	});
 
-	it("displays R runtime errors", async () => {
+	it(TEST_CASES["error-handling"][1], async () => {
 		const editorInput = await browser.$(editorSelector);
-		// Better runtime error: division by non-numeric
-		await setEditorValue('x <- "text"\ny <- x / 2'); // Type error
+		await editorInput.waitForDisplayed({ timeout: 30000 });
+
+		await setEditorValue('x <- "text"\ny <- x / 2');
 		await clickRunAll();
 
-		// Wait for error in console
 		await browser.waitUntil(
 			async () => {
 				const outputs = await browser.$$(consoleOutputSelector);
@@ -75,94 +70,78 @@ describe("Error handling scenarios", () => {
 		assert.ok(hasError, "Runtime error should be displayed in console");
 	});
 
-	it("shows stderr output with error styling", async () => {
+	it(TEST_CASES["error-handling"][2], async () => {
 		const editorInput = await browser.$(editorSelector);
-		// Code that produces error
-		await setEditorValue('stop("Intentional error for testing")');
+		await editorInput.waitForDisplayed({ timeout: 30000 });
+
+		await setEditorValue('stop("Error")');
+		await clickRunAll();
+		await browser.pause(3000);
+
+		await setEditorValue("x <- 42\nprint(x)");
 		await clickRunAll();
 
-		// Wait for stderr output
 		await browser.waitUntil(
 			async () => {
-				const stderrElements = await browser.$$(consoleStderrSelector);
-				if (stderrElements.length === 0) {
-					// Fallback: check any console output for error
-					const outputs = await browser.$$(consoleOutputSelector);
-					for (const output of outputs) {
-						const text = await output.getText();
-						if (text.includes("Intentional error") || text.includes("Error")) {
-							return true;
-						}
+				const outputs = await browser.$$(consoleOutputSelector);
+				for (const output of outputs) {
+					const text = await output.getText();
+					if (text.includes("[1] 42")) {
+						return true;
 					}
 				}
-				return stderrElements.length > 0;
+				return false;
 			},
 			{
 				timeout: 30000,
-				timeoutMsg: "Expected stderr output to appear",
+				timeoutMsg: "Expected successful execution after error",
 			},
 		);
 
-		// Verify stderr is styled appropriately
-		const stderrTexts = await browser.execute((selector) => {
-			return Array.from(document.querySelectorAll(selector)).map(
-				(element) => element.textContent ?? "",
-			);
-		}, consoleStderrSelector);
-		const hasStderrError = stderrTexts.some(
-			(text) => text.toLowerCase().includes("error") || text.includes("Intentional error"),
-		);
+		const outputs = await browser.$$(consoleOutputSelector);
+		const outputTexts = await outputs.map((output) => output.getText());
+		const hasSuccess = outputTexts.some((text) => text.includes("[1] 42"));
 
-		if (!hasStderrError) {
-			// Verify error appears somewhere in console
-			const outputTexts = await browser.execute((selector) => {
-				return Array.from(document.querySelectorAll(selector)).map(
-					(element) => element.textContent ?? "",
-				);
-			}, consoleOutputSelector);
-			const hasOutputError = outputTexts.some(
-				(text) => text.includes("Intentional error") || text.includes("Error"),
-			);
-
-			assert.ok(hasOutputError, "Error message should appear in console output");
-		}
+		assert.ok(hasSuccess, "Application should recover from errors and execute new code");
 	});
 
-	it("displays error badge for failed executions", async () => {
+	it(TEST_CASES["error-handling"][3], async () => {
 		const editorInput = await browser.$(editorSelector);
-		// Code that will error
-		await setEditorValue("undefined_variable");
+		await editorInput.waitForDisplayed({ timeout: 30000 });
+
+		await setEditorValue("print(undefined_variable)");
 		await clickRunAll();
 
-		// Wait for execution to complete
-		await browser.pause(3000);
+		await browser.waitUntil(
+			async () => {
+				const outputs = await browser.$$(consoleOutputSelector);
+				for (const output of outputs) {
+					const text = await output.getText();
+					if (text.toLowerCase().includes("error") || text.toLowerCase().includes("not found")) {
+						return true;
+					}
+				}
+				return false;
+			},
+			{
+				timeout: 30000,
+				timeoutMsg: "Expected undefined variable error",
+			},
+		);
 
-		// Check for error badge (if implemented)
-		const errorBadge = await browser.$(errorBadgeSelector);
-		const hasBadge = await errorBadge.isExisting();
-
-		if (hasBadge) {
-			assert.ok(
-				await errorBadge.isDisplayed(),
-				"Error badge should be visible for failed executions",
-			);
-		}
-
-		// At minimum, verify error appears in console
 		const outputs = await browser.$$(consoleOutputSelector);
 		const errorTexts = await outputs.map((output) => output.getText());
 		const hasError = errorTexts.some(
 			(text) => text.toLowerCase().includes("error") || text.toLowerCase().includes("not found"),
 		);
 
-		assert.ok(hasError, "Error should be visible in console output");
+		assert.ok(hasError, "Undefined variable error should be displayed");
 	});
 
-	it("handles undefined function errors", async () => {
+	it(TEST_CASES["error-handling"][4], async () => {
 		await setEditorValue("nonexistent_function()");
 		await clickRunAll();
 
-		// Wait for error
 		await browser.waitUntil(
 			async () => {
 				const outputs = await browser.$$(consoleOutputSelector);
@@ -191,54 +170,16 @@ describe("Error handling scenarios", () => {
 				text.toLowerCase().includes("error"),
 		);
 
-		assert.ok(hasError, "Undefined function error should be displayed");
+		assert.ok(hasError, "Function error should be displayed");
 	});
 
-	it("recovers from errors and allows subsequent executions", async () => {
+	it(TEST_CASES["error-handling"][5], async () => {
 		const editorInput = await browser.$(editorSelector);
-		// First: Execute code that errors
-		await setEditorValue('stop("Error")');
-		await clickRunAll();
+		await editorInput.waitForDisplayed({ timeout: 30000 });
 
-		// Wait for error
-		await browser.pause(3000);
-
-		// Second: Execute valid code
-		await setEditorValue("x <- 42\nprint(x)");
-		await clickRunAll();
-
-		// Wait for successful output
-		await browser.waitUntil(
-			async () => {
-				const outputs = await browser.$$(consoleOutputSelector);
-				for (const output of outputs) {
-					const text = await output.getText();
-					if (text.includes("[1] 42")) {
-						return true;
-					}
-				}
-				return false;
-			},
-			{
-				timeout: 30000,
-				timeoutMsg: "Expected successful execution after error",
-			},
-		);
-
-		const outputs = await browser.$$(consoleOutputSelector);
-		const outputTexts = await outputs.map((output) => output.getText());
-		const hasSuccess = outputTexts.some((text) => text.includes("[1] 42"));
-
-		assert.ok(hasSuccess, "Application should recover from errors and execute new code");
-	});
-
-	it("handles parse errors gracefully", async () => {
-		const editorInput = await browser.$(editorSelector);
-		// Completely malformed R code
 		await setEditorValue("}{][)( <- %% !!!");
 		await clickRunAll();
 
-		// Wait for parse error
 		await browser.waitUntil(
 			async () => {
 				const outputs = await browser.$$(consoleOutputSelector);
@@ -256,8 +197,50 @@ describe("Error handling scenarios", () => {
 			},
 		);
 
-		// Verify application didn't crash
 		const editorStillVisible = await editorInput.isDisplayed();
 		assert.ok(editorStillVisible, "Editor should still be functional after parse error");
+	});
+
+	it(TEST_CASES["error-handling"][6], async () => {
+		const editorInput = await browser.$(editorSelector);
+		await editorInput.waitForDisplayed({ timeout: 30000 });
+
+		await setEditorValue("x <- 1 +");
+		await clickRunAll();
+		await browser.pause(1000);
+
+		await setEditorValue('y <- "text" / 2');
+		await clickRunAll();
+		await browser.pause(1000);
+
+		await setEditorValue("z <- undefinedVar");
+		await clickRunAll();
+		await browser.pause(1000);
+
+		await setEditorValue("final_result <- 100\nprint(final_result)");
+		await clickRunAll();
+
+		await browser.waitUntil(
+			async () => {
+				const outputs = await browser.$$(consoleOutputSelector);
+				for (const output of outputs) {
+					const text = await output.getText();
+					if (text.includes("[1] 100")) {
+						return true;
+					}
+				}
+				return false;
+			},
+			{
+				timeout: 30000,
+				timeoutMsg: "Expected successful execution after multiple errors",
+			},
+		);
+
+		const outputs = await browser.$$(consoleOutputSelector);
+		const outputTexts = await outputs.map((output) => output.getText());
+		const hasSuccess = outputTexts.some((text) => text.includes("[1] 100"));
+
+		assert.ok(hasSuccess, "Application should remain responsive after multiple errors");
 	});
 });

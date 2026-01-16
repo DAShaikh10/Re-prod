@@ -1,9 +1,10 @@
 import { expect, test } from "@playwright/test";
 import { waitForAppConnected } from "../shared/helpers";
 import { selectors } from "../shared/selectors";
+import { TEST_CASES } from "../shared/test-registry";
 
 test.describe("File Explorer", () => {
-	test("opens a file and loads editor tab/content", async ({ page }) => {
+	test(TEST_CASES["file-explorer"][0], async ({ page }) => {
 		const projectFolder = "alpha";
 		const fixtureFileName = "alpha.R";
 		const fixtureText = "Alpha project loaded";

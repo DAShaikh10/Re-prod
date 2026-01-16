@@ -1,5 +1,6 @@
 import assert from "node:assert";
 import { clickRunAll, closeDialog, openTimelineDialog, setEditorValue } from "./helpers";
+import { TEST_CASES } from "../shared/test-registry";
 
 const editorSelector = ".monaco-editor textarea";
 const timelineDialogSelector = ".timeline-dialog";
@@ -8,7 +9,7 @@ const timelineStatsSelector = ".timeline-stat";
 const consoleOutputSelector = ".console-stdout";
 
 describe("Timeline feature", () => {
-	it("opens timeline dialog and displays execution history", async () => {
+	it(TEST_CASES["timeline"][0], async () => {
 		// Execute some R code to create timeline events
 		const editorInput = await browser.$(editorSelector);
 		await editorInput.waitForDisplayed({ timeout: 30000 });
@@ -56,7 +57,7 @@ describe("Timeline feature", () => {
 		await closeDialog(timelineDialogSelector, ".timeline-dialog-overlay");
 	});
 
-	it("filters timeline events by type", async () => {
+	it(TEST_CASES["timeline"][1], async () => {
 		// Open timeline dialog
 		await openTimelineDialog();
 
@@ -79,7 +80,7 @@ describe("Timeline feature", () => {
 		await closeDialog(timelineDialogSelector, ".timeline-dialog-overlay");
 	});
 
-	it("displays timeline statistics correctly", async () => {
+	it(TEST_CASES["timeline"][2], async () => {
 		// Open timeline dialog
 		await openTimelineDialog();
 
@@ -94,7 +95,7 @@ describe("Timeline feature", () => {
 		await closeDialog(timelineDialogSelector, ".timeline-dialog-overlay");
 	});
 
-	it("navigates to code location when clicking timeline event", async () => {
+	it(TEST_CASES["timeline"][3], async () => {
 		// Execute code with specific content we can verify
 		await setEditorValue("# Test navigation\ny <- 100");
 

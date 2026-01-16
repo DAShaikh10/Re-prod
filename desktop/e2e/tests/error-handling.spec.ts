@@ -6,9 +6,10 @@ import {
 	waitForConsoleOutput,
 } from "../shared/helpers";
 import { selectors } from "../shared/selectors";
+import { TEST_CASES } from "../shared/test-registry";
 
 test.describe("Error handling scenarios", () => {
-	test("displays R syntax errors in console", async ({ page }) => {
+	test(TEST_CASES["error-handling"][0], async ({ page }) => {
 		await page.goto("/");
 
 		// Execute code with syntax error (invalid token)
@@ -27,7 +28,7 @@ test.describe("Error handling scenarios", () => {
 		expect(stderrCount + stdoutCount).toBeGreaterThan(0);
 	});
 
-	test("displays R runtime errors", async ({ page }) => {
+	test(TEST_CASES["error-handling"][1], async ({ page }) => {
 		await page.goto("/");
 
 		// Execute code with type error
@@ -45,7 +46,7 @@ test.describe("Error handling scenarios", () => {
 		expect(stderrCount + stdoutCount).toBeGreaterThan(0);
 	});
 
-	test("recovers from errors and allows subsequent executions", async ({ page }) => {
+	test(TEST_CASES["error-handling"][2], async ({ page }) => {
 		await page.goto("/");
 
 		// Execute error code
@@ -63,7 +64,7 @@ test.describe("Error handling scenarios", () => {
 		expect(hasOutput).toBeTruthy();
 	});
 
-	test("handles undefined variable errors", async ({ page }) => {
+	test(TEST_CASES["error-handling"][3], async ({ page }) => {
 		await page.goto("/");
 
 		// Reference undefined variable
@@ -80,7 +81,7 @@ test.describe("Error handling scenarios", () => {
 		expect(stderrCount + stdoutCount).toBeGreaterThan(0);
 	});
 
-	test("handles function errors gracefully", async ({ page }) => {
+	test(TEST_CASES["error-handling"][4], async ({ page }) => {
 		await page.goto("/");
 
 		// Call non-existent function
@@ -97,7 +98,7 @@ test.describe("Error handling scenarios", () => {
 		expect(stderrCount + stdoutCount).toBeGreaterThan(0);
 	});
 
-	test("displays parse errors", async ({ page }) => {
+	test(TEST_CASES["error-handling"][5], async ({ page }) => {
 		await page.goto("/");
 
 		// Execute code with parse error (mismatched parentheses)
@@ -114,7 +115,7 @@ test.describe("Error handling scenarios", () => {
 		expect(stderrCount + stdoutCount).toBeGreaterThan(0);
 	});
 
-	test("maintains app responsiveness after multiple errors", async ({ page }) => {
+	test(TEST_CASES["error-handling"][6], async ({ page }) => {
 		await page.goto("/");
 
 		// Execute multiple errors

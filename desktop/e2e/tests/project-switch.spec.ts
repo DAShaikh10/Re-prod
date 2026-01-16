@@ -1,10 +1,11 @@
 import { expect, test } from "@playwright/test";
 import { selectors } from "../shared/selectors";
+import { TEST_CASES } from "../shared/test-registry";
 
 const CONNECTED_TIMEOUT_MS = 240000;
 
 test.describe("Project Switch (Web)", () => {
-	test("opens modal and switches to a server project", async ({ page }) => {
+	test(TEST_CASES["project-switch"][0], async ({ page }) => {
 		await page.goto("/");
 
 		const fileBrowser = page.locator(selectors.fileBrowser);

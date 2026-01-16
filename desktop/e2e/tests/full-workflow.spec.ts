@@ -8,9 +8,10 @@ import {
 	waitForConsoleOutput,
 } from "../shared/helpers";
 import { selectors } from "../shared/selectors";
+import { TEST_CASES } from "../shared/test-registry";
 
 test.describe("Full user workflow", () => {
-	test("completes a full data analysis workflow", async ({ page }) => {
+	test(TEST_CASES["full-workflow"][0], async ({ page }) => {
 		// ========================================
 		// STEP 1: App Launch and Initial State
 		// ========================================
@@ -128,7 +129,7 @@ cat("Total sum:", result, "\\n")`;
 		});
 	});
 
-	test("handles workflow with errors and recovery", async ({ page }) => {
+	test(TEST_CASES["full-workflow"][1], async ({ page }) => {
 		await page.goto("/");
 
 		const editor = page.locator(selectors.editor);
@@ -157,7 +158,7 @@ cat("Total sum:", result, "\\n")`;
 		await closeDialog(page);
 	});
 
-	test("completes workflow with multiple code blocks", async ({ page }) => {
+	test(TEST_CASES["full-workflow"][2], async ({ page }) => {
 		await page.goto("/");
 
 		const editor = page.locator(selectors.editor);

@@ -1,9 +1,10 @@
 import { expect, test } from "@playwright/test";
+import { TEST_CASES } from "../shared/test-registry";
 
 const settingsDialogName = "Settings";
 
 test.describe("Settings ACP mode", () => {
-	test("keeps External Agent (ACP) selected after agent refresh", async ({ page }) => {
+	test(TEST_CASES["settings-acp-mode"][0], async ({ page }) => {
 		await page.goto("/");
 
 		const statusBarSettingsButton = page.locator(".statusbar-ai");
