@@ -1,3 +1,5 @@
+import path from "node:path";
+
 export async function openTimelineDialog(): Promise<WebdriverIO.Element> {
 	await browser.waitUntil(
 		async () =>
@@ -163,6 +165,55 @@ export async function clickRunAll(): Promise<void> {
 			}, runAllSelector),
 		{ timeout: 15000, timeoutMsg: "Run All button not available" },
 	);
+}
+
+export async function waitForConsoleOutput(expected: string, timeoutMs = 60000): Promise<string[]> {
+	await browser.waitUntil(
+		async () => {
+			const texts = await browser.execute(() =>
+				Array.from(document.querySelectorAll(".console-stdout"), (element) =>
+					(element.textContent ?? "").trim(),
+				),
+			);
+			return texts.some((text) => text.includes(expected));
+		},
+		{
+			timeout: timeoutMs,
+			timeoutMsg: `Expected R execution output to include ${expected}`,
+		},
+	);
+
+	return (await browser.execute(() =>
+		Array.from(document.querySelectorAll(".console-stdout"), (element) =>
+			(element.textContent ?? "").trim(),
+		),
+	)) as string[];
+}
+
+export async function waitForConnected(timeoutMs = 30000): Promise<void> {
+	await browser.waitUntil(
+		async () =>
+			browser.execute(() => {
+				const helper = (window as any).reprodTest as { isConnected?: () => boolean } | undefined;
+				if (typeof helper?.isConnected === "function") {
+					return helper.isConnected();
+				}
+				const status = document.querySelector(".connection-indicator .connection-text");
+				return status?.textContent?.toLowerCase().includes("connected") ?? false;
+			}),
+		{
+			timeout: timeoutMs,
+			timeoutMsg: "Expected app to be connected before running code",
+		},
+	);
+}
+
+export async function openFixturesProject(timeoutMs = 30000): Promise<void> {
+	const repoRoot = path.resolve(__dirname, "../../..");
+	const fixturesRoot = path.join(repoRoot, "desktop/e2e/shared/fixtures/projects");
+	await waitForConnected(timeoutMs);
+	await switchProjectFolderAndWait(fixturesRoot, "projects", timeoutMs);
+	await waitForFileTreeLabel("alpha", timeoutMs);
 }
 
 export async function getFileTreeLabels(): Promise<string[]> {

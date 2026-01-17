@@ -41,6 +41,15 @@ export const TEST_CASES = {
 	],
 	"project-switch": ["opens modal and switches to a server project"],
 	"settings-acp-mode": ["keeps External Agent (ACP) selected after agent refresh"],
+	"ai-agent": [
+		"disables send until input is provided",
+		"opens settings when sending without a configured agent",
+		"switches between agent and chat modes",
+	],
+	plot: [
+		"renders a plot in the plots panel",
+		"navigates between plots with previous and next buttons",
+	],
 	terminal: [
 		"opens terminal pane and becomes visible",
 		"executes shell command and displays output",

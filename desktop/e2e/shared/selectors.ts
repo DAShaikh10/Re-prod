@@ -54,20 +54,23 @@ export const selectors = {
 	// AI Agent
 	aiPanel: ".ai-panel",
 	aiInput: ".ai-input",
-	aiSendButton: ".ai-send-button",
-	aiMessage: ".ai-message",
-	aiCodeBlock: ".ai-code-block",
-	aiAcceptButton: ".ai-accept-button",
+	aiSendButton: 'button[aria-label="Send message"]',
+	aiMessage: ".ai-messages .message",
+	aiCodeBlock: ".code-block-container",
+	aiAcceptButton: 'button[title="Apply to editor"]',
 	aiRejectButton: ".ai-reject-button",
 	aiProviderSelect: ".ai-provider-select",
+	aiModeSelect: ".mode-dropdown",
 
 	// Plot
-	plotPane: ".plot-pane",
+	plotPane: ".plot-viewer",
 	plotImage: ".plot-image",
-	plotPrevButton: 'button[title="Previous Plot"]',
-	plotNextButton: 'button[title="Next Plot"]',
+	plotPrevButton: 'button[aria-label="Previous plot"]',
+	plotNextButton: 'button[aria-label="Next plot"]',
 	plotClearButton: 'button[title="Clear Plots"]',
 	plotExportButton: 'button[title="Export Plot"]',
+	plotCounter: ".plot-counter",
+	plotsTab: 'button.tab:has-text("Plots")',
 
 	// Menu
 	menuBar: ".menu-bar",

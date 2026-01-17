@@ -1,40 +1,36 @@
 import assert from "node:assert";
-import { clickRunAll, closeDialog, openTimelineDialog, setEditorValue } from "./helpers";
+import {
+	clickRunAll,
+	closeDialog,
+	openTimelineDialog,
+	openFixturesProject,
+	setEditorValue,
+	waitForConnected,
+	waitForConsoleOutput,
+} from "./helpers";
 import { TEST_CASES } from "../shared/test-registry";
 
 const editorSelector = ".monaco-editor textarea";
 const timelineDialogSelector = ".timeline-dialog";
 const timelineEventSelector = ".timeline-event";
 const timelineStatsSelector = ".timeline-stat";
-const consoleOutputSelector = ".console-stdout";
-
 describe("Timeline feature", () => {
-	it(TEST_CASES["timeline"][0], async () => {
-		// Execute some R code to create timeline events
+	before(async () => {
 		const editorInput = await browser.$(editorSelector);
 		await editorInput.waitForDisplayed({ timeout: 30000 });
+		await waitForConnected();
+		await openFixturesProject();
+	});
+
+	it(TEST_CASES["timeline"][0], async () => {
+		// Execute some R code to create timeline events
 		await setEditorValue("x <- 1 + 1\nprint(x)");
 
 		// Run the code
 		await clickRunAll();
 
 		// Wait for execution to complete
-		await browser.waitUntil(
-			async () => {
-				const outputs = await browser.$$(consoleOutputSelector);
-				for (const output of outputs) {
-					const text = await output.getText();
-					if (text.includes("[1] 2")) {
-						return true;
-					}
-				}
-				return false;
-			},
-			{
-				timeout: 30000,
-				timeoutMsg: "Expected code execution to complete",
-			},
-		);
+		await waitForConsoleOutput("[1] 2");
 
 		const timelineDialog = await openTimelineDialog();
 
