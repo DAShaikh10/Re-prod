@@ -79,7 +79,7 @@ describe("useAIConversation", () => {
 					isLoading: false,
 					agentSessionId: null,
 				},
-				activeMode: "agent",
+				activeMode: "api",
 				activeAgent: null,
 				addAIMessage: mockAddAIMessage,
 				startStreamingMessage: mockStartStreamingMessage,
@@ -147,5 +147,25 @@ describe("useAIConversation", () => {
 		});
 
 		expect(mockSetAILoading).toHaveBeenCalledWith(false);
+	});
+
+	it("should send ai_cancel on stop for API-key mode", async () => {
+		const { result } = renderHook(() => useAIConversation());
+
+		act(() => {
+			result.current.aiActions.setInput("hello");
+		});
+
+		await act(async () => {
+			await result.current.aiActions.ask();
+		});
+
+		act(() => {
+			result.current.aiActions.stop();
+		});
+
+		expect(socketService.send).toHaveBeenCalledWith(expect.objectContaining({ type: "ai_cancel" }));
+		expect(mockSetAILoading).toHaveBeenCalledWith(true);
+		expect(mockSetAILoading).not.toHaveBeenCalledWith(false);
 	});
 });

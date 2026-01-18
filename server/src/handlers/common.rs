@@ -22,6 +22,8 @@ use reprod_core::{
 use serde::Deserialize;
 use serde_json::Value;
 use tokio::sync::{oneshot, Mutex};
+use tokio::sync::{Notify, RwLock};
+use std::sync::atomic::{AtomicBool, Ordering};
 
 #[derive(Debug, Deserialize)]
 struct SystemPrompts {
@@ -62,6 +64,7 @@ pub struct AppState {
     pub request_counter: Arc<AtomicU64>,
     pub projects: Arc<ProjectController>,
     pub approvals: Arc<ApprovalManager>,
+    pub cancels: Arc<CancelManager>,
 }
 
 pub(super) fn with_system_prompts(messages: &[ChatMessage], mode: AIMode) -> Vec<ChatMessage> {
@@ -109,6 +112,11 @@ pub(super) enum WSRequest {
     },
     #[serde(rename = "agent_approval_decision")]
     AgentApprovalDecision { decision: ApprovalDecisionPayload },
+    #[serde(rename = "ai_cancel")]
+    AICancel {
+        request_id: String,
+        agent_session_id: String,
+    },
     #[serde(rename = "list_tools")]
     ListTools,
     #[serde(rename = "execute_tool")]
@@ -552,6 +560,72 @@ impl ApprovalManager {
     }
 }
 
+pub struct CancelToken {
+    cancelled: AtomicBool,
+    notify: Notify,
+}
+
+impl CancelToken {
+    pub fn new() -> Self {
+        Self {
+            cancelled: AtomicBool::new(false),
+            notify: Notify::new(),
+        }
+    }
+
+    pub fn cancel(&self) {
+        if !self.cancelled.swap(true, Ordering::SeqCst) {
+            self.notify.notify_waiters();
+        }
+    }
+
+    pub fn is_cancelled(&self) -> bool {
+        self.cancelled.load(Ordering::SeqCst)
+    }
+
+    pub async fn wait(&self) {
+        if self.is_cancelled() {
+            return;
+        }
+        self.notify.notified().await;
+    }
+}
+
+pub struct CancelManager {
+    tokens: RwLock<HashMap<String, Arc<CancelToken>>>,
+}
+
+impl CancelManager {
+    pub fn new() -> Self {
+        Self {
+            tokens: RwLock::new(HashMap::new()),
+        }
+    }
+
+    pub async fn register(&self, request_id: &str) -> Arc<CancelToken> {
+        let token = Arc::new(CancelToken::new());
+        let mut tokens = self.tokens.write().await;
+        tokens.insert(request_id.to_string(), token.clone());
+        token
+    }
+
+    pub async fn cancel(&self, request_id: &str) -> bool {
+        let token = {
+            let tokens = self.tokens.read().await;
+            tokens.get(request_id).cloned()
+        };
+        if let Some(token) = token {
+            token.cancel();
+            return true;
+        }
+        false
+    }
+
+    pub async fn unregister(&self, request_id: &str) {
+        let mut tokens = self.tokens.write().await;
+        tokens.remove(request_id);
+    }
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -590,6 +664,17 @@ mod tests {
             .is_allowed("session-1", "write_text_file", Some("src/app.ts"), root)
             .await;
         assert!(allowed);
+    }
+
+    #[tokio::test]
+    async fn cancel_manager_triggers_token() {
+        let manager = CancelManager::new();
+        let token = manager.register("req-1").await;
+        assert!(!token.is_cancelled());
+        assert!(manager.cancel("req-1").await);
+        assert!(token.is_cancelled());
+        manager.unregister("req-1").await;
+        assert!(!manager.cancel("req-1").await);
     }
 }
 
