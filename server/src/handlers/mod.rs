@@ -24,6 +24,7 @@ use uuid::Uuid;
 mod acp_handler;
 mod ai_handler;
 mod common;
+mod environment_handler;
 mod export_handler;
 mod plot_history_handler;
 mod project_requests;
@@ -43,6 +44,7 @@ use acp_handler::{
 };
 use ai_handler::{handle_agent_approval_decision, handle_ai_message};
 use common::{error_response, WSRequest, WSResponse};
+use environment_handler::handle_environment_query;
 use export_handler::handle_export_request;
 use plot_history_handler::{
     handle_plot_history_clear, handle_plot_history_delete, handle_plot_history_export,
@@ -364,6 +366,7 @@ async fn handle_ws_request(
         WSRequest::AcpPendingEditUpdate { edit_id, new_text } => {
             handle_acp_pending_edit_update(runtime, &edit_id, &new_text).await
         }
+        WSRequest::EnvironmentQuery => handle_environment_query(runtime).await,
         _ => Vec::new(),
     }
 }

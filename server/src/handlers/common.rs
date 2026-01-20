@@ -16,8 +16,8 @@ use reprod_core::{
     fs::FileSystemEvent,
     plot_history::PlotHistoryEntry,
     project::ProjectRecord,
-    AIResponse, ChatMessage, Config, ExecutionEvent, ExecutionRequest, RunOutputChunk, RunSummary,
-    ToolExecutor, ToolManifest, ToolRegistry,
+    AIResponse, ChatMessage, Config, EnvironmentVariable, ExecutionEvent, ExecutionRequest,
+    RunOutputChunk, RunSummary, ToolExecutor, ToolManifest, ToolRegistry,
 };
 use serde::Deserialize;
 use serde_json::Value;
@@ -197,6 +197,8 @@ pub(super) enum WSRequest {
     AcpPendingEditReject { edit_id: String },
     #[serde(rename = "acp_pending_edit_update")]
     AcpPendingEditUpdate { edit_id: String, new_text: String },
+    #[serde(rename = "environment_query")]
+    EnvironmentQuery,
 }
 
 #[derive(serde::Serialize)]
@@ -360,6 +362,8 @@ pub(super) enum WSResponse {
     AcpPermissionRequest {
         request: AcpPermissionRequestPayload,
     },
+    #[serde(rename = "environment_data")]
+    EnvironmentData { variables: Vec<EnvironmentVariable> },
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Copy)]
