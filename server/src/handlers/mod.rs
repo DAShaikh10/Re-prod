@@ -218,8 +218,9 @@ async fn handle_ws_text(
 
                 match request {
                     WSRequest::AIMessage {
-                        messages,
-                        agent_session_id,
+                        session_id,
+                        content,
+                        context,
                         enable_tools,
                         request_id,
                         stream,
@@ -232,8 +233,9 @@ async fn handle_ws_text(
                             let _ = handle_ai_message(
                                 &state,
                                 &runtime,
-                                messages,
-                                agent_session_id,
+                                session_id,
+                                content,
+                                context,
                                 enable_tools,
                                 request_id,
                                 stream,
@@ -274,8 +276,9 @@ async fn handle_ws_request(
 ) -> Vec<WSResponse> {
     match request {
         WSRequest::AIMessage {
-            messages,
-            agent_session_id,
+            session_id,
+            content,
+            context,
             enable_tools,
             request_id,
             stream,
@@ -284,8 +287,9 @@ async fn handle_ws_request(
             handle_ai_message(
                 state,
                 runtime,
-                messages,
-                agent_session_id,
+                session_id,
+                content,
+                context,
                 enable_tools,
                 request_id,
                 stream,
@@ -350,7 +354,8 @@ async fn handle_ws_request(
         WSRequest::AcpSessionPrompt {
             session_id,
             messages,
-        } => handle_acp_session_prompt(runtime, &session_id, &messages).await,
+            context,
+        } => handle_acp_session_prompt(runtime, &session_id, &messages, context).await,
         WSRequest::AcpSessionCancel { session_id } => {
             handle_acp_session_cancel(runtime, &session_id).await
         }

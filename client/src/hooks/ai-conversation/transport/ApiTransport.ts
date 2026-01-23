@@ -28,15 +28,23 @@ export class ApiTransport implements AITransport {
 
 		const cleanup = this.registerSocketHandlers(requestId);
 
-		const requestMessages = [...request.messages];
+		// Extract raw input and metadata
+		const userInput = request.messages[request.messages.length - 1]?.content ?? "";
 
 		const sent = socketService.send(
-			aiMessages.send(requestMessages, {
+			aiMessages.send({
 				agentSessionId: request.agentSessionId,
 				requestId,
 				stream: true,
 				enableTools: request.mode === "agent",
 				mode: request.mode,
+				content: userInput,
+				session_id: request.agentSessionId,
+				context: {
+					user_input: userInput,
+					active_buffer_path: request.context.editorFilepath || null,
+					console_history_limit: 3, // Default to 3 latest items
+				},
 			}),
 		);
 

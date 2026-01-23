@@ -6,7 +6,8 @@ use std::{
 
 use crate::projects::ProjectController;
 use reprod_core::acp::types::{
-    AcpPermissionDecision, AcpPermissionRequestPayload, AcpPromptMessage, AcpSessionUpdate,
+    AcpContextRequest, AcpPermissionDecision, AcpPermissionRequestPayload, AcpPromptMessage,
+    AcpSessionUpdate,
 };
 use reprod_core::{
     api::timeline::{
@@ -99,8 +100,10 @@ pub(super) enum WSRequest {
     Execute { request: ExecutionRequest },
     #[serde(rename = "ai_message")]
     AIMessage {
-        messages: Vec<ChatMessage>,
-        agent_session_id: String,
+        session_id: String,
+        content: String,
+        #[serde(default)]
+        context: Option<AcpContextRequest>,
         #[serde(default)]
         enable_tools: bool,
         #[serde(default)]
@@ -186,6 +189,8 @@ pub(super) enum WSRequest {
     AcpSessionPrompt {
         session_id: String,
         messages: Vec<AcpPromptMessage>,
+        #[serde(default)]
+        context: Option<AcpContextRequest>,
     },
     #[serde(rename = "acp_session_cancel")]
     AcpSessionCancel { session_id: String },
