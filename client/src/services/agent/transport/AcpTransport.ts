@@ -4,11 +4,7 @@ import { normalizeWorkspaceRelativePath } from "@/core/pathUtils";
 import type { AcpPromptMessage, AcpSessionUpdateEnvelope } from "@/types/generated";
 import type { PlanStep, ToolCallLog, PendingEdit, TransportEvent } from "@/types";
 import type { AcpPlanStep } from "@/types/generated/AcpPlanStep";
-import type {
-	AITransport,
-	AITransportRequest,
-	TransportListener,
-} from "./AITransport";
+import type { AITransport, AITransportRequest, TransportListener } from "./AITransport";
 
 export class AcpTransport implements AITransport {
 	private listeners: Set<TransportListener> = new Set();

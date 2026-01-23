@@ -1,11 +1,7 @@
 import { socketService } from "@/services/socket";
 import { aiMessages } from "@/services/messageBuilders";
 import { normalizeWorkspaceRelativePath } from "@/core/pathUtils";
-import type {
-	AITransport,
-	AITransportRequest,
-	TransportListener,
-} from "./AITransport";
+import type { AITransport, AITransportRequest, TransportListener } from "./AITransport";
 import type { AgentEvent, PendingEdit, TransportEvent } from "@/types";
 
 export class ApiTransport implements AITransport {
