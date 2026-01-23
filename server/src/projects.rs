@@ -61,6 +61,10 @@ pub struct ProjectRuntime {
     pub web_search_registry: Arc<Mutex<WebSearchRegistry>>,
     pub pending_edits: Arc<Mutex<PendingEditStore>>,
     pub local_sessions: Arc<Mutex<HashMap<String, LocalAgentSession>>>,
+    pub acp_conversations: Arc<Mutex<HashMap<String, String>>>,
+    pub acp_session_streams: Arc<Mutex<HashMap<String, String>>>,
+    pub acp_tool_titles: Arc<Mutex<HashMap<String, HashMap<String, String>>>>,
+    pub acp_last_chunk_kind: Arc<Mutex<HashMap<String, String>>>,
 }
 
 impl ProjectRuntime {
@@ -141,6 +145,10 @@ impl ProjectRuntime {
             web_search_registry,
             pending_edits: Arc::new(Mutex::new(PendingEditStore::default())),
             local_sessions: Arc::new(Mutex::new(HashMap::new())),
+            acp_conversations: Arc::new(Mutex::new(HashMap::new())),
+            acp_session_streams: Arc::new(Mutex::new(HashMap::new())),
+            acp_tool_titles: Arc::new(Mutex::new(HashMap::new())),
+            acp_last_chunk_kind: Arc::new(Mutex::new(HashMap::new())),
         })
     }
 }
