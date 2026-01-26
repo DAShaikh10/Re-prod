@@ -19,7 +19,8 @@ use tokio::time::{timeout, Duration};
 
 use super::common::{
     build_streaming_payload, error_response, now_millis, tool_log_from_call, with_system_prompts,
-    AgentEventPayload, AgentEventStatus, AIMode, AppState, ApprovalDecisionPayload,
+    approval_preview_text, AgentEventPayload, AgentEventStatus, AIMode, AppState,
+    ApprovalDecisionPayload,
     ApprovalOption, ApprovalRequestPayload, ApprovalRule, ArtifactDetailsPayload, ArtifactKind,
     PendingEditPayload, PlanStepKind, PlanStepPayload, PlanStepStatus, ToolLogStatus,
     ToolPreviewPayload, WSResponse,
@@ -743,7 +744,10 @@ pub(super) async fn handle_ai_message(
                                 request: ApprovalRequestPayload {
                                     event_id: request_event_id.clone(),
                                     tool: tool_call.name.clone(),
-                                    preview: approval_preview,
+                                    preview: approval_preview.clone(),
+                                    preview_text: approval_preview_text(&approval_preview),
+                                    title: None,
+                                    subtitle: None,
                                     options: vec![
                                         ApprovalOption::ApproveOnce,
                                         ApprovalOption::ApproveSession,

@@ -5,6 +5,9 @@ export type ApprovalRequestPayload = {
 	eventId: string;
 	tool: string;
 	preview: any;
+	previewText: string | null;
+	title: string | null;
+	subtitle: string | null;
 	options: Array<ApprovalOption>;
 	input: any;
 };

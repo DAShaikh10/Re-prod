@@ -408,6 +408,13 @@ pub(crate) struct ApprovalRequestPayload {
     pub tool: String,
     #[ts(type = "any")]
     pub preview: ToolPreviewPayload,
+    #[serde(skip_serializing_if = "Option::is_none", rename = "previewText")]
+    #[ts(rename = "previewText")]
+    pub preview_text: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subtitle: Option<String>,
     pub options: Vec<ApprovalOption>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[ts(type = "any")]
@@ -439,6 +446,15 @@ pub(crate) struct ApprovalDecisionPayload {
     #[ts(type = "any | null")]
     #[ts(rename = "editedInput")]
     pub edited_input: Option<Value>,
+}
+
+pub(crate) fn approval_preview_text(preview: &ToolPreviewPayload) -> Option<String> {
+    match preview.kind.as_str() {
+        "diff" => preview.diff.clone(),
+        "command" => preview.command.clone(),
+        "read" => preview.filepath.clone(),
+        _ => None,
+    }
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug, Hash, PartialEq, Eq, TS)]
@@ -743,6 +759,36 @@ mod tests {
         assert_eq!(prefixed[0].content, prompts.patch);
         assert_eq!(prefixed[1].content, prompts.range);
         assert_eq!(&prefixed[2..], messages.as_slice());
+    }
+
+    #[test]
+    fn approval_preview_text_prefers_payload_content() {
+        let diff_preview = ToolPreviewPayload {
+            kind: "diff".to_string(),
+            filepath: Some("note.txt".to_string()),
+            diff: Some("diff".to_string()),
+            command: None,
+            affected_lines: None,
+        };
+        assert_eq!(approval_preview_text(&diff_preview), Some("diff".to_string()));
+
+        let command_preview = ToolPreviewPayload {
+            kind: "command".to_string(),
+            filepath: None,
+            diff: None,
+            command: Some("ls".to_string()),
+            affected_lines: None,
+        };
+        assert_eq!(approval_preview_text(&command_preview), Some("ls".to_string()));
+
+        let read_preview = ToolPreviewPayload {
+            kind: "read".to_string(),
+            filepath: Some("note.txt".to_string()),
+            diff: None,
+            command: None,
+            affected_lines: None,
+        };
+        assert_eq!(approval_preview_text(&read_preview), Some("note.txt".to_string()));
     }
 
 }
