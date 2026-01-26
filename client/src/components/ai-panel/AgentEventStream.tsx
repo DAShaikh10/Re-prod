@@ -126,6 +126,9 @@ export function AgentEventStream({ events, approvals }: Props): JSX.Element | nu
 
 	const previewText = useMemo(() => {
 		if (!approval) return "";
+		if (approval.previewText) {
+			return approval.previewText;
+		}
 		if (approval.preview.kind === "diff") {
 			return approval.preview.diff ?? "";
 		}
@@ -173,8 +176,13 @@ export function AgentEventStream({ events, approvals }: Props): JSX.Element | nu
 			{approval && (
 				<div className="agent-event-stream__approval">
 					<div className="agent-event-stream__approval-header">
-						<div className="agent-event-stream__approval-title">Approval Required</div>
+						<div className="agent-event-stream__approval-title">
+							{approval.title ?? "Approval Required"}
+						</div>
 						<div className="agent-event-stream__approval-tool">{approval.tool}</div>
+						{approval.subtitle && (
+							<div className="agent-event-stream__approval-subtitle">{approval.subtitle}</div>
+						)}
 					</div>
 					{previewText && <pre className="agent-event-stream__preview">{previewText}</pre>}
 					{approval.input && (

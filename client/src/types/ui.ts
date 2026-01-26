@@ -274,6 +274,9 @@ export interface ApprovalRequest {
 	eventId: string;
 	tool: string;
 	preview: ToolPreview;
+	previewText?: string | null;
+	title?: string | null;
+	subtitle?: string | null;
 	options: ApprovalOption[];
 	input?: Record<string, unknown> | null;
 }

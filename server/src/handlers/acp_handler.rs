@@ -422,6 +422,9 @@ pub async fn translate_acp_permission_request(
         event_id: request.request_id.clone(),
         tool: request.tool_title.clone().unwrap_or_else(|| request.tool_kind.clone().unwrap_or_else(|| "tool".to_string())),
         preview,
+        preview_text: request.raw_input.clone(),
+        title: None,
+        subtitle: None,
         options,
         input: None,
     };
