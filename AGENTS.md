@@ -1,12 +1,11 @@
-# AI Agent Instructions
-
-This document contains instructions for AI coding agents working on the Re-prod codebase.
+# AI Agent instructions
 
 **For contribution guidelines, setup instructions, and development workflows, please see [CONTRIBUTING.md](./CONTRIBUTING.md).**
 
 ## Core Principles
 
-You are an AI agent responsible for maintaining code quality in the Re-prod project. Code quality and maintainability are paramount as the project grows.
+You are responsible for maintaining code quality in the Re-prod project.
+Code quality and maintainability are paramount as the project grows.
 
 ## SOLID Principles
 
@@ -39,6 +38,7 @@ However, avoid over-engineering. If strict adherence leads to unnecessary comple
 Unit tests serve as a low-level specification (contract) for each unit: given certain inputs/preconditions, the unit must behave in a defined way (outputs, side-effects, invariants).
 
 Follow a test-first approach as advocated by Kent Beck and Hidetaka Wada:
+
 - Define behavior or acceptance criteria **before** implementing functionality
 - Write failing tests first (red)
 - Implement the minimum code to pass (green)
