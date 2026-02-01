@@ -62,6 +62,7 @@ pnpm install
 ```
 
 **Requirements**:
+
 - Node 18+ (enable `corepack` or install pnpm 9+)
 - Recent Rust toolchain
 
@@ -127,7 +128,7 @@ pnpm format
 
 # Rust formatting
 cargo fmt --check
-cargo fmt              # Apply formatting
+cargo fmt # Apply formatting
 
 # Rust linting
 cargo clippy
@@ -182,6 +183,7 @@ Before your PR can be merged, ensure:
 6. **Documentation updated** (if applicable)
 
 **Pull request content should include:**
+
 - Crisp summary of changes
 - Linked issue/ID (`Fixes #123`)
 - Before/after notes for behavior changes
