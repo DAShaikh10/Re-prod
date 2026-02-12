@@ -12,6 +12,10 @@ pub const ACP_AUTO_DOWNLOAD_ENV: &str = "REPROD_ACP_AUTO_DOWNLOAD";
 /// The server embeds this in `/health`; the desktop launcher verifies it on start.
 pub const WS_SCHEMA_VERSION: u32 = 1;
 
+/// ACP rate-limiter defaults.
+pub const RATE_LIMIT_MAX_OPS: usize = 30;
+pub const RATE_LIMIT_WINDOW: std::time::Duration = std::time::Duration::from_secs(10);
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HealthResponse {
     pub ok: bool,

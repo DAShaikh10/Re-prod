@@ -2,6 +2,7 @@ use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
 use anyhow::{anyhow, bail, Result};
+use reprod_core::config::{RATE_LIMIT_MAX_OPS, RATE_LIMIT_WINDOW};
 use reprod_core::acp::{
     build_process_config,
     config::{is_external_mode, load_acp_config},
@@ -13,8 +14,6 @@ use reprod_core::acp::{
 use tokio::sync::{broadcast, Mutex};
 use tracing::{info, warn};
 
-const RATE_LIMIT_MAX_OPS: usize = 30;
-const RATE_LIMIT_WINDOW: Duration = Duration::from_secs(10);
 
 pub struct AcpService {
     workspace_root: PathBuf,
